@@ -17,6 +17,7 @@ const app_service_1 = require("./app.service");
 const health_module_1 = require("./health/health.module");
 const queue_module_1 = require("./queue/queue.module");
 const whatsapp_module_1 = require("./whatsapp/whatsapp.module");
+const ai_module_1 = require("./ai/ai.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -57,6 +58,7 @@ exports.AppModule = AppModule = __decorate([
             queue_module_1.QueueModule,
             whatsapp_module_1.WhatsappModule,
             health_module_1.HealthModule,
+            ai_module_1.AiModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

@@ -8,6 +8,7 @@ import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
 import { QueueModule } from './queue/queue.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
     QueueModule,
     WhatsappModule,
     HealthModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [
