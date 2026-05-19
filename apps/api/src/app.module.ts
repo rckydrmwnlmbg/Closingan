@@ -6,6 +6,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { HealthModule } from './health/health.module';
         limit: 10,
       },
     ]),
+    QueueModule,
     HealthModule,
   ],
   controllers: [AppController],
