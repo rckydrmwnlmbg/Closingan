@@ -6,8 +6,13 @@ import { HotLeadWorker } from './workers/hot-lead.worker';
 import { BlastCampaignWorker } from './workers/blast-campaign.worker';
 import { HealthCheckWorker } from './workers/health-check.worker';
 
+import { AiModule } from '../ai/ai.module';
+import { WhatsappModule } from '../whatsapp/whatsapp.module';
+
 @Module({
   imports: [
+    AiModule,
+    WhatsappModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
