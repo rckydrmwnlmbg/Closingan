@@ -1,4 +1,10 @@
-import { IsString, IsEmail, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  MinLength,
+  MaxLength,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class RegisterDto {
   @IsEmail({}, { message: 'Format email tidak valid.' })

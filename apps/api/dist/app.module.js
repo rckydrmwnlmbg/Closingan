@@ -12,6 +12,7 @@ const config_1 = require("@nestjs/config");
 const throttler_1 = require("@nestjs/throttler");
 const core_1 = require("@nestjs/core");
 const nestjs_pino_1 = require("nestjs-pino");
+const nestjs_cls_1 = require("nestjs-cls");
 const app_controller_1 = require("./app.controller");
 const app_service_1 = require("./app.service");
 const health_module_1 = require("./health/health.module");
@@ -31,6 +32,10 @@ exports.AppModule = AppModule = __decorate([
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
                 envFilePath: '.env',
+            }),
+            nestjs_cls_1.ClsModule.forRoot({
+                global: true,
+                middleware: { mount: true },
             }),
             nestjs_pino_1.LoggerModule.forRootAsync({
                 imports: [config_1.ConfigModule],

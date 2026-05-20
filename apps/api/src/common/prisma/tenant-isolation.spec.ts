@@ -33,7 +33,9 @@ describe('Tenant Isolation Architecture Test', () => {
     }
 
     if (errors.length > 0) {
-      throw new Error('Tenant isolation violations found:\n' + errors.join('\n'));
+      throw new Error(
+        'Tenant isolation violations found:\n' + errors.join('\n'),
+      );
     }
   });
 });

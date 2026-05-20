@@ -10,7 +10,7 @@ export const TenantId = createParamDecorator(
       throw new AppException(
         'UNAUTHORIZED',
         'Akses ditolak: Tenant ID tidak ditemukan dalam token.',
-        401
+        401,
       );
     }
 

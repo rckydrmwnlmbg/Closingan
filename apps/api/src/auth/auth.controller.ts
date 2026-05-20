@@ -1,7 +1,23 @@
-import { Controller, Post, Body, Req, UseGuards, Ip, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  UseGuards,
+  Ip,
+  HttpCode,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ResponseBuilder } from '../common/helpers/response.builder';
-import { RegisterDto, LoginDto, VerifyOtpDto, ResendOtpDto, RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto } from './dto';
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyOtpDto,
+  ResendOtpDto,
+  RefreshTokenDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+} from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 
 @Controller('v1/auth')

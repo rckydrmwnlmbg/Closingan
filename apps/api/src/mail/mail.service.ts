@@ -10,6 +10,8 @@ export class MailService {
   }
 
   async sendPasswordReset(to: string, token: string) {
-    this.logger.log(`[MOCK EMAIL] To: ${to} - Your Password Reset Token is: ${token}`);
+    this.logger.log(
+      `[MOCK EMAIL] To: ${to} - Your Password Reset Token is: ${token}`,
+    );
   }
 }
