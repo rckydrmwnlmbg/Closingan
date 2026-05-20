@@ -25,7 +25,8 @@ let JwtAuthGuard = class JwtAuthGuard extends (0, passport_1.AuthGuard)('jwt') {
     }
     handleRequest(err, user, info) {
         if (err || !user) {
-            throw err || new app_exception_1.AppException('UNAUTHORIZED', 'Token tidak valid atau expired.', 401);
+            throw (err ||
+                new app_exception_1.AppException('UNAUTHORIZED', 'Token tidak valid atau expired.', 401));
         }
         if (user.tenantId) {
             this.cls.set('tenantId', user.tenantId);

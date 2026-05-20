@@ -9,13 +9,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuditModule = void 0;
 const common_1 = require("@nestjs/common");
 const audit_service_1 = require("./audit.service");
+const audit_interceptor_1 = require("../interceptors/audit.interceptor");
+const core_1 = require("@nestjs/core");
 let AuditModule = class AuditModule {
 };
 exports.AuditModule = AuditModule;
 exports.AuditModule = AuditModule = __decorate([
     (0, common_1.Global)(),
     (0, common_1.Module)({
-        providers: [audit_service_1.AuditService],
+        providers: [
+            audit_service_1.AuditService,
+            {
+                provide: core_1.APP_INTERCEPTOR,
+                useClass: audit_interceptor_1.AuditInterceptor,
+            },
+        ],
         exports: [audit_service_1.AuditService],
     })
 ], AuditModule);
