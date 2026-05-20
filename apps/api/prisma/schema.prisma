@@ -195,6 +195,16 @@ model Tenant {
   notificationPrefs   NotificationPreference?
   referralsMade       Referral[]              @relation("ReferralMaker")
   referralUsed        Referral?               @relation("ReferralReceiver")
+
+  messages                     Message[]
+  escalationLogs               EscalationLog[]
+  aiFeedbacks                  AiFeedback[]
+  conversationSummaries        ConversationSummary[]
+  campaignRecipients           CampaignRecipient[]
+  invoices                     Invoice[]
+  exitSurveys                  ExitSurvey[]
+  conversationLabelAssignments ConversationLabelAssignment[]
+  referrals                    Referral[]                    @relation("ReferralTenant")
 }
 
 model User {
@@ -338,6 +348,7 @@ model Message {
   createdAt DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
 
   @@index([conversationId])
   @@index([tenantId])
@@ -436,6 +447,7 @@ model EscalationLog {
   createdAt DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([conversationId])
@@ -452,7 +464,8 @@ model AiFeedback {
 
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([tenantId, createdAt])
@@ -488,6 +501,7 @@ model ConversationSummary {
   createdAt DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
 }
@@ -540,6 +554,7 @@ model CampaignRecipient {
   createdAt DateTime @default(now())
 
   campaign Campaign @relation(fields: [campaignId], references: [id])
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
 
   @@unique([campaignId, phoneNormalized])
   @@index([campaignId])
@@ -606,6 +621,7 @@ model Invoice {
   updatedAt DateTime @updatedAt
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
   @@index([externalId])
@@ -697,6 +713,7 @@ model NotificationPreference {
 
 model Referral {
   id            String         @id @default(cuid())
+  tenantId      String
   referrerId    String
   receiverId    String?        @unique
   referralCode  String         @unique
@@ -708,6 +725,7 @@ model Referral {
 
   referrer Tenant  @relation("ReferralMaker", fields: [referrerId], references: [id])
   receiver Tenant? @relation("ReferralReceiver", fields: [receiverId], references: [id])
+  tenant   Tenant  @relation("ReferralTenant", fields: [tenantId], references: [id])
 
   @@index([referrerId])
   @@index([referralCode])
@@ -752,12 +770,14 @@ model ConversationLabel {
 
 model ConversationLabelAssignment {
   id             String   @id @default(cuid())
+  tenantId       String
   conversationId String
   labelId        String
   assignedAt     DateTime @default(now())
 
   conversation Conversation      @relation(fields: [conversationId], references: [id])
   label        ConversationLabel @relation(fields: [labelId], references: [id])
+  tenant       Tenant            @relation(fields: [tenantId], references: [id])
 
   @@unique([conversationId, labelId])
   @@index([conversationId])
@@ -790,7 +810,8 @@ model ExitSurvey {
 
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+  tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
 }
