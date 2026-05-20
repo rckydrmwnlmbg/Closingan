@@ -11,6 +11,7 @@ import { QueueModule } from './queue/queue.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { AiModule } from './ai/ai.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { WebhookModule } from './webhook/webhook.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { AuditModule } from './common/audit/audit.module';
@@ -61,6 +62,7 @@ import { AuditModule } from './common/audit/audit.module';
     WhatsappModule,
     HealthModule,
     AiModule,
+    WebhookModule,
   ],
   controllers: [AppController],
   providers: [
