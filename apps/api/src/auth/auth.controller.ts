@@ -19,12 +19,15 @@ import {
   ResetPasswordDto,
 } from './dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { Audit } from '../common/decorators/audit.decorator';
+import { AuditAction } from '@prisma/client';
 
 @Controller('v1/auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Audit(AuditAction.USER_REGISTER)
   async register(@Body() dto: RegisterDto) {
     const result = await this.authService.register(dto);
     return ResponseBuilder.success(result);
@@ -46,6 +49,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
+  @Audit(AuditAction.USER_LOGIN)
   async login(@Body() dto: LoginDto, @Ip() ip: string) {
     const result = await this.authService.login(dto, ip);
     return ResponseBuilder.success(result);
@@ -61,6 +65,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
+  @Audit(AuditAction.USER_LOGOUT)
   async logout(@Body() dto: RefreshTokenDto) {
     await this.authService.logout(dto.refreshToken);
     return ResponseBuilder.success({ success: true });

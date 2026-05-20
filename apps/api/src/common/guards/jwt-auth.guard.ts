@@ -30,6 +30,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       this.cls.set('tenantId', user.tenantId);
     }
 
+    // Also inject userId into CLS context for Audit logging and other purposes
+    if (user.userId) {
+      this.cls.set('user', { id: user.userId, ...user });
+    }
+
     return user;
   }
 }
