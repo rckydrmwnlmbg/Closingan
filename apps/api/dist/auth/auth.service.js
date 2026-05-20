@@ -262,7 +262,8 @@ let AuthService = class AuthService {
     async forgotPassword(email) {
         const user = await this.prisma.user.findUnique({ where: { email } });
         if (user) {
-            const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            const token = Math.random().toString(36).substring(2, 15) +
+                Math.random().toString(36).substring(2, 15);
             const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
             await this.prisma.otpCode.create({
                 data: {
@@ -285,7 +286,7 @@ let AuthService = class AuthService {
         }
         const passwordHash = await bcrypt.hash(newPassword, 12);
         const user = await this.prisma.user.findUnique({
-            where: { id: otpRecord.userId }
+            where: { id: otpRecord.userId },
         });
         await this.prisma.$transaction([
             this.prisma.user.update({
@@ -299,7 +300,7 @@ let AuthService = class AuthService {
             this.prisma.refreshToken.updateMany({
                 where: { userId: otpRecord.userId, usedAt: null },
                 data: { usedAt: new Date() },
-            })
+            }),
         ]);
         if (user) {
             await this.auditService.log({
@@ -322,7 +323,8 @@ let AuthService = class AuthService {
             expiresIn: '15m',
         });
         const refreshToken = this.jwtService.sign(payload, {
-            secret: this.configService.get('JWT_REFRESH_SECRET') || 'refresh_secret',
+            secret: this.configService.get('JWT_REFRESH_SECRET') ||
+                'refresh_secret',
             expiresIn: '7d',
         });
         await this.prisma.refreshToken.create({

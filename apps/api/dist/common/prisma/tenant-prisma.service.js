@@ -43,8 +43,20 @@ let TenantPrismaService = TenantPrismaService_1 = class TenantPrismaService {
                             throw new Error(`Missing tenantId in context for model ${model}. Tenant Isolation Error.`);
                         }
                         const argsClone = args ? JSON.parse(JSON.stringify(args)) : {};
-                        if (['findUnique', 'findUniqueOrThrow', 'findFirst', 'findFirstOrThrow', 'findMany', 'count', 'aggregate', 'groupBy'].includes(operation)) {
+                        if ([
+                            'findFirst',
+                            'findFirstOrThrow',
+                            'findMany',
+                            'count',
+                            'aggregate',
+                            'groupBy',
+                        ].includes(operation)) {
                             argsClone.where = { ...argsClone.where, tenantId };
+                        }
+                        else if (['findUnique', 'findUniqueOrThrow'].includes(operation)) {
+                            argsClone.where = { ...argsClone.where, tenantId };
+                            const newOperation = operation === 'findUnique' ? 'findFirst' : 'findFirstOrThrow';
+                            return self.baseClient[model][newOperation](argsClone);
                         }
                         else if (['create', 'createMany'].includes(operation)) {
                             if (operation === 'create') {
@@ -52,7 +64,10 @@ let TenantPrismaService = TenantPrismaService_1 = class TenantPrismaService {
                             }
                             else {
                                 if (Array.isArray(argsClone.data)) {
-                                    argsClone.data = argsClone.data.map((d) => ({ ...d, tenantId }));
+                                    argsClone.data = argsClone.data.map((d) => ({
+                                        ...d,
+                                        tenantId,
+                                    }));
                                 }
                                 else {
                                     argsClone.data = { ...argsClone.data, tenantId };
@@ -61,10 +76,16 @@ let TenantPrismaService = TenantPrismaService_1 = class TenantPrismaService {
                         }
                         else if (['update', 'delete', 'upsert'].includes(operation)) {
                             if (argsClone.where) {
-                                const checkArgs = { where: { ...argsClone.where, tenantId } };
-                                const record = await self.baseClient[model].findFirst(checkArgs);
-                                if (!record) {
-                                    throw new Error(`Record not found or does not belong to tenant for operation ${operation} on model ${model}`);
+                                const record = await self.baseClient[model].findUnique({ where: argsClone.where });
+                                if (record) {
+                                    if (record.tenantId !== tenantId) {
+                                        throw new Error(`Record not found or does not belong to tenant for operation ${operation} on model ${model}`);
+                                    }
+                                }
+                                else {
+                                    if (operation !== 'upsert') {
+                                        throw new Error(`Record not found or does not belong to tenant for operation ${operation} on model ${model}`);
+                                    }
                                 }
                             }
                             if (operation === 'upsert') {

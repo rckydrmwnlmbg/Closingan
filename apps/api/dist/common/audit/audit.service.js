@@ -13,18 +13,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuditService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const nestjs_cls_1 = require("nestjs-cls");
 let AuditService = AuditService_1 = class AuditService {
     prisma;
+    cls;
     logger = new common_1.Logger(AuditService_1.name);
-    constructor(prisma) {
+    constructor(prisma, cls) {
         this.prisma = prisma;
+        this.cls = cls;
     }
     async log(payload) {
         try {
+            const tenantId = payload.tenantId || this.cls.get('tenantId');
+            const userId = payload.userId || this.cls.get('user')?.id;
+            if (!tenantId) {
+                this.logger.warn(`Attempted to create audit log without tenantId for action: ${payload.action}`);
+                return;
+            }
             await this.prisma.auditLog.create({
                 data: {
-                    tenantId: payload.tenantId,
-                    userId: payload.userId,
+                    tenantId: tenantId,
+                    userId: userId,
                     action: payload.action,
                     entityType: payload.entityType,
                     entityId: payload.entityId,
@@ -42,6 +51,7 @@ let AuditService = AuditService_1 = class AuditService {
 exports.AuditService = AuditService;
 exports.AuditService = AuditService = AuditService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        nestjs_cls_1.ClsService])
 ], AuditService);
 //# sourceMappingURL=audit.service.js.map
