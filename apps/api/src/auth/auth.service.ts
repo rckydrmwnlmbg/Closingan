@@ -63,7 +63,7 @@ export class AuthService {
           passwordHash,
           fullName: dto.fullName,
           tenantId: tenant.id,
-          role: 'SALES',
+          role: 'ADMIN',
         },
       });
     });
