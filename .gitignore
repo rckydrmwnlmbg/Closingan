@@ -1,3 +1,5 @@
 node_modules/
-\ndist/\n
-apps/api/dist
+dist/
+*.js.map
+*.d.ts
+!libs/shared/**/*.d.ts
