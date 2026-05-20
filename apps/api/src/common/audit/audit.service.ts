@@ -36,7 +36,10 @@ export class AuditService {
     } catch (error) {
       // We don't want audit logging to break the main application flow,
       // but we need to know if it's failing.
-      this.logger.error(`Failed to create audit log: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create audit log: ${error.message}`,
+        error.stack,
+      );
     }
   }
 }

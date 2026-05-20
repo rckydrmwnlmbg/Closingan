@@ -10,7 +10,7 @@ export const CurrentUser = createParamDecorator(
       throw new AppException(
         'UNAUTHORIZED',
         'Akses ditolak: User tidak ditemukan.',
-        401
+        401,
       );
     }
 

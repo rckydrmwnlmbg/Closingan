@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { AiProviderInterface } from './interfaces/ai-provider.interface';
@@ -16,7 +20,9 @@ export class OpenAiService implements AiProviderInterface {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
     if (!apiKey) {
-      throw new InternalServerErrorException('OPENAI_API_KEY is not configured');
+      throw new InternalServerErrorException(
+        'OPENAI_API_KEY is not configured',
+      );
     }
 
     this.openai = new OpenAI({
@@ -45,7 +51,9 @@ export class OpenAiService implements AiProviderInterface {
       return output;
     } catch (error) {
       // HARD CONSTRAINT: Zero-Logging. Do not log the prompt or response content here.
-      this.logger.error(`Failed to generate reply from OpenAI for Tenant: ${tenantId}`);
+      this.logger.error(
+        `Failed to generate reply from OpenAI for Tenant: ${tenantId}`,
+      );
       throw new InternalServerErrorException('Failed to generate AI reply');
     }
   }
@@ -69,7 +77,9 @@ export class OpenAiService implements AiProviderInterface {
       // HARD CONSTRAINT: AI Safety Wrapper.
       const isSafe = this.aiSafetyService.validateOutput(output);
       if (!isSafe) {
-        throw new Error('AI Output failed safety validation during lead analysis');
+        throw new Error(
+          'AI Output failed safety validation during lead analysis',
+        );
       }
 
       this.logger.log(`Lead Analyzed for Tenant: ${tenantId}`);
@@ -77,7 +87,9 @@ export class OpenAiService implements AiProviderInterface {
       return JSON.parse(output);
     } catch (error) {
       // HARD CONSTRAINT: Zero-Logging. Do not log the conversation content.
-      this.logger.error(`Failed to analyze lead from OpenAI for Tenant: ${tenantId}`);
+      this.logger.error(
+        `Failed to analyze lead from OpenAI for Tenant: ${tenantId}`,
+      );
       throw new InternalServerErrorException('Failed to analyze lead');
     }
   }

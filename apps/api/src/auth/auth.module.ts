@@ -14,7 +14,8 @@ import { MailModule } from '../mail/mail.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
+        secret:
+          configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
       }),
     }),
     MailModule,

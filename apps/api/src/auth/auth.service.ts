@@ -27,7 +27,11 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     if (this.isDisposableEmail(dto.email)) {
-      throw new AppException('EMAIL_DISPOSABLE', 'Email disposable tidak diizinkan.', 422);
+      throw new AppException(
+        'EMAIL_DISPOSABLE',
+        'Email disposable tidak diizinkan.',
+        422,
+      );
     }
 
     const existingUser = await this.prisma.user.findUnique({
@@ -35,7 +39,11 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new AppException('EMAIL_ALREADY_EXISTS', 'Email sudah terdaftar.', 409);
+      throw new AppException(
+        'EMAIL_ALREADY_EXISTS',
+        'Email sudah terdaftar.',
+        409,
+      );
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
@@ -101,7 +109,11 @@ export class AuthService {
     });
 
     if (!otpRecord) {
-      throw new AppException('OTP_INVALID', 'OTP salah atau tidak ditemukan.', 422);
+      throw new AppException(
+        'OTP_INVALID',
+        'OTP salah atau tidak ditemukan.',
+        422,
+      );
     }
 
     if (otpRecord.expiresAt < new Date()) {
@@ -114,7 +126,11 @@ export class AuthService {
         where: { id: dto.userId },
         data: { lockedUntil: lockUntil },
       });
-      throw new AppException('OTP_MAX_ATTEMPTS', 'Terlalu banyak percobaan OTP, coba lagi nanti.', 429);
+      throw new AppException(
+        'OTP_MAX_ATTEMPTS',
+        'Terlalu banyak percobaan OTP, coba lagi nanti.',
+        429,
+      );
     }
 
     if (otpRecord.code !== dto.code) {
@@ -173,7 +189,11 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppException('USER_NOT_FOUND', 'Email atau password salah.', 404);
+      throw new AppException(
+        'USER_NOT_FOUND',
+        'Email atau password salah.',
+        404,
+      );
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
@@ -181,7 +201,11 @@ export class AuthService {
     }
 
     if (!user.emailVerified) {
-      throw new AppException('EMAIL_NOT_VERIFIED', 'Email belum diverifikasi.', 403);
+      throw new AppException(
+        'EMAIL_NOT_VERIFIED',
+        'Email belum diverifikasi.',
+        403,
+      );
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.passwordHash);
@@ -195,7 +219,11 @@ export class AuthService {
         where: { id: user.id },
         data: { loginAttempts: attempts, lockedUntil },
       });
-      throw new AppException('USER_NOT_FOUND', 'Email atau password salah.', 404);
+      throw new AppException(
+        'USER_NOT_FOUND',
+        'Email atau password salah.',
+        404,
+      );
     }
 
     await this.prisma.user.update({
@@ -227,7 +255,11 @@ export class AuthService {
     if (!record || record.usedAt || record.expiresAt < new Date()) {
       // Security feature: if used token is presented, revoke all sessions?
       // Minimal requirement: reject
-      throw new AppException('UNAUTHORIZED', 'Token tidak valid atau expired.', 401);
+      throw new AppException(
+        'UNAUTHORIZED',
+        'Token tidak valid atau expired.',
+        401,
+      );
     }
 
     await this.prisma.refreshToken.update({
@@ -265,7 +297,9 @@ export class AuthService {
 
     // Always return same response to prevent email enumeration
     if (user) {
-      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      const token =
+        Math.random().toString(36).substring(2, 15) +
+        Math.random().toString(36).substring(2, 15);
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
 
       await this.prisma.otpCode.create({
@@ -289,13 +323,17 @@ export class AuthService {
     });
 
     if (!otpRecord || otpRecord.expiresAt < new Date()) {
-      throw new AppException('UNAUTHORIZED', 'Token tidak valid atau expired.', 401);
+      throw new AppException(
+        'UNAUTHORIZED',
+        'Token tidak valid atau expired.',
+        401,
+      );
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
     const user = await this.prisma.user.findUnique({
-      where: { id: otpRecord.userId }
+      where: { id: otpRecord.userId },
     });
 
     await this.prisma.$transaction([
@@ -311,7 +349,7 @@ export class AuthService {
       this.prisma.refreshToken.updateMany({
         where: { userId: otpRecord.userId, usedAt: null },
         data: { usedAt: new Date() },
-      })
+      }),
     ]);
 
     if (user) {
@@ -334,12 +372,15 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
+      secret:
+        this.configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
       expiresIn: '15m',
     });
 
     const refreshToken = this.jwtService.sign(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'refresh_secret',
+      secret:
+        this.configService.get<string>('JWT_REFRESH_SECRET') ||
+        'refresh_secret',
       expiresIn: '7d',
     });
 
