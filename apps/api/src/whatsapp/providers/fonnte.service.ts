@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
@@ -25,6 +25,7 @@ interface FonnteDeviceResponse {
 @Injectable()
 export class FonnteService implements WhatsappProviderInterface {
   private readonly baseUrl: string;
+  private readonly logger = new Logger(FonnteService.name);
 
   constructor(
     private readonly httpService: HttpService,
@@ -40,17 +41,18 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
+    const { tenantId, to, message, tenantToken } = options;
     try {
       const response = await firstValueFrom(
         this.httpService.post<FonnteSendResponse>(
           `${this.baseUrl}/send`,
           {
-            target: options.to,
-            message: options.message,
+            target: to,
+            message: message,
           },
           {
             headers: {
-              Authorization: options.tenantToken,
+              Authorization: tenantToken,
             },
           },
         ),
@@ -58,12 +60,14 @@ export class FonnteService implements WhatsappProviderInterface {
 
       const data = response.data;
       if (data && data.status) {
+        this.logger.log(`Message sent successfully for Tenant: ${tenantId || 'Unknown'}`);
         return {
           success: true,
           messageId: data.id && data.id.length > 0 ? data.id[0] : undefined,
         };
       }
 
+      this.logger.error(`Fonnte API returned false for Tenant: ${tenantId || 'Unknown'} - Reason: ${data?.reason}`);
       return {
         success: false,
         error: data?.reason || 'Unknown Fonnte Error',
@@ -73,6 +77,7 @@ export class FonnteService implements WhatsappProviderInterface {
       if (error instanceof Error) {
         errorMessage = error.message;
       }
+      this.logger.error(`Fonnte send message failed for Tenant: ${tenantId || 'Unknown'} - Error: ${errorMessage}`);
       return {
         success: false,
         error: errorMessage,
@@ -82,6 +87,7 @@ export class FonnteService implements WhatsappProviderInterface {
 
   async checkConnectionStatus(
     tenantToken: string,
+    tenantId?: string
   ): Promise<ConnectionStatusResult> {
     try {
       const response = await firstValueFrom(
@@ -98,6 +104,7 @@ export class FonnteService implements WhatsappProviderInterface {
 
       const data = response.data;
       if (data && data.status) {
+        this.logger.log(`Connection status checked for Tenant: ${tenantId || 'Unknown'} - Status: ${data.device_status}`);
         return {
           isConnected: data.device_status === 'connect',
           device: data.device,
@@ -105,10 +112,12 @@ export class FonnteService implements WhatsappProviderInterface {
         };
       }
 
+      this.logger.warn(`Connection status false for Tenant: ${tenantId || 'Unknown'}`);
       return {
         isConnected: false,
       };
-    } catch {
+    } catch (error) {
+      this.logger.error(`Failed to check connection status for Tenant: ${tenantId || 'Unknown'}`);
       return {
         isConnected: false,
       };
@@ -116,10 +125,11 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  validateWebhookSignature(_payload: any, _signature: string): boolean {
+  validateWebhookSignature(_payload: any, _signature: string, tenantId?: string): boolean {
     // Implement validation logic based on Fonnte documentation if they use a signature
     // This often involves hashing payload or checking a secret token from headers
     // Dummy return for now
+    this.logger.log(`Webhook signature validation called for Tenant: ${tenantId || 'Unknown'}`);
     return true;
   }
 }

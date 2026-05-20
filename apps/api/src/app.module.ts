@@ -9,6 +9,10 @@ import { HealthModule } from './health/health.module';
 import { QueueModule } from './queue/queue.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { AiModule } from './ai/ai.module';
+import { PrismaModule } from './common/prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { MailModule } from './mail/mail.module';
+import { AuditModule } from './common/audit/audit.module';
 
 @Module({
   imports: [
@@ -44,6 +48,10 @@ import { AiModule } from './ai/ai.module';
         limit: 10,
       },
     ]),
+    PrismaModule,
+    AuditModule,
+    MailModule,
+    AuthModule,
     QueueModule,
     WhatsappModule,
     HealthModule,

@@ -34,7 +34,7 @@ let OpenAiService = OpenAiService_1 = class OpenAiService {
             apiKey: apiKey,
         });
     }
-    async generateReply(prompt) {
+    async generateReply(tenantId, prompt) {
         try {
             const response = await this.openai.chat.completions.create({
                 model: 'gpt-4o-mini',
@@ -45,14 +45,15 @@ let OpenAiService = OpenAiService_1 = class OpenAiService {
             if (!isSafe) {
                 throw new Error('AI Output failed safety validation');
             }
+            this.logger.log(`AI Reply Generated for Tenant: ${tenantId}`);
             return output;
         }
         catch (error) {
-            this.logger.error('Failed to generate reply from OpenAI');
+            this.logger.error(`Failed to generate reply from OpenAI for Tenant: ${tenantId}`);
             throw new common_1.InternalServerErrorException('Failed to generate AI reply');
         }
     }
-    async analyzeLead(conversation) {
+    async analyzeLead(tenantId, conversation) {
         try {
             const systemInstruction = `You are an expert sales lead analyst. Analyze the following conversation and return a JSON object describing the lead's intent, status, and any extracted information.`;
             const response = await this.openai.chat.completions.create({
@@ -68,10 +69,11 @@ let OpenAiService = OpenAiService_1 = class OpenAiService {
             if (!isSafe) {
                 throw new Error('AI Output failed safety validation during lead analysis');
             }
+            this.logger.log(`Lead Analyzed for Tenant: ${tenantId}`);
             return JSON.parse(output);
         }
         catch (error) {
-            this.logger.error('Failed to analyze lead from OpenAI');
+            this.logger.error(`Failed to analyze lead from OpenAI for Tenant: ${tenantId}`);
             throw new common_1.InternalServerErrorException('Failed to analyze lead');
         }
     }

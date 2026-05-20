@@ -24,7 +24,7 @@ export class OpenAiService implements AiProviderInterface {
     });
   }
 
-  async generateReply(prompt: string): Promise<string> {
+  async generateReply(tenantId: string, prompt: string): Promise<string> {
     try {
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini', // Configurable or standard model
@@ -40,15 +40,17 @@ export class OpenAiService implements AiProviderInterface {
         throw new Error('AI Output failed safety validation');
       }
 
+      this.logger.log(`AI Reply Generated for Tenant: ${tenantId}`);
+
       return output;
     } catch (error) {
       // HARD CONSTRAINT: Zero-Logging. Do not log the prompt or response content here.
-      this.logger.error('Failed to generate reply from OpenAI');
+      this.logger.error(`Failed to generate reply from OpenAI for Tenant: ${tenantId}`);
       throw new InternalServerErrorException('Failed to generate AI reply');
     }
   }
 
-  async analyzeLead(conversation: string): Promise<any> {
+  async analyzeLead(tenantId: string, conversation: string): Promise<any> {
     try {
       // Setup the instruction for the AI to analyze the conversation and output JSON.
       const systemInstruction = `You are an expert sales lead analyst. Analyze the following conversation and return a JSON object describing the lead's intent, status, and any extracted information.`;
@@ -70,10 +72,12 @@ export class OpenAiService implements AiProviderInterface {
         throw new Error('AI Output failed safety validation during lead analysis');
       }
 
+      this.logger.log(`Lead Analyzed for Tenant: ${tenantId}`);
+
       return JSON.parse(output);
     } catch (error) {
       // HARD CONSTRAINT: Zero-Logging. Do not log the conversation content.
-      this.logger.error('Failed to analyze lead from OpenAI');
+      this.logger.error(`Failed to analyze lead from OpenAI for Tenant: ${tenantId}`);
       throw new InternalServerErrorException('Failed to analyze lead');
     }
   }

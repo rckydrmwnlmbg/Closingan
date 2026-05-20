@@ -18,6 +18,10 @@ const health_module_1 = require("./health/health.module");
 const queue_module_1 = require("./queue/queue.module");
 const whatsapp_module_1 = require("./whatsapp/whatsapp.module");
 const ai_module_1 = require("./ai/ai.module");
+const prisma_module_1 = require("./common/prisma/prisma.module");
+const auth_module_1 = require("./auth/auth.module");
+const mail_module_1 = require("./mail/mail.module");
+const audit_module_1 = require("./common/audit/audit.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -55,6 +59,10 @@ exports.AppModule = AppModule = __decorate([
                     limit: 10,
                 },
             ]),
+            prisma_module_1.PrismaModule,
+            audit_module_1.AuditModule,
+            mail_module_1.MailModule,
+            auth_module_1.AuthModule,
             queue_module_1.QueueModule,
             whatsapp_module_1.WhatsappModule,
             health_module_1.HealthModule,

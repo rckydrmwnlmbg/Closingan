@@ -1,4 +1,4 @@
 export interface AiProviderInterface {
-  generateReply(prompt: string): Promise<string>;
-  analyzeLead(conversation: string): Promise<any>;
+  generateReply(tenantId: string, prompt: string): Promise<string>;
+  analyzeLead(tenantId: string, conversation: string): Promise<any>;
 }
