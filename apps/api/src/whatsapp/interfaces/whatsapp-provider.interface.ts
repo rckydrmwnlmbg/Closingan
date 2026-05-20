@@ -2,6 +2,7 @@ export interface SendMessageOptions {
   to: string;
   message: string;
   tenantToken: string;
+  tenantId?: string; // Add tenantId for better isolation context
 }
 
 export interface SendMessageResult {
@@ -18,8 +19,8 @@ export interface ConnectionStatusResult {
 
 export interface WhatsappProviderInterface {
   sendMessage(options: SendMessageOptions): Promise<SendMessageResult>;
-  checkConnectionStatus(tenantToken: string): Promise<ConnectionStatusResult>;
-  validateWebhookSignature(payload: any, signature: string): boolean;
+  checkConnectionStatus(tenantToken: string, tenantId?: string): Promise<ConnectionStatusResult>;
+  validateWebhookSignature(payload: any, signature: string, tenantId?: string): boolean;
 }
 
 export const WHATSAPP_PROVIDER = Symbol('WHATSAPP_PROVIDER');

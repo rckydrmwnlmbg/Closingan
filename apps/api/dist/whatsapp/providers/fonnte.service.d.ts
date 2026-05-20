@@ -5,8 +5,9 @@ export declare class FonnteService implements WhatsappProviderInterface {
     private readonly httpService;
     private readonly configService;
     private readonly baseUrl;
+    private readonly logger;
     constructor(httpService: HttpService, configService: ConfigService);
     sendMessage(options: SendMessageOptions): Promise<SendMessageResult>;
-    checkConnectionStatus(tenantToken: string): Promise<ConnectionStatusResult>;
-    validateWebhookSignature(_payload: any, _signature: string): boolean;
+    checkConnectionStatus(tenantToken: string, tenantId?: string): Promise<ConnectionStatusResult>;
+    validateWebhookSignature(_payload: any, _signature: string, tenantId?: string): boolean;
 }

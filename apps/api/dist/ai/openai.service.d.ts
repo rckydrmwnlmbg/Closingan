@@ -7,6 +7,6 @@ export declare class OpenAiService implements AiProviderInterface {
     private readonly openai;
     private readonly logger;
     constructor(configService: ConfigService, aiSafetyService: AiSafetyService);
-    generateReply(prompt: string): Promise<string>;
-    analyzeLead(conversation: string): Promise<any>;
+    generateReply(tenantId: string, prompt: string): Promise<string>;
+    analyzeLead(tenantId: string, conversation: string): Promise<any>;
 }
