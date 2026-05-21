@@ -18,6 +18,7 @@ import { AuditModule } from './common/audit/audit.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
+import { LeadModule } from './modules/lead/lead.module';
 
 @Module({
   imports: [
@@ -69,6 +70,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
     WebhookModule,
     ConversationModule,
     WebsocketModule,
+    LeadModule,
   ],
   controllers: [AppController],
   providers: [
