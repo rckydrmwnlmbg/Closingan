@@ -32,9 +32,13 @@ export class OpenAiService implements AiProviderInterface {
 
   async generateReply(tenantId: string, prompt: string): Promise<string> {
     try {
+      const systemPrompt = `You are an expert automotive sales assistant in Indonesia. Be polite, helpful, and concise. Only answer questions related to the catalog and pricing. Do not provide specific loan figures unless explicitly requested and confirmed. If unsure, admit it and offer to connect them with a human agent.`;
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini', // Configurable or standard model
-        messages: [{ role: 'user', content: prompt }],
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
       });
 
       const output = response.choices[0]?.message?.content || '';

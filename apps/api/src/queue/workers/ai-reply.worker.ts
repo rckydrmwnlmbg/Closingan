@@ -49,25 +49,119 @@ export class AiReplyWorker extends WorkerHost {
         const userMessage = payload.message || payload.text || 'Hello';
         const sender = payload.sender || payload.from;
 
-        // Core Conversation Logic
+        // 1. Strict Human Override (Anti Double-Reply)
+        let conversation = await this.prisma.conversation.findFirst({
+          where: { tenantId, customerPhone: sender },
+        });
+
+        if (!conversation) {
+          conversation = await this.prisma.conversation.create({
+            data: {
+              tenantId,
+              customerPhone: sender,
+              customerName: payload.name || 'Unknown',
+            },
+          });
+        }
+
+        if (
+          conversation.state === 'HUMAN_ACTIVE' ||
+          conversation.aiMode === 'AI_OFF' ||
+          (conversation.aiModePausedUntil && conversation.aiModePausedUntil > new Date())
+        ) {
+          this.logger.log(`Skipping AI reply for conversation ${conversation.id}: Human in control`);
+          return { success: true, reason: 'skipped_human_override' };
+        }
+
+        // 2. Token Quota Check
+        const tokenQuota = await this.prisma.tokenQuota.findUnique({
+          where: { tenantId },
+        });
+
+        if (tokenQuota && tokenQuota.usedQuota >= tokenQuota.totalQuota) {
+          this.logger.warn(`Skipping AI reply: Token quota exhausted for tenant ${tenantId}`);
+          return { success: false, reason: 'quota_exhausted' };
+        }
+
+        // 3. Save incoming user message
+        const incomingMessage = await this.prisma.message.create({
+          data: {
+            tenantId,
+            conversationId: conversation.id,
+            senderType: 'CUSTOMER',
+            content: userMessage,
+            deliveryState: 'DELIVERED',
+            isAiGenerated: false,
+          },
+        });
+
+        // 4. Core Conversation Logic
         const aiResponse = await this.aiProvider.generateReply(tenantId, userMessage);
+
+        // Fetch WhatsApp session for token
+        const waSession = await this.prisma.whatsappSession.findUnique({
+          where: { tenantId },
+        });
+
+        if (!waSession || !waSession.fonnteToken) {
+          throw new Error('WhatsApp session not configured or token missing');
+        }
 
         const sendResult = await this.whatsappProvider.sendMessage({
           tenantId,
           to: sender,
           message: aiResponse,
-          tenantToken: 'DUMMY_TOKEN_FROM_DB' // In a real app we fetch tenant configuration from DB
+          tenantToken: waSession.fonnteToken
         });
 
         if (!sendResult.success) {
           throw new Error(`Failed to send message: ${sendResult.error}`);
         }
 
+        // 5. Save outgoing AI message
+        const outgoingMessage = await this.prisma.message.create({
+          data: {
+            tenantId,
+            conversationId: conversation.id,
+            senderType: 'AI',
+            content: aiResponse,
+            deliveryState: 'SENT',
+            isAiGenerated: true,
+            aiMode: conversation.aiMode,
+          },
+        });
+
+        // 6. Update Conversation state
+        await this.prisma.conversation.update({
+          where: { id: conversation.id },
+          data: {
+            lastMessageAt: new Date(),
+            lastMessagePreview: aiResponse.substring(0, 100),
+            lastSenderType: 'AI',
+            unreadCount: 0, // AI read and replied
+          },
+        });
+
+        // 7. Audit Logging & Quota Update (Deduction tracking)
+        // Deduct 1 from token quota for generating an AI reply
+        if (tokenQuota) {
+          await this.prisma.tokenQuota.update({
+            where: { tenantId },
+            data: {
+              usedQuota: { increment: 1 }
+            }
+          });
+        }
+
         await this.auditService.log({
           action: 'AI_MODE_CHANGED' as any,
           entityType: 'JOB',
           entityId: job.id,
-          metadata: { step: 'COMPLETED' }
+          metadata: {
+            step: 'COMPLETED',
+            messageId: outgoingMessage.id,
+            tokensUsed: 1 // Example flat token usage, will integrate with true token usage from OpenAI later
+          }
         });
 
         return { success: true };
