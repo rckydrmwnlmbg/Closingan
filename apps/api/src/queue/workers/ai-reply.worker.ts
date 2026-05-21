@@ -7,6 +7,7 @@ import { AuditService } from '../../common/audit/audit.service';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
 import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
+import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 
 @Processor('ai-reply', {
   concurrency: 5,
@@ -96,7 +97,55 @@ export class AiReplyWorker extends WorkerHost {
         });
 
         // 4. Core Conversation Logic
-        const aiResponse = await this.aiProvider.generateReply(tenantId, userMessage);
+        let aiResponse: string;
+        try {
+          aiResponse = await this.aiProvider.generateReply(tenantId, userMessage);
+        } catch (error) {
+          // Safety Escalation Layer
+          if (error instanceof AiSafetyException) {
+            this.logger.warn(`AI Safety Exception triggered for conversation ${conversation.id}: ${error.reason}`);
+
+            // Update conversation state to escalated
+            await this.prisma.conversation.update({
+              where: { id: conversation.id },
+              data: {
+                state: 'ESCALATED', // Escalated is Needs Human
+                unreadCount: { increment: 1 }
+              }
+            });
+
+            // Log the escalation
+            await this.prisma.escalationLog.create({
+              data: {
+                tenantId: tenantId,
+                conversationId: conversation.id,
+                reason: error.reason,
+                triggeredBy: 'AI',
+                blockedContent: error.blockedContent
+              }
+            });
+
+            // Send alert to Sales via WA (using WhatsappSession phone number for alerting)
+            const waSession = await this.prisma.whatsappSession.findUnique({
+              where: { tenantId }
+            });
+
+            if (waSession && waSession.fonnteToken && waSession.phoneNumber) {
+              const salesPhone = waSession.phoneNumber;
+
+              const alertMessage = `🚨 [CLOSINGAN ALERT] 🚨\n\nAI mendeteksi anomali pada percakapan dengan ${conversation.customerName || sender} (${sender}).\nAlasan: ${error.reason}\n\nMohon segera ambil alih percakapan (HUMAN TAKEOVER).`;
+              await this.whatsappProvider.sendMessage({
+                tenantId,
+                to: salesPhone,
+                message: alertMessage,
+                tenantToken: waSession.fonnteToken
+              });
+            }
+
+            return { success: false, reason: 'escalated_to_human' };
+          }
+          throw error;
+        }
 
         // Fetch WhatsApp session for token
         const waSession = await this.prisma.whatsappSession.findUnique({
