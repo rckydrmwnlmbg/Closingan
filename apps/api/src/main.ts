@@ -1,5 +1,6 @@
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -7,6 +8,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const configService = app.get(ConfigService);
 
   // 1. Logger
   app.useLogger(app.get(Logger));
@@ -27,7 +29,8 @@ async function bootstrap() {
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new GlobalExceptionFilter(httpAdapterHost));
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = configService.get<number>('PORT') || 3000;
+  await app.listen(port);
 }
 bootstrap().catch((err) => {
   console.error('Error starting server', err);

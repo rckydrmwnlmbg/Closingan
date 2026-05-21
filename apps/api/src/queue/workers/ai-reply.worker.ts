@@ -8,6 +8,7 @@ import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interf
 import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
+import { AiReplyJobData } from '../interfaces/job-data.interface';
 
 @Processor('ai-reply', {
   concurrency: 5,
@@ -31,7 +32,7 @@ export class AiReplyWorker extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(job: Job<AiReplyJobData, unknown, string>): Promise<unknown> {
     this.logger.debug(`Processing ai-reply job ${job.id}`);
     const { tenantId, payload } = job.data;
 
@@ -49,7 +50,7 @@ export class AiReplyWorker extends WorkerHost {
 
         // Extract message from Fonnte payload format
         const userMessage = payload.message || payload.text || 'Hello';
-        const sender = payload.sender || payload.from;
+        const sender = payload.sender || payload.from || 'unknown';
 
         // 1. Upsert Conversation and Save Incoming Message
         let conversation = await this.prisma.conversation.findFirst({
@@ -84,6 +85,20 @@ export class AiReplyWorker extends WorkerHost {
           conversationId: conversation.id,
           messageContent: userMessage,
         });
+
+        // Fetch WhatsApp session first to verify it is CONNECTED
+        const waSession = await this.prisma.whatsappSession.findUnique({
+          where: { tenantId },
+        });
+
+        if (!waSession || waSession.state !== 'CONNECTED') {
+          this.logger.warn(`Skipping AI reply: WhatsApp session is not connected for tenant ${tenantId}`);
+          return { success: false, reason: 'whatsapp_not_connected' };
+        }
+
+        if (!waSession.fonnteToken) {
+          throw new Error('WhatsApp session not configured or token missing');
+        }
 
         // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
         if (
@@ -154,15 +169,6 @@ export class AiReplyWorker extends WorkerHost {
             return { success: false, reason: 'escalated_to_human' };
           }
           throw error;
-        }
-
-        // Fetch WhatsApp session for token
-        const waSession = await this.prisma.whatsappSession.findUnique({
-          where: { tenantId },
-        });
-
-        if (!waSession || !waSession.fonnteToken) {
-          throw new Error('WhatsApp session not configured or token missing');
         }
 
         const sendResult = await this.whatsappProvider.sendMessage({

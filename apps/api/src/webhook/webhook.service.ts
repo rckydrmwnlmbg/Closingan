@@ -6,6 +6,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { Inject } from '@nestjs/common';
+import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
 
 @Injectable()
 export class WebhookService {
@@ -20,7 +21,7 @@ export class WebhookService {
   ) {}
 
   async handleFonnteIncomingMessage(
-    payload: any,
+    payload: FonnteWebhookPayload,
     signature: string,
     tenantId: string,
   ) {

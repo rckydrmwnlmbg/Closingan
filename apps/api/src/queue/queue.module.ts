@@ -3,8 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AiReplyWorker } from './workers/ai-reply.worker';
 import { HotLeadWorker } from './workers/hot-lead.worker';
-import { BlastCampaignWorker } from './workers/blast-campaign.worker';
-import { HealthCheckWorker } from './workers/health-check.worker';
+import { BlastWorker } from './workers/blast.worker';
 
 import { AiModule } from '../ai/ai.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
@@ -31,28 +30,20 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
       },
     }),
     BullModule.registerQueue(
-      {
-        name: 'ai-reply',
-      },
-      {
-        name: 'ai-analysis',
-      },
-      {
-        name: 'hot-lead',
-      },
-      {
-        name: 'blast-campaign',
-      },
-      {
-        name: 'health-check', // For dummy worker / health
-      },
+      { name: 'ai-reply' },
+      { name: 'ai-analysis' },
+      { name: 'hot-lead' },
+      { name: 'escalation' },
+      { name: 'follow-up' },
+      { name: 'summary' },
+      { name: 'analytics' },
+      { name: 'blast' },
     ),
   ],
   providers: [
     AiReplyWorker,
     HotLeadWorker,
-    BlastCampaignWorker,
-    HealthCheckWorker,
+    BlastWorker,
   ],
   exports: [BullModule],
 })
