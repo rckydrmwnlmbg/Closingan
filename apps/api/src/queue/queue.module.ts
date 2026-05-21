@@ -35,6 +35,9 @@ import { WhatsappModule } from '../whatsapp/whatsapp.module';
         name: 'ai-reply',
       },
       {
+        name: 'ai-analysis',
+      },
+      {
         name: 'hot-lead',
       },
       {

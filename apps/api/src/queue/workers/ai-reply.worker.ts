@@ -1,5 +1,5 @@
-import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Processor, WorkerHost, OnWorkerEvent, InjectQueue } from '@nestjs/bullmq';
+import { Job, Queue } from 'bullmq';
 import { Logger, Inject } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -26,6 +26,7 @@ export class AiReplyWorker extends WorkerHost {
     @Inject('AI_PROVIDER') private readonly aiProvider: AiProviderInterface,
     @Inject(WHATSAPP_PROVIDER)
     private readonly whatsappProvider: WhatsappProviderInterface,
+    @InjectQueue('ai-analysis') private readonly aiAnalysisQueue: Queue,
   ) {
     super();
   }
@@ -50,7 +51,7 @@ export class AiReplyWorker extends WorkerHost {
         const userMessage = payload.message || payload.text || 'Hello';
         const sender = payload.sender || payload.from;
 
-        // 1. Strict Human Override (Anti Double-Reply)
+        // 1. Upsert Conversation and Save Incoming Message
         let conversation = await this.prisma.conversation.findFirst({
           where: { tenantId, customerPhone: sender },
         });
@@ -65,26 +66,7 @@ export class AiReplyWorker extends WorkerHost {
           });
         }
 
-        if (
-          conversation.state === 'HUMAN_ACTIVE' ||
-          conversation.aiMode === 'AI_OFF' ||
-          (conversation.aiModePausedUntil && conversation.aiModePausedUntil > new Date())
-        ) {
-          this.logger.log(`Skipping AI reply for conversation ${conversation.id}: Human in control`);
-          return { success: true, reason: 'skipped_human_override' };
-        }
-
-        // 2. Token Quota Check
-        const tokenQuota = await this.prisma.tokenQuota.findUnique({
-          where: { tenantId },
-        });
-
-        if (tokenQuota && tokenQuota.usedQuota >= tokenQuota.totalQuota) {
-          this.logger.warn(`Skipping AI reply: Token quota exhausted for tenant ${tenantId}`);
-          return { success: false, reason: 'quota_exhausted' };
-        }
-
-        // 3. Save incoming user message
+        // Save incoming user message FIRST so it's always recorded and available for analysis
         const incomingMessage = await this.prisma.message.create({
           data: {
             tenantId,
@@ -95,6 +77,33 @@ export class AiReplyWorker extends WorkerHost {
             isAiGenerated: false,
           },
         });
+
+        // Enqueue Lead Analysis Asynchronously (Always trigger this regardless of AI Reply mode)
+        await this.aiAnalysisQueue.add('analyze-lead', {
+          tenantId,
+          conversationId: conversation.id,
+          messageContent: userMessage,
+        });
+
+        // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
+        if (
+          conversation.state === 'HUMAN_ACTIVE' ||
+          conversation.aiMode === 'AI_OFF' ||
+          (conversation.aiModePausedUntil && conversation.aiModePausedUntil > new Date())
+        ) {
+          this.logger.log(`Skipping AI reply for conversation ${conversation.id}: Human in control`);
+          return { success: true, reason: 'skipped_human_override' };
+        }
+
+        // 3. Token Quota Check
+        const tokenQuota = await this.prisma.tokenQuota.findUnique({
+          where: { tenantId },
+        });
+
+        if (tokenQuota && tokenQuota.usedQuota >= tokenQuota.totalQuota) {
+          this.logger.warn(`Skipping AI reply: Token quota exhausted for tenant ${tenantId}`);
+          return { success: false, reason: 'quota_exhausted' };
+        }
 
         // 4. Core Conversation Logic
         let aiResponse: string;
