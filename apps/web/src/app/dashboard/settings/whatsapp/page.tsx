@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { WhatsAppConnectionStatus } from "@/components/whatsapp/WhatsAppConnectionStatus";
 
 export default function WhatsAppSettingsPage() {

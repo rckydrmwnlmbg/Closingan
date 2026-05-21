@@ -16,6 +16,8 @@ import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { AuditModule } from './common/audit/audit.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ConversationModule } from './modules/conversation/conversation.module';
+import { WebsocketModule } from './modules/websocket/websocket.module';
 
 @Module({
   imports: [
@@ -65,6 +67,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     HealthModule,
     AiModule,
     WebhookModule,
+    ConversationModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [
