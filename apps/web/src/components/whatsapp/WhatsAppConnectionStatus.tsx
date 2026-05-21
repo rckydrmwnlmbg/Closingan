@@ -36,8 +36,8 @@ export function WhatsAppConnectionStatus() {
       } else {
         setStatus({ state: "DISCONNECTED" });
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to fetch status");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to fetch status");
       // Fallback for visual mock if api is unavailable during dev:
       // setStatus({ state: "DISCONNECTED" });
     } finally {
@@ -73,8 +73,8 @@ export function WhatsAppConnectionStatus() {
 
       await fetchStatus();
       setTokenInput("");
-    } catch (err: any) {
-      setError(err.message || "Failed to connect");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to connect");
       setLoading(false);
     }
   };
@@ -95,8 +95,8 @@ export function WhatsAppConnectionStatus() {
         throw new Error(json.error?.message || "Failed to disconnect");
       }
       await fetchStatus();
-    } catch (err: any) {
-      setError(err.message || "Failed to disconnect");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Failed to disconnect");
       setLoading(false);
     }
   };
