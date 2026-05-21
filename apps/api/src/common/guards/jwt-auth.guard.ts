@@ -13,8 +13,28 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
-    return super.canActivate(context);
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const canActivate = await super.canActivate(context);
+    if (!canActivate) {
+      return false;
+    }
+
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    if (user) {
+      // Inject the tenantId into CLS context
+      if (user.tenantId) {
+        this.cls.set('tenantId', user.tenantId);
+      }
+
+      // Also inject userId into CLS context for Audit logging and other purposes
+      if (user.userId) {
+        this.cls.set('user', { id: user.userId, ...user });
+      }
+    }
+
+    return true;
   }
 
   handleRequest(err: any, user: any, info: any) {
@@ -24,17 +44,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         new AppException('UNAUTHORIZED', 'Token tidak valid atau expired.', 401)
       );
     }
-
-    // Inject the tenantId into CLS context
-    if (user.tenantId) {
-      this.cls.set('tenantId', user.tenantId);
-    }
-
-    // Also inject userId into CLS context for Audit logging and other purposes
-    if (user.userId) {
-      this.cls.set('user', { id: user.userId, ...user });
-    }
-
     return user;
   }
 }

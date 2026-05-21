@@ -189,6 +189,12 @@ export class AuthService {
     });
 
     if (!user) {
+      await this.auditService.log({
+        tenantId: 'SYSTEM',
+        action: AuditAction.USER_LOGIN_FAILED,
+        ipAddress: ipAddress,
+        metadata: { email: dto.email, reason: 'User not found' },
+      });
       throw new AppException(
         'USER_NOT_FOUND',
         'Email atau password salah.',
@@ -197,6 +203,13 @@ export class AuthService {
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
+      await this.auditService.log({
+        tenantId: user.tenantId,
+        userId: user.id,
+        action: AuditAction.USER_LOGIN_FAILED,
+        ipAddress: ipAddress,
+        metadata: { reason: 'Account locked' },
+      });
       throw new AppException('ACCOUNT_LOCKED', 'Akun terkunci sementara.', 423);
     }
 
@@ -218,6 +231,13 @@ export class AuthService {
       await this.prisma.user.update({
         where: { id: user.id },
         data: { loginAttempts: attempts, lockedUntil },
+      });
+      await this.auditService.log({
+        tenantId: user.tenantId,
+        userId: user.id,
+        action: AuditAction.USER_LOGIN_FAILED,
+        ipAddress: ipAddress,
+        metadata: { reason: 'Incorrect password', attempts },
       });
       throw new AppException(
         'USER_NOT_FOUND',

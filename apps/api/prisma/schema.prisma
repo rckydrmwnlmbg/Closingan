@@ -113,6 +113,7 @@ enum EscalationReason {
 
 enum AuditAction {
   USER_LOGIN
+  USER_LOGIN_FAILED
   USER_LOGOUT
   USER_REGISTER
   PASSWORD_CHANGED

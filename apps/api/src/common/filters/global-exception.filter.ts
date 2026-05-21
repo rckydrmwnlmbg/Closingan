@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { Prisma } from '@prisma/client';
 import { AppException } from '../exceptions/app.exception';
 
 @Catch()
@@ -49,6 +50,19 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         error: {
           code,
           message,
+        },
+      };
+    } else if (
+      exception instanceof Prisma.PrismaClientKnownRequestError &&
+      exception.code === 'P2002'
+    ) {
+      httpStatus = HttpStatus.CONFLICT;
+      responseBody = {
+        success: false,
+        error: {
+          code: 'UNIQUE_CONSTRAINT_VIOLATION',
+          message: 'Data already exists.',
+          details: exception.meta,
         },
       };
     } else {
