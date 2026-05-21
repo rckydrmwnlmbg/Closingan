@@ -14,7 +14,6 @@ const EXEMPTED_MODELS = [
   'OtpCode',
   'UserBadge',
   'FailedJob',
-  'User',
 ];
 
 @Injectable()

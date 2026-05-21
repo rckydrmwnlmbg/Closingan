@@ -1,6 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
+import { HotLeadJobData } from '../interfaces/job-data.interface';
 
 @Processor('hot-lead', {
   concurrency: 50, // High concurrency for hot-lead
@@ -8,7 +9,7 @@ import { Logger } from '@nestjs/common';
 export class HotLeadWorker extends WorkerHost {
   private readonly logger = new Logger(HotLeadWorker.name);
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(job: Job<HotLeadJobData, unknown, string>): Promise<unknown> {
     this.logger.debug(`Processing hot-lead job ${job.id}`);
     // Dummy processing
     await new Promise((resolve) => setTimeout(resolve, 100));

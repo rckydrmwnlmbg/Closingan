@@ -17,6 +17,8 @@ export interface ConnectionStatusResult {
   name?: string;
 }
 
+import { FonnteWebhookPayload } from './fonnte-webhook.interface';
+
 export interface WhatsappProviderInterface {
   sendMessage(options: SendMessageOptions): Promise<SendMessageResult>;
   checkConnectionStatus(
@@ -24,7 +26,7 @@ export interface WhatsappProviderInterface {
     tenantId?: string,
   ): Promise<ConnectionStatusResult>;
   validateWebhookSignature(
-    payload: any,
+    payload: FonnteWebhookPayload,
     signature: string,
     tenantId?: string,
   ): boolean;

@@ -12,6 +12,7 @@ import {
   SendMessageResult,
   WhatsappProviderInterface,
 } from '../interfaces/whatsapp-provider.interface';
+import { FonnteWebhookPayload } from '../interfaces/fonnte-webhook.interface';
 
 interface FonnteSendResponse {
   status: boolean;
@@ -141,7 +142,7 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   validateWebhookSignature(
-    _payload: any,
+    _payload: FonnteWebhookPayload,
     _signature: string,
     tenantId?: string,
   ): boolean {

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import type { Request } from 'express';
+import { FonnteWebhookPayloadDto } from '../whatsapp/interfaces/fonnte-webhook.dto';
 
 @Controller('webhook')
 export class WebhookController {
@@ -18,7 +19,7 @@ export class WebhookController {
   @Post('fonnte')
   @HttpCode(HttpStatus.OK)
   async handleFonnteWebhook(
-    @Body() payload: any,
+    @Body() payload: FonnteWebhookPayloadDto,
     @Headers('authorization') signature: string,
     @Query('tenantId') tenantId: string,
     @Req() request: Request,

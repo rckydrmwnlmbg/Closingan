@@ -3,6 +3,7 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { HotLeadService } from '../hot-lead.service';
 import { ClsService } from 'nestjs-cls';
+import { AiAnalysisJobData } from '../../../queue/interfaces/job-data.interface';
 
 @Processor('ai-analysis')
 export class AiAnalysisProcessor extends WorkerHost {
@@ -15,7 +16,7 @@ export class AiAnalysisProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<any, any, string>): Promise<any> {
+  async process(job: Job<AiAnalysisJobData, unknown, string>): Promise<unknown> {
     const { tenantId, conversationId, messageContent } = job.data;
 
     if (!tenantId || !conversationId || !messageContent) {
