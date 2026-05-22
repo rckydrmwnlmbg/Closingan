@@ -36,10 +36,10 @@ Format:
 - [ ] ⏳ TASK 2.4 — Audit Logging
 
 ### Milestone 3 — WhatsApp Connection
-- [ ] ⏳ TASK 3.1 — Fonnte Integration Service
-- [ ] ⏳ TASK 3.2 — Webhook Handler & Message Processing
-- [ ] ⏳ TASK 3.3 — WhatsApp Connection Settings UI
-- [ ] ⏳ TASK 3.4 — Disconnect Detection & Auto-Recovery
+- [x] ✅ TASK 3.1 — Fonnte Integration Service
+- [x] ✅ TASK 3.2 — Webhook Handler & Message Processing
+- [x] ✅ TASK 3.3 — WhatsApp Connection Settings UI
+- [x] ✅ TASK 3.4 — Disconnect Detection & Auto-Recovery
 
 ### Milestone 4 — Inbox & Conversation
 - [ ] ⏳ TASK 4.1 — Conversation List API
@@ -168,6 +168,10 @@ Format:
 - 📄 Semua dokumentasi siap: PRD, Phase 1-3 Dev Plan, Project Context, .env.example
 
 ### 22 Mei 2026
+- ✅ TASK 3.1 — Fonnte Integration Service
+- ✅ TASK 3.2 — Webhook Handler & Message Processing
+- ✅ TASK 3.3 — WhatsApp Connection Settings UI
+- ✅ TASK 3.4 — Disconnect Detection & Auto-Recovery
 - ✅ TASK 5.1 — AI Reply Worker selesai
 - ✅ TASK 5.2 — AI Safety Layer ⚠️ KRITIS selesai
 - ✅ TASK 5.3 — Hot Lead Detection selesai

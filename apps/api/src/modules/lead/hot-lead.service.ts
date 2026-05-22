@@ -1,6 +1,5 @@
-import { Inject } from "@nestjs/common";
 import { Injectable, Logger } from '@nestjs/common';
-import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
+import { OpenAiService } from '../../ai/openai.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -13,13 +12,30 @@ export class HotLeadService {
 
   // Kata kunci sederhana untuk mendeteksi intent awal.
   private readonly intentKeywords = [
-    'harga', 'price', 'promo', 'diskon', 'cicilan', 'kredit', 'dp',
-    'simulasi', 'stok', 'ready', 'warna', 'test drive', 'lokasi',
-    'dealer', 'showroom', 'kapan', 'besok', 'hari ini', 'nego', 'minat'
+    'harga',
+    'price',
+    'promo',
+    'diskon',
+    'cicilan',
+    'kredit',
+    'dp',
+    'simulasi',
+    'stok',
+    'ready',
+    'warna',
+    'test drive',
+    'lokasi',
+    'dealer',
+    'showroom',
+    'kapan',
+    'besok',
+    'hari ini',
+    'nego',
+    'minat',
   ];
 
   constructor(
-    @Inject('AI_PROVIDER') private readonly openAiService: AiProviderInterface,
+    private readonly openAiService: OpenAiService,
     private readonly prisma: PrismaService,
     @InjectQueue('hot-lead') private readonly hotLeadQueue: Queue,
   ) {}
@@ -36,7 +52,9 @@ export class HotLeadService {
     }
 
     // Cek apakah ada keyword intent
-    const hasIntentKeyword = this.intentKeywords.some(keyword => contentLower.includes(keyword));
+    const hasIntentKeyword = this.intentKeywords.some((keyword) =>
+      contentLower.includes(keyword),
+    );
 
     // Cek apakah ada angka (mungkin nominal harga/DP)
     const hasNumbers = /\d{4,}/.test(contentLower);
@@ -48,10 +66,16 @@ export class HotLeadService {
    * Menganalisis lead menggunakan AI.
    * Mengharapkan pemanggilan di dalam worker/background job yang sudah dibungkus `cls.run()`.
    */
-  async analyzeLead(tenantId: string, conversationId: string, messageContent: string): Promise<void> {
+  async analyzeLead(
+    tenantId: string,
+    conversationId: string,
+    messageContent: string,
+  ): Promise<void> {
     // 1. Cost Control & Pre-Filtering
     if (!this.shouldAnalyzeMessage(messageContent)) {
-      this.logger.debug(`Message skipped from analysis for conversation: ${conversationId}`);
+      this.logger.debug(
+        `Message skipped from analysis for conversation: ${conversationId}`,
+      );
       return;
     }
 
@@ -75,7 +99,10 @@ export class HotLeadService {
         take: 5,
       });
 
-      const historyText = recentMessages.reverse().map(m => `${m.senderType}: ${m.content}`).join('\n');
+      const historyText = recentMessages
+        .reverse()
+        .map((m) => `${m.senderType}: ${m.content}`)
+        .join('\n');
       const prompt = `Analyze this automotive sales conversation:\n${historyText}\n\nAssess the lead's heat tier. Output JSON: { "heat_tier": "LOW"|"WARM"|"HOT"|"CRITICAL", "heat_score": 0-100, "heat_reasons": ["reason1", "reason2"] }`;
 
       const rawResult = await this.openAiService.analyzeLead(tenantId, prompt);
@@ -83,7 +110,10 @@ export class HotLeadService {
       // Strict Schema Validation dengan Zod
       aiResult = LeadAnalysisSchema.parse(rawResult);
     } catch (error) {
-      this.logger.error(`AI Analysis failed or invalid JSON for conversation ${conversationId}`, error instanceof Error ? error.message : 'Unknown');
+      this.logger.error(
+        `AI Analysis failed or invalid JSON for conversation ${conversationId}`,
+        error instanceof Error ? error.message : 'Unknown',
+      );
       return;
     }
 
@@ -102,18 +132,28 @@ export class HotLeadService {
     this.checkAndTriggerAlert(tenantId, lead, updatedLead);
   }
 
-  private async checkAndTriggerAlert(tenantId: string, oldLead: any, newLead: any) {
-    const isNowHotOrCritical = newLead.heatTier === HeatTier.HOT || newLead.heatTier === HeatTier.CRITICAL;
+  private async checkAndTriggerAlert(
+    tenantId: string,
+    oldLead: any,
+    newLead: any,
+  ) {
+    const isNowHotOrCritical =
+      newLead.heatTier === HeatTier.HOT ||
+      newLead.heatTier === HeatTier.CRITICAL;
 
     if (!isNowHotOrCritical) {
       return;
     }
 
-    const tierIncreased = this.getTierWeight(newLead.heatTier) > this.getTierWeight(oldLead.heatTier);
+    const tierIncreased =
+      this.getTierWeight(newLead.heatTier) >
+      this.getTierWeight(oldLead.heatTier);
 
     // Cooldown 30 menit
     const COOLDOWN_MS = 30 * 60 * 1000;
-    const timeSinceLastAlert = newLead.lastAlertSentAt ? Date.now() - newLead.lastAlertSentAt.getTime() : Infinity;
+    const timeSinceLastAlert = newLead.lastAlertSentAt
+      ? Date.now() - newLead.lastAlertSentAt.getTime()
+      : Infinity;
     const isCooldownPassed = timeSinceLastAlert > COOLDOWN_MS;
 
     // Trigger JIKA:
@@ -136,17 +176,24 @@ export class HotLeadService {
 
       this.logger.log(`Hot lead alert triggered for lead: ${newLead.id}`);
     } else {
-      this.logger.debug(`Hot lead alert suppressed (cooldown) for lead: ${newLead.id}`);
+      this.logger.debug(
+        `Hot lead alert suppressed (cooldown) for lead: ${newLead.id}`,
+      );
     }
   }
 
   private getTierWeight(tier: HeatTier): number {
     switch (tier) {
-      case HeatTier.LOW: return 1;
-      case HeatTier.WARM: return 2;
-      case HeatTier.HOT: return 3;
-      case HeatTier.CRITICAL: return 4;
-      default: return 0;
+      case HeatTier.LOW:
+        return 1;
+      case HeatTier.WARM:
+        return 2;
+      case HeatTier.HOT:
+        return 3;
+      case HeatTier.CRITICAL:
+        return 4;
+      default:
+        return 0;
     }
   }
 }

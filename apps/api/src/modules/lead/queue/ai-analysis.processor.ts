@@ -16,7 +16,9 @@ export class AiAnalysisProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job<AiAnalysisJobData, unknown, string>): Promise<unknown> {
+  async process(
+    job: Job<AiAnalysisJobData, unknown, string>,
+  ): Promise<unknown> {
     const { tenantId, conversationId, messageContent } = job.data;
 
     if (!tenantId || !conversationId || !messageContent) {
@@ -29,11 +31,19 @@ export class AiAnalysisProcessor extends WorkerHost {
     return this.cls.run(async () => {
       this.cls.set('tenantId', tenantId);
 
-      this.logger.log(`Processing AI analysis for conversation: ${conversationId}`);
+      this.logger.log(
+        `Processing AI analysis for conversation: ${conversationId}`,
+      );
       try {
-        await this.hotLeadService.analyzeLead(tenantId, conversationId, messageContent);
+        await this.hotLeadService.analyzeLead(
+          tenantId,
+          conversationId,
+          messageContent,
+        );
       } catch (error) {
-        this.logger.error(`Error during AI analysis for ${conversationId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        this.logger.error(
+          `Error during AI analysis for ${conversationId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        );
         throw error;
       }
     });

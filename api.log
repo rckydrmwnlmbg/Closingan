@@ -1,7 +1,0 @@
-npm error Lifecycle script `dev` failed with error:
-npm error workspace api@0.0.1
-npm error location /app/apps/api
-npm error Missing script: "dev"
-npm error
-npm error To see a list of scripts, run:
-npm error   npm run --workspace=api@0.0.1

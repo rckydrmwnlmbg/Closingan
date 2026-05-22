@@ -45,8 +45,18 @@ export class FonnteService implements WhatsappProviderInterface {
     this.baseUrl = url;
   }
 
+  private getMasterToken(): string {
+    const token = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
+    if (!token) {
+      throw new InternalServerErrorException(
+        'FONNTE_SYSTEM_TOKEN is not configured',
+      );
+    }
+    return token;
+  }
+
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
-    const { tenantId, to, message, tenantToken } = options;
+    const { tenantId, to, message } = options;
     try {
       const response = await firstValueFrom(
         this.httpService.post<FonnteSendResponse>(
@@ -57,7 +67,7 @@ export class FonnteService implements WhatsappProviderInterface {
           },
           {
             headers: {
-              Authorization: tenantToken,
+              Authorization: this.getMasterToken(),
             },
           },
         ),
@@ -97,7 +107,6 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   async checkConnectionStatus(
-    tenantToken: string,
     tenantId?: string,
   ): Promise<ConnectionStatusResult> {
     try {
@@ -107,7 +116,7 @@ export class FonnteService implements WhatsappProviderInterface {
           {},
           {
             headers: {
-              Authorization: tenantToken,
+              Authorization: this.getMasterToken(),
             },
           },
         ),

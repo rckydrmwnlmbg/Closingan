@@ -11,8 +11,8 @@ export default function WhatsAppSettingsPage() {
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <p className="text-gray-600 dark:text-gray-300 mb-6">
-          Connect your WhatsApp Business account using your Fonnte token to
-          enable AI replies, follow-ups, and notifications.
+          Connect your WhatsApp Business account to enable AI replies,
+          follow-ups, and notifications. Request a QR code to pair your device.
         </p>
 
         <WhatsAppConnectionStatus />

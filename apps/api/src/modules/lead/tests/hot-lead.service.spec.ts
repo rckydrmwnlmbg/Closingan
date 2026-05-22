@@ -33,7 +33,7 @@ describe('HotLeadService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HotLeadService,
-        { provide: 'AI_PROVIDER', useValue: openaiService },
+        { provide: OpenAiService, useValue: openaiService },
         { provide: PrismaService, useValue: prismaService },
         { provide: getQueueToken('hot-lead'), useValue: mockQueue },
       ],
@@ -69,8 +69,14 @@ describe('HotLeadService', () => {
   describe('analyzeLead', () => {
     it('should analyze lead and handle Zod validation successfully', async () => {
       // Mock data
-      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({ id: 'lead-1', conversationId: 'conv-1', heatTier: HeatTier.LOW });
-      (prismaService.message.findMany as jest.Mock).mockResolvedValue([{ senderType: 'CUSTOMER', content: 'berapa harga otr?' }]);
+      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
+        id: 'lead-1',
+        conversationId: 'conv-1',
+        heatTier: HeatTier.LOW,
+      });
+      (prismaService.message.findMany as jest.Mock).mockResolvedValue([
+        { senderType: 'CUSTOMER', content: 'berapa harga otr?' },
+      ]);
 
       openaiService.analyzeLead.mockResolvedValue({
         heat_tier: 'HOT',
@@ -94,14 +100,22 @@ describe('HotLeadService', () => {
         expect.objectContaining({
           where: { id: 'lead-1' },
           data: expect.objectContaining({ heatTier: 'HOT' }),
-        })
+        }),
       );
-      expect(mockQueue.add).toHaveBeenCalledWith('process-hot-lead', expect.any(Object));
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'process-hot-lead',
+        expect.any(Object),
+      );
     });
 
     it('should abort if JSON validation fails', async () => {
-      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({ id: 'lead-1', conversationId: 'conv-1' });
-      (prismaService.message.findMany as jest.Mock).mockResolvedValue([{ senderType: 'CUSTOMER', content: 'berapa harga otr?' }]);
+      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
+        id: 'lead-1',
+        conversationId: 'conv-1',
+      });
+      (prismaService.message.findMany as jest.Mock).mockResolvedValue([
+        { senderType: 'CUSTOMER', content: 'berapa harga otr?' },
+      ]);
 
       // OpenAI returns invalid schema (missing heat_reasons)
       openaiService.analyzeLead.mockResolvedValue({
@@ -122,9 +136,11 @@ describe('HotLeadService', () => {
         id: 'lead-1',
         conversationId: 'conv-1',
         heatTier: HeatTier.HOT,
-        lastAlertSentAt: fiveMinsAgo
+        lastAlertSentAt: fiveMinsAgo,
       });
-      (prismaService.message.findMany as jest.Mock).mockResolvedValue([{ senderType: 'CUSTOMER', content: 'ada diskon?' }]);
+      (prismaService.message.findMany as jest.Mock).mockResolvedValue([
+        { senderType: 'CUSTOMER', content: 'ada diskon?' },
+      ]);
 
       openaiService.analyzeLead.mockResolvedValue({
         heat_tier: 'HOT',
