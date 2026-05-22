@@ -46,10 +46,10 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   private getMasterToken(): string {
-    const token = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
+    const token = this.configService.get<string>('FONNTE_API_TOKEN');
     if (!token) {
       throw new InternalServerErrorException(
-        'FONNTE_SYSTEM_TOKEN is not configured',
+        'FONNTE_API_TOKEN is not configured',
       );
     }
     return token;
