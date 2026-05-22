@@ -17,6 +17,18 @@ describe('Human Takeover Rule', () => {
             findConversations: jest.fn(),
           },
         },
+        {
+          provide: require('../../../common/prisma/prisma.service').PrismaService,
+          useValue: {},
+        },
+        {
+          provide: require('../../../common/audit/audit.service').AuditService,
+          useValue: {},
+        },
+        {
+          provide: 'AI_PROVIDER',
+          useValue: {},
+        },
       ],
     }).compile();
 

@@ -51,8 +51,8 @@ Format:
 - [ ] ⏳ TASK 5.1 — AI Reply Worker
 - [ ] ⏳ TASK 5.2 — AI Safety Layer ⚠️ KRITIS
 - [ ] ⏳ TASK 5.3 — Hot Lead Detection
-- [ ] ⏳ TASK 5.4 — Hot Lead Alert
-- [ ] ⏳ TASK 5.5 — AI Assist Mode (Suggestion UI)
+- [x] ✅ TASK 5.4 — Hot Lead Alert
+- [x] ✅ TASK 5.5 — AI Assist Mode (Suggestion UI)
 
 ### Milestone 6 — Dashboard MVP
 - [ ] ⏳ TASK 6.1 — Dashboard API
@@ -166,6 +166,13 @@ Format:
 ### [Tanggal mulai development]
 - 🚀 Project dimulai
 - 📄 Semua dokumentasi siap: PRD, Phase 1-3 Dev Plan, Project Context, .env.example
+
+### 22 Mei 2026
+- ✅ TASK 5.4 — Hot Lead Alert selesai
+  - Mengimplementasikan Rate Limit 30 menit untuk internal WA Alerts.
+- ✅ TASK 5.5 — AI Assist Mode (Suggestion UI) selesai
+  - Implementasi backend endpoint dan worker untuk menghasilkan suggestion.
+  - Implementasi frontend komponen panel AiAssistPanel.
 
 ---
 

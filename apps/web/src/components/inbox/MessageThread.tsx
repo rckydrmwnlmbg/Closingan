@@ -1,6 +1,7 @@
 import { Socket } from "socket.io-client";
 import { ArrowLeft, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { AiAssistPanel } from "./AiAssistPanel";
 
 interface MessageThreadProps {
   conversationId: string;
@@ -10,24 +11,75 @@ interface MessageThreadProps {
 
 export function MessageThread({ conversationId, socket, onBack }: MessageThreadProps) {
   const [aiMode, setAiMode] = useState<string>("AUTO_REPLY");
-
-  // Keep compiler happy
-  console.log("conversationId", conversationId);
-  console.log("socket", socket);
   const [reply, setReply] = useState("");
+
+  // AI Suggestion State
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [isGeneratingSuggestion, setIsGeneratingSuggestion] = useState(false);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleAiSuggestion = (data: { conversationId: string; suggestion: string }) => {
+      if (data.conversationId === conversationId && aiMode === "AI_ASSIST") {
+        setAiSuggestion(data.suggestion);
+        setIsGeneratingSuggestion(false);
+      }
+    };
+
+    socket.on("ai:suggestion", handleAiSuggestion);
+
+    return () => {
+      socket.off("ai:suggestion", handleAiSuggestion);
+    };
+  }, [socket, conversationId, aiMode]);
 
   const toggleAiMode = async () => {
     // In a real app we would call PATCH /conversations/:id/ai-mode
     const newMode = aiMode === "AUTO_REPLY" ? "AI_ASSIST" : "AUTO_REPLY";
     setAiMode(newMode);
-    // Realtime update logic handled locally or by socket broadcast
+
+    // Clear suggestion when mode changes
+    if (newMode !== "AI_ASSIST") {
+      setAiSuggestion(null);
+    }
   };
 
-  const handleSend = () => {
-    if (!reply.trim()) return;
+  const handleSend = (text?: string) => {
+    const textToSend = text || reply;
+    if (!textToSend.trim()) return;
+
     // Call API POST /conversations/:id/messages
-    // And locally clear the input
-    setReply("");
+    console.log("Sending:", textToSend);
+
+    // Locally clear the input
+    if (!text) setReply("");
+
+    // Clear suggestion if sent from panel
+    setAiSuggestion(null);
+  };
+
+  const regenerateSuggestion = async () => {
+    setIsGeneratingSuggestion(true);
+    setAiSuggestion(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+      const response = await fetch(`${apiUrl}/api/conversations/${conversationId}/ai-suggest`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer mock_token"
+        }
+      });
+      const data = await response.json();
+      if (data.success && data.data) {
+        setAiSuggestion(data.data.suggestion);
+      }
+    } catch (error) {
+      console.error("Failed to generate suggestion:", error);
+    } finally {
+      setIsGeneratingSuggestion(false);
+    }
   };
 
   return (
@@ -75,8 +127,25 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
         </div>
       </div>
 
+      {/* AI Assist Panel */}
+      {aiMode === "AI_ASSIST" && (
+        <div className="bg-white pt-2 border-t border-gray-200">
+          <AiAssistPanel
+            suggestion={aiSuggestion}
+            isLoading={isGeneratingSuggestion}
+            onSend={(text) => handleSend(text)}
+            onEdit={(text) => {
+              setReply(text);
+              setAiSuggestion(null);
+            }}
+            onRegenerate={regenerateSuggestion}
+            onDismiss={() => setAiSuggestion(null)}
+          />
+        </div>
+      )}
+
       {/* Input */}
-      <div className="p-4 bg-white border-t border-gray-200 flex items-center">
+      <div className={`p-4 bg-white flex items-center ${aiMode === "AI_ASSIST" ? "" : "border-t border-gray-200"}`}>
         <input
           type="text"
           value={reply}

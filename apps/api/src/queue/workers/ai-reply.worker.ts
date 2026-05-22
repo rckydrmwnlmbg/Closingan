@@ -9,6 +9,7 @@ import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.i
 import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 import { AiReplyJobData } from '../interfaces/job-data.interface';
+import { ConversationGateway } from '../../modules/websocket/conversation.gateway';
 
 @Processor('ai-reply', {
   concurrency: 5,
@@ -28,6 +29,7 @@ export class AiReplyWorker extends WorkerHost {
     @Inject(WHATSAPP_PROVIDER)
     private readonly whatsappProvider: WhatsappProviderInterface,
     @InjectQueue('ai-analysis') private readonly aiAnalysisQueue: Queue,
+    private readonly conversationGateway: ConversationGateway,
   ) {
     super();
   }
@@ -120,10 +122,60 @@ export class AiReplyWorker extends WorkerHost {
           return { success: false, reason: 'quota_exhausted' };
         }
 
-        // 4. Core Conversation Logic
+        // 4. Handle AI_ASSIST Mode (Suggestion via WebSocket)
+        if (conversation.aiMode === 'AI_ASSIST') {
+          try {
+            // Get recent messages for context
+            const recentMessages = await this.prisma.message.findMany({
+              where: { conversationId: conversation.id },
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+            });
+
+            const historyText = recentMessages
+              .reverse()
+              .map(m => `${m.senderType}: ${m.content}`)
+              .join('\n');
+
+            const suggestion = await this.aiProvider.generateReply(tenantId, historyText);
+
+            // Emit suggestion via WebSocket
+            this.conversationGateway.broadcastAiSuggestion(tenantId, {
+              conversationId: conversation.id,
+              suggestion,
+            });
+
+            // Deduct quota
+            if (tokenQuota) {
+              await this.prisma.tokenQuota.update({
+                where: { tenantId },
+                data: { usedQuota: { increment: 1 } },
+              });
+            }
+
+            return { success: true, reason: 'ai_suggestion_emitted' };
+          } catch (error) {
+             this.logger.error(`Failed to generate AI suggestion for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
+             return { success: false, reason: 'ai_suggestion_failed' };
+          }
+        }
+
+        // 5. Core Conversation Logic (AUTO_REPLY)
         let aiResponse: string;
         try {
-          aiResponse = await this.aiProvider.generateReply(tenantId, userMessage);
+          // Get recent messages for context
+          const recentMessages = await this.prisma.message.findMany({
+            where: { conversationId: conversation.id },
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+          });
+
+          const historyText = recentMessages
+            .reverse()
+            .map(m => `${m.senderType}: ${m.content}`)
+            .join('\n');
+
+          aiResponse = await this.aiProvider.generateReply(tenantId, historyText);
         } catch (error) {
           // Safety Escalation Layer
           if (error instanceof AiSafetyException) {
@@ -182,7 +234,7 @@ export class AiReplyWorker extends WorkerHost {
           throw new Error(`Failed to send message: ${sendResult.error}`);
         }
 
-        // 5. Save outgoing AI message
+        // 6. Save outgoing AI message
         const outgoingMessage = await this.prisma.message.create({
           data: {
             tenantId,
@@ -195,7 +247,7 @@ export class AiReplyWorker extends WorkerHost {
           },
         });
 
-        // 6. Update Conversation state
+        // 7. Update Conversation state
         await this.prisma.conversation.update({
           where: { id: conversation.id },
           data: {
@@ -206,7 +258,7 @@ export class AiReplyWorker extends WorkerHost {
           },
         });
 
-        // 7. Audit Logging & Quota Update (Deduction tracking)
+        // 8. Audit Logging & Quota Update (Deduction tracking)
         // Deduct 1 from token quota for generating an AI reply
         if (tokenQuota) {
           await this.prisma.tokenQuota.update({

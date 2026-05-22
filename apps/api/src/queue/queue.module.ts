@@ -7,11 +7,13 @@ import { BlastWorker } from './workers/blast.worker';
 
 import { AiModule } from '../ai/ai.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
+import { WebsocketModule } from '../modules/websocket/websocket.module';
 
 @Module({
   imports: [
     AiModule,
     WhatsappModule,
+    WebsocketModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
