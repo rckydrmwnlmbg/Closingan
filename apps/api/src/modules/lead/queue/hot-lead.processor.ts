@@ -91,9 +91,11 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
 
       if (masterToken && user.waPersonalNumber) {
         const redisKey = `hot-lead-alert:${tenantId}:${leadId}`;
-        const isRateLimited = await this.redisClient.exists(redisKey);
 
-        if (isRateLimited) {
+        // Use atomic SET NX to prevent race conditions
+        const acquiredLock = await this.redisClient.set(redisKey, '1', 'EX', 1800, 'NX');
+
+        if (!acquiredLock) {
           this.logger.log(`Rate limited: skipping WA hot lead alert for lead ${leadId}`);
         } else {
           const waMessage = `🚨 *Peringatan Hot Lead!* 🚨\nProspek: ${leadNameOrPhone}\nKetertarikan: ${heatTier}\nAlasan: ${heatReasons.join(', ')}\nLink: ${deepLink}`;
@@ -106,10 +108,9 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
               tenantId: tenantId, // Context tracking
             });
             this.logger.log(`WhatsApp hot lead alert sent to user ${user.id}`);
-
-            // Set rate limit: Max 1 alert per 30 minutes (1800 seconds)
-            await this.redisClient.set(redisKey, '1', 'EX', 1800);
           } catch (error) {
+            // If it failed to send, delete the lock so we can try again on next job run
+            await this.redisClient.del(redisKey);
             this.logger.error(`Failed to send WA hot lead alert to user ${user.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
           }
         }
