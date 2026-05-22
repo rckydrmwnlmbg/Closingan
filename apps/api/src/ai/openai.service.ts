@@ -39,7 +39,7 @@ export class OpenAiService implements AiProviderInterface {
         throw new AiSafetyException(
           inputValidation.reason!,
           'Input failed safety validation',
-          inputValidation.blockedContent
+          inputValidation.blockedContent,
         );
       }
 
@@ -54,7 +54,7 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
         model: 'gpt-4o-mini', // Configurable or standard model
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: safePrompt }
+          { role: 'user', content: safePrompt },
         ],
       });
 
@@ -66,7 +66,7 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
         throw new AiSafetyException(
           outputValidation.reason!,
           'AI Output failed safety validation',
-          outputValidation.blockedContent
+          outputValidation.blockedContent,
         );
       }
 

@@ -42,11 +42,7 @@ import { WebsocketModule } from '../modules/websocket/websocket.module';
       { name: 'blast' },
     ),
   ],
-  providers: [
-    AiReplyWorker,
-    HotLeadWorker,
-    BlastWorker,
-  ],
+  providers: [AiReplyWorker, HotLeadWorker, BlastWorker],
   exports: [BullModule],
 })
 export class QueueModule {}

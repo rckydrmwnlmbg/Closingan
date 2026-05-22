@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
@@ -22,7 +27,9 @@ export class JwtWsGuard implements CanActivate {
 
     try {
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
+        secret:
+          this.configService.get<string>('JWT_ACCESS_SECRET') ||
+          'default_secret',
       });
 
       // Attach user to socket client directly so we can use it in Gateway
@@ -39,7 +46,6 @@ export class JwtWsGuard implements CanActivate {
       if (payload.sub) {
         this.cls.set('user', client.data.user);
       }
-
     } catch (e) {
       throw new UnauthorizedException('Invalid token');
     }

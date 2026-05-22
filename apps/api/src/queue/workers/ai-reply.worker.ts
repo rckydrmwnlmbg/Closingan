@@ -1,4 +1,9 @@
-import { Processor, WorkerHost, OnWorkerEvent, InjectQueue } from '@nestjs/bullmq';
+import {
+  Processor,
+  WorkerHost,
+  OnWorkerEvent,
+  InjectQueue,
+} from '@nestjs/bullmq';
 import { Job, Queue } from 'bullmq';
 import { Logger, Inject } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
@@ -14,9 +19,9 @@ import { ConversationGateway } from '../../modules/websocket/conversation.gatewa
 @Processor('ai-reply', {
   concurrency: 5,
   limiter: {
-    max: 10,       // Max 10 jobs processed
-    duration: 1000 // per 1 second (1000ms) - backpressure control for OpenAI
-  }
+    max: 10, // Max 10 jobs processed
+    duration: 1000, // per 1 second (1000ms) - backpressure control for OpenAI
+  },
 })
 export class AiReplyWorker extends WorkerHost {
   private readonly logger = new Logger(AiReplyWorker.name);
@@ -47,7 +52,7 @@ export class AiReplyWorker extends WorkerHost {
           action: 'AI_MODE_CHANGED' as any, // Using existing enum value for ai trigger log
           entityType: 'JOB',
           entityId: job.id,
-          metadata: { step: 'STARTED' }
+          metadata: { step: 'STARTED' },
         });
 
         // Extract message from Fonnte payload format
@@ -94,21 +99,22 @@ export class AiReplyWorker extends WorkerHost {
         });
 
         if (!waSession || waSession.state !== 'CONNECTED') {
-          this.logger.warn(`Skipping AI reply: WhatsApp session is not connected for tenant ${tenantId}`);
+          this.logger.warn(
+            `Skipping AI reply: WhatsApp session is not connected for tenant ${tenantId}`,
+          );
           return { success: false, reason: 'whatsapp_not_connected' };
-        }
-
-        if (!waSession.fonnteToken) {
-          throw new Error('WhatsApp session not configured or token missing');
         }
 
         // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
         if (
           conversation.state === 'HUMAN_ACTIVE' ||
           conversation.aiMode === 'AI_OFF' ||
-          (conversation.aiModePausedUntil && conversation.aiModePausedUntil > new Date())
+          (conversation.aiModePausedUntil &&
+            conversation.aiModePausedUntil > new Date())
         ) {
-          this.logger.log(`Skipping AI reply for conversation ${conversation.id}: Human in control`);
+          this.logger.log(
+            `Skipping AI reply for conversation ${conversation.id}: Human in control`,
+          );
           return { success: true, reason: 'skipped_human_override' };
         }
 
@@ -118,7 +124,9 @@ export class AiReplyWorker extends WorkerHost {
         });
 
         if (tokenQuota && tokenQuota.usedQuota >= tokenQuota.totalQuota) {
-          this.logger.warn(`Skipping AI reply: Token quota exhausted for tenant ${tenantId}`);
+          this.logger.warn(
+            `Skipping AI reply: Token quota exhausted for tenant ${tenantId}`,
+          );
           return { success: false, reason: 'quota_exhausted' };
         }
 
@@ -134,10 +142,13 @@ export class AiReplyWorker extends WorkerHost {
 
             const historyText = recentMessages
               .reverse()
-              .map(m => `${m.senderType}: ${m.content}`)
+              .map((m) => `${m.senderType}: ${m.content}`)
               .join('\n');
 
-            const suggestion = await this.aiProvider.generateReply(tenantId, historyText);
+            const suggestion = await this.aiProvider.generateReply(
+              tenantId,
+              historyText,
+            );
 
             // Emit suggestion via WebSocket
             this.conversationGateway.broadcastAiSuggestion(tenantId, {
@@ -155,8 +166,10 @@ export class AiReplyWorker extends WorkerHost {
 
             return { success: true, reason: 'ai_suggestion_emitted' };
           } catch (error) {
-             this.logger.error(`Failed to generate AI suggestion for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
-             return { success: false, reason: 'ai_suggestion_failed' };
+            this.logger.error(
+              `Failed to generate AI suggestion for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`,
+            );
+            return { success: false, reason: 'ai_suggestion_failed' };
           }
         }
 
@@ -172,22 +185,27 @@ export class AiReplyWorker extends WorkerHost {
 
           const historyText = recentMessages
             .reverse()
-            .map(m => `${m.senderType}: ${m.content}`)
+            .map((m) => `${m.senderType}: ${m.content}`)
             .join('\n');
 
-          aiResponse = await this.aiProvider.generateReply(tenantId, historyText);
+          aiResponse = await this.aiProvider.generateReply(
+            tenantId,
+            historyText,
+          );
         } catch (error) {
           // Safety Escalation Layer
           if (error instanceof AiSafetyException) {
-            this.logger.warn(`AI Safety Exception triggered for conversation ${conversation.id}: ${error.reason}`);
+            this.logger.warn(
+              `AI Safety Exception triggered for conversation ${conversation.id}: ${error.reason}`,
+            );
 
             // Update conversation state to escalated
             await this.prisma.conversation.update({
               where: { id: conversation.id },
               data: {
                 state: 'ESCALATED', // Escalated is Needs Human
-                unreadCount: { increment: 1 }
-              }
+                unreadCount: { increment: 1 },
+              },
             });
 
             // Log the escalation
@@ -197,16 +215,16 @@ export class AiReplyWorker extends WorkerHost {
                 conversationId: conversation.id,
                 reason: error.reason,
                 triggeredBy: 'AI',
-                blockedContent: error.blockedContent
-              }
+                blockedContent: error.blockedContent,
+              },
             });
 
             // Send alert to Sales via WA (using WhatsappSession phone number for alerting)
             const waSession = await this.prisma.whatsappSession.findUnique({
-              where: { tenantId }
+              where: { tenantId },
             });
 
-            if (waSession && waSession.fonnteToken && waSession.phoneNumber) {
+            if (waSession && waSession.phoneNumber) {
               const salesPhone = waSession.phoneNumber;
 
               const alertMessage = `🚨 [CLOSINGAN ALERT] 🚨\n\nAI mendeteksi anomali pada percakapan dengan ${conversation.customerName || sender} (${sender}).\nAlasan: ${error.reason}\n\nMohon segera ambil alih percakapan (HUMAN TAKEOVER).`;
@@ -214,7 +232,6 @@ export class AiReplyWorker extends WorkerHost {
                 tenantId,
                 to: salesPhone,
                 message: alertMessage,
-                tenantToken: waSession.fonnteToken
               });
             }
 
@@ -227,7 +244,6 @@ export class AiReplyWorker extends WorkerHost {
           tenantId,
           to: sender,
           message: aiResponse,
-          tenantToken: waSession.fonnteToken
         });
 
         if (!sendResult.success) {
@@ -264,8 +280,8 @@ export class AiReplyWorker extends WorkerHost {
           await this.prisma.tokenQuota.update({
             where: { tenantId },
             data: {
-              usedQuota: { increment: 1 }
-            }
+              usedQuota: { increment: 1 },
+            },
           });
         }
 
@@ -276,8 +292,8 @@ export class AiReplyWorker extends WorkerHost {
           metadata: {
             step: 'COMPLETED',
             messageId: outgoingMessage.id,
-            tokensUsed: 1 // Example flat token usage, will integrate with true token usage from OpenAI later
-          }
+            tokensUsed: 1, // Example flat token usage, will integrate with true token usage from OpenAI later
+          },
         });
 
         return { success: true };
@@ -296,10 +312,11 @@ export class AiReplyWorker extends WorkerHost {
     );
     // When attempts exhaust, bullmq stops retrying. We capture it for DLQ handling.
     if (job.attemptsMade >= (job.opts.attempts || 1)) {
-      this.logger.error(`Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`);
+      this.logger.error(
+        `Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`,
+      );
       // Run in a new context as we may need to insert to DB independently of the queue job run context
       await this.cls.run(async () => {
-
         await this.prisma.failedJob.create({
           data: {
             queueName: 'AI_REPLY' as any, // Adjust to Prisma QueueName enum if exact string differs
@@ -308,7 +325,7 @@ export class AiReplyWorker extends WorkerHost {
             errorMessage: error.message,
             errorStack: error.stack,
             attemptCount: job.attemptsMade,
-          }
+          },
         });
 
         await this.auditService.log({
@@ -319,8 +336,8 @@ export class AiReplyWorker extends WorkerHost {
           metadata: {
             error: error.message,
             queue: 'ai-reply',
-            attempts: job.attemptsMade
-          }
+            attempts: job.attemptsMade,
+          },
         });
       });
     }

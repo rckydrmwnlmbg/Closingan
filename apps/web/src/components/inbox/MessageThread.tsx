@@ -157,7 +157,7 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
           }}
         />
         <button
-          onClick={handleSend}
+          onClick={() => handleSend()}
           className="ml-3 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700"
         >
           <Send size={20} />

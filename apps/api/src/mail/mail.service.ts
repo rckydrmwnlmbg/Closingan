@@ -30,7 +30,10 @@ export class MailService {
     );
   }
 
-  async sendHotLeadAlert(to: string, data: { leadName: string; tier: string; reasons: string[]; link: string }) {
+  async sendHotLeadAlert(
+    to: string,
+    data: { leadName: string; tier: string; reasons: string[]; link: string },
+  ) {
     try {
       const { leadName, tier, reasons, link } = data;
       const reasonsList = reasons.map((r) => `- ${r}`).join('\n');
@@ -69,10 +72,14 @@ ${link}
         });
         this.logger.log(`Hot lead email alert sent to ${to}`);
       } else {
-        this.logger.log(`[MOCK EMAIL] Hot lead alert to ${to}:\n${textContent}`);
+        this.logger.log(
+          `[MOCK EMAIL] Hot lead alert to ${to}:\n${textContent}`,
+        );
       }
     } catch (error) {
-      this.logger.error(`Failed to send hot lead email to ${to}: ${error instanceof Error ? error.message : String(error)}`);
+      this.logger.error(
+        `Failed to send hot lead email to ${to}: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }

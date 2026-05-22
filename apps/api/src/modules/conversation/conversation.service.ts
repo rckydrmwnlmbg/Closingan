@@ -1,7 +1,13 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConversationRepository } from './conversation.repository';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
-import { Conversation, Lead, ConversationLabelAssignment, ConversationLabel, FollowUp } from '@prisma/client';
+import {
+  Conversation,
+  Lead,
+  ConversationLabelAssignment,
+  ConversationLabel,
+  FollowUp,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
@@ -10,7 +16,9 @@ import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 
 type ConversationWithRelations = Conversation & {
   lead: Lead | null;
-  labelAssignments: (ConversationLabelAssignment & { label: ConversationLabel })[];
+  labelAssignments: (ConversationLabelAssignment & {
+    label: ConversationLabel;
+  })[];
   followUps: FollowUp[];
 };
 
@@ -26,7 +34,10 @@ export class ConversationService {
   ) {}
 
   async getConversations(tenantId: string, query: GetConversationsQueryDto) {
-    const { data, meta } = await this.conversationRepository.findConversations(tenantId, query);
+    const { data, meta } = await this.conversationRepository.findConversations(
+      tenantId,
+      query,
+    );
 
     const formattedData = data.map((conv: ConversationWithRelations) => {
       // Map it to exactly API_CONTRACTS.md structure
@@ -57,11 +68,19 @@ export class ConversationService {
     });
 
     if (!conversation) {
-      throw new AppException('CONVERSATION_NOT_FOUND', 'Percakapan tidak ditemukan.', 404);
+      throw new AppException(
+        'CONVERSATION_NOT_FOUND',
+        'Percakapan tidak ditemukan.',
+        404,
+      );
     }
 
     if (conversation.aiMode !== 'AI_ASSIST') {
-      throw new AppException('INVALID_STATE', 'AI suggestion hanya tersedia di mode AI_ASSIST.', 400);
+      throw new AppException(
+        'INVALID_STATE',
+        'AI suggestion hanya tersedia di mode AI_ASSIST.',
+        400,
+      );
     }
 
     // Check quota
@@ -70,7 +89,11 @@ export class ConversationService {
     });
 
     if (tokenQuota && tokenQuota.usedQuota >= tokenQuota.totalQuota) {
-      throw new AppException('AI_QUOTA_EXCEEDED', 'Kuota AI Anda telah habis.', 403);
+      throw new AppException(
+        'AI_QUOTA_EXCEEDED',
+        'Kuota AI Anda telah habis.',
+        403,
+      );
     }
 
     // Get recent messages for context
@@ -82,7 +105,7 @@ export class ConversationService {
 
     const historyText = recentMessages
       .reverse()
-      .map(m => `${m.senderType}: ${m.content}`)
+      .map((m) => `${m.senderType}: ${m.content}`)
       .join('\n');
 
     let suggestion: string;
@@ -90,10 +113,20 @@ export class ConversationService {
       suggestion = await this.aiProvider.generateReply(tenantId, historyText);
     } catch (error) {
       if (error instanceof AiSafetyException) {
-        throw new AppException('AI_SAFETY_BLOCKED', `Suggestion diblokir karena: ${error.reason}`, 400);
+        throw new AppException(
+          'AI_SAFETY_BLOCKED',
+          `Suggestion diblokir karena: ${error.reason}`,
+          400,
+        );
       }
-      this.logger.error(`Failed to generate AI suggestion: ${error instanceof Error ? error.message : 'Unknown'}`);
-      throw new AppException('INTERNAL_ERROR', 'Gagal menghasilkan AI suggestion', 500);
+      this.logger.error(
+        `Failed to generate AI suggestion: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      throw new AppException(
+        'INTERNAL_ERROR',
+        'Gagal menghasilkan AI suggestion',
+        500,
+      );
     }
 
     // Deduct quota

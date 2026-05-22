@@ -22,7 +22,8 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly mailService: MailService,
     private readonly conversationGateway: ConversationGateway,
-    @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider: WhatsappProviderInterface,
+    @Inject(WHATSAPP_PROVIDER)
+    private readonly whatsappProvider: WhatsappProviderInterface,
   ) {
     super();
     this.redisClient = new Redis({
@@ -37,7 +38,8 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
   }
 
   async process(job: Job<HotLeadJobData, unknown, string>): Promise<unknown> {
-    const { tenantId, leadId, conversationId, heatTier, heatReasons } = job.data;
+    const { tenantId, leadId, conversationId, heatTier, heatReasons } =
+      job.data;
 
     if (!tenantId || !leadId) {
       this.logger.warn(`Invalid job data for hot-lead: ${job.id}`);
@@ -77,24 +79,27 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
       });
 
       if (!user) {
-        this.logger.warn(`No user found for tenant ${tenantId} to send alert to`);
+        this.logger.warn(
+          `No user found for tenant ${tenantId} to send alert to`,
+        );
         return;
       }
 
       const leadNameOrPhone = lead.customerName || lead.customerPhone;
-      const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+      const frontendUrl =
+        this.configService.get<string>('FRONTEND_URL') ||
+        'http://localhost:3000';
       const deepLink = `${frontendUrl}/dashboard/conversations/${conversationId}`;
 
       // 3. WhatsApp Internal Alert Logic
-      // Hard constraint: The system uses a centralized Master Token for internal alerts
-      const masterToken = this.configService.get<string>('FONNTE_MASTER_TOKEN');
-
-      if (masterToken && user.waPersonalNumber) {
+      if (user.waPersonalNumber) {
         const redisKey = `hot-lead-alert:${tenantId}:${leadId}`;
         const isRateLimited = await this.redisClient.exists(redisKey);
 
         if (isRateLimited) {
-          this.logger.log(`Rate limited: skipping WA hot lead alert for lead ${leadId}`);
+          this.logger.log(
+            `Rate limited: skipping WA hot lead alert for lead ${leadId}`,
+          );
         } else {
           const waMessage = `🚨 *Peringatan Hot Lead!* 🚨\nProspek: ${leadNameOrPhone}\nKetertarikan: ${heatTier}\nAlasan: ${heatReasons.join(', ')}\nLink: ${deepLink}`;
 
@@ -102,7 +107,6 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
             await this.whatsappProvider.sendMessage({
               to: user.waPersonalNumber,
               message: waMessage,
-              tenantToken: masterToken, // Using master token for internal alerts
               tenantId: tenantId, // Context tracking
             });
             this.logger.log(`WhatsApp hot lead alert sent to user ${user.id}`);
@@ -110,11 +114,15 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
             // Set rate limit: Max 1 alert per 30 minutes (1800 seconds)
             await this.redisClient.set(redisKey, '1', 'EX', 1800);
           } catch (error) {
-            this.logger.error(`Failed to send WA hot lead alert to user ${user.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
+            this.logger.error(
+              `Failed to send WA hot lead alert to user ${user.id}: ${error instanceof Error ? error.message : 'Unknown'}`,
+            );
           }
         }
       } else {
-        this.logger.warn(`Cannot send WA alert. Master token or user phone missing for user ${user.id}`);
+        this.logger.warn(
+          `Cannot send WA alert. User phone missing for user ${user.id}`,
+        );
       }
 
       // 4. Implementasi Email Alert Logic (Conditional)

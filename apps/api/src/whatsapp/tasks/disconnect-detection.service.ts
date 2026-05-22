@@ -67,7 +67,6 @@ export class DisconnectDetectionService {
 
   private async checkConnectedSession(session: any) {
     const status = await this.whatsappProvider.checkConnectionStatus(
-      session.fonnteToken,
       session.tenantId,
     );
 
@@ -150,7 +149,6 @@ export class DisconnectDetectionService {
       );
 
       const status = await this.whatsappProvider.checkConnectionStatus(
-        session.fonnteToken,
         session.tenantId,
       );
 
@@ -205,11 +203,6 @@ export class DisconnectDetectionService {
       await this.whatsappProvider.sendMessage({
         to: user.waPersonalNumber,
         message,
-        tenantToken: session.fonnteToken, // Send via the tenant's token or a system token?
-        // If the tenant's WA is disconnected, sending via Fonnte with their token might fail.
-        // We will attempt it, Fonnte might still deliver if it's an API issue vs device issue,
-        // but if the device is disconnected, it will fail.
-        // The requirements say "kirim alert notifikasi ke nomor pribadi sales via Fonnte".
         tenantId: session.tenantId,
       });
     }
