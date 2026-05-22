@@ -103,4 +103,8 @@ export class ConversationGateway
   broadcastSystemAlert(tenantId: string, data: { type: string; message: string; conversationId?: string }) {
     this.server.to(`tenant-${tenantId}`).emit('system:alert', data);
   }
+
+  broadcastAiSuggestion(tenantId: string, data: { conversationId: string; suggestion: string }) {
+    this.server.to(`tenant-${tenantId}`).emit('ai:suggestion', data);
+  }
 }

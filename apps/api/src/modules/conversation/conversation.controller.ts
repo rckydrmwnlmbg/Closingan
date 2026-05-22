@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, UseGuards } from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -17,5 +17,14 @@ export class ConversationController {
   ) {
     const { data, meta } = await this.conversationService.getConversations(tenantId, query);
     return ResponseBuilder.list(data, meta);
+  }
+
+  @Post(':id/ai-suggest')
+  async aiSuggest(
+    @TenantId() tenantId: string,
+    @Param('id') conversationId: string,
+  ) {
+    const result = await this.conversationService.generateAiSuggestion(tenantId, conversationId);
+    return ResponseBuilder.success(result);
   }
 }
