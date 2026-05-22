@@ -33,7 +33,7 @@ describe('HotLeadService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HotLeadService,
-        { provide: OpenAiService, useValue: openaiService },
+        { provide: 'AI_PROVIDER', useValue: openaiService },
         { provide: PrismaService, useValue: prismaService },
         { provide: getQueueToken('hot-lead'), useValue: mockQueue },
       ],

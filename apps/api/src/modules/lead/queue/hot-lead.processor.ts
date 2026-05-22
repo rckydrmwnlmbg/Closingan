@@ -87,7 +87,7 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
 
       // 3. WhatsApp Internal Alert Logic
       // Hard constraint: The system uses a centralized Master Token for internal alerts
-      const masterToken = this.configService.get<string>('FONNTE_MASTER_TOKEN');
+      const masterToken = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
 
       if (masterToken && user.waPersonalNumber) {
         const redisKey = `hot-lead-alert:${tenantId}:${leadId}`;
