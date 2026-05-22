@@ -1,5 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger, Inject } from '@nestjs/common';
+import { Logger, Inject, OnModuleDestroy } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { HotLeadJobData } from '../../../queue/interfaces/job-data.interface';
@@ -9,10 +9,12 @@ import { MailService } from '../../../mail/mail.service';
 import { ConversationGateway } from '../../websocket/conversation.gateway';
 import { WHATSAPP_PROVIDER } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
+import { Redis } from 'ioredis';
 
 @Processor('hot-lead')
-export class HotLeadProcessor extends WorkerHost {
+export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
   private readonly logger = new Logger(HotLeadProcessor.name);
+  private redisClient: Redis;
 
   constructor(
     private readonly cls: ClsService,
@@ -23,6 +25,15 @@ export class HotLeadProcessor extends WorkerHost {
     @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider: WhatsappProviderInterface,
   ) {
     super();
+    this.redisClient = new Redis({
+      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+      port: this.configService.get<number>('REDIS_PORT', 6379),
+      password: this.configService.get<string>('REDIS_PASSWORD'),
+    });
+  }
+
+  onModuleDestroy() {
+    this.redisClient.disconnect();
   }
 
   async process(job: Job<HotLeadJobData, unknown, string>): Promise<unknown> {
@@ -79,18 +90,28 @@ export class HotLeadProcessor extends WorkerHost {
       const masterToken = this.configService.get<string>('FONNTE_MASTER_TOKEN');
 
       if (masterToken && user.waPersonalNumber) {
-        const waMessage = `🚨 *Peringatan Hot Lead!* 🚨\nProspek: ${leadNameOrPhone}\nKetertarikan: ${heatTier}\nAlasan: ${heatReasons.join(', ')}\nLink: ${deepLink}`;
+        const redisKey = `hot-lead-alert:${tenantId}:${leadId}`;
+        const isRateLimited = await this.redisClient.exists(redisKey);
 
-        try {
-          await this.whatsappProvider.sendMessage({
-            to: user.waPersonalNumber,
-            message: waMessage,
-            tenantToken: masterToken, // Using master token for internal alerts
-            tenantId: tenantId, // Context tracking
-          });
-          this.logger.log(`WhatsApp hot lead alert sent to user ${user.id}`);
-        } catch (error) {
-          this.logger.error(`Failed to send WA hot lead alert to user ${user.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
+        if (isRateLimited) {
+          this.logger.log(`Rate limited: skipping WA hot lead alert for lead ${leadId}`);
+        } else {
+          const waMessage = `🚨 *Peringatan Hot Lead!* 🚨\nProspek: ${leadNameOrPhone}\nKetertarikan: ${heatTier}\nAlasan: ${heatReasons.join(', ')}\nLink: ${deepLink}`;
+
+          try {
+            await this.whatsappProvider.sendMessage({
+              to: user.waPersonalNumber,
+              message: waMessage,
+              tenantToken: masterToken, // Using master token for internal alerts
+              tenantId: tenantId, // Context tracking
+            });
+            this.logger.log(`WhatsApp hot lead alert sent to user ${user.id}`);
+
+            // Set rate limit: Max 1 alert per 30 minutes (1800 seconds)
+            await this.redisClient.set(redisKey, '1', 'EX', 1800);
+          } catch (error) {
+            this.logger.error(`Failed to send WA hot lead alert to user ${user.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
+          }
         }
       } else {
         this.logger.warn(`Cannot send WA alert. Master token or user phone missing for user ${user.id}`);
