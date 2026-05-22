@@ -165,10 +165,14 @@ model OtpCode {
 model WhatsappSession {
   id                 String         @id @default(cuid())
   tenantId           String         @unique
-  phoneNumber        String
-  phoneNumberHash    String         // SHA-256 for trial abuse prevention
+  phoneNumber        String?        // diisi setelah QR di-scan dan connected
+  phoneNumberHash    String?        // SHA-256 for trial abuse prevention
   displayName        String?
-  fonnteToken        String         // AES-256 encrypted
+  // ⚠️ BUKAN token user — ini adalah device identifier dari Fonnte
+  // System Fonnte token ada di .env (FONNTE_SYSTEM_TOKEN), tidak di sini
+  fonnteDeviceId     String?        // device slot ID dari Fonnte untuk tenant ini
+  qrCode             String?        // QR code sementara (cleared setelah connected)
+  qrExpiresAt        DateTime?      // QR expired setelah 60 detik
   state              WaSessionState @default(DISCONNECTED)
   lastConnectedAt    DateTime?
   lastDisconnectedAt DateTime?

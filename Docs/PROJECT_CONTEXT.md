@@ -54,7 +54,11 @@ Bukan CRM enterprise. Bukan chatbot umum. Fokus: bantu sales individual respons 
 - WhatsApp provider (Fonnte) WAJIB di-wrap dalam `WhatsappProviderInterface`
 - AI provider (OpenAI) WAJIB di-wrap dalam `AiProviderInterface`
 - Business logic tidak boleh import Fonnte atau OpenAI SDK secara langsung
-- Tujuan: bisa ganti provider tanpa ubah business logic
+- **CLOSINGAN punya satu system Fonnte account — credentials di .env**
+- **User TIDAK perlu punya akun Fonnte sendiri**
+- **User cukup scan QR dari dashboard CLOSINGAN**
+- `fonnteDeviceId` di database = device slot identifier per tenant di Fonnte
+- `FONNTE_SYSTEM_TOKEN` di .env = token milik CLOSINGAN (bukan user)
 
 ### 3. Queue Priority — Jangan Dilanggar
 ```

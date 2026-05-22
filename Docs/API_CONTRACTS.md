@@ -234,6 +234,9 @@ Daftarkan user baru. Trial belum aktif sampai WA connect.
 
 ## WHATSAPP
 
+> ⚠️ Model diupdate v1.1: User cukup scan QR. Tidak ada user token input.
+> CLOSINGAN memiliki satu system Fonnte account di backend.
+
 ### `GET /whatsapp/status`
 **Auth required.**
 
@@ -252,11 +255,41 @@ Daftarkan user baru. Trial belum aktif sampai WA connect.
 
 ---
 
-### `POST /whatsapp/connect`
-**Auth required.**
-**Request:** `{ "fonnteToken": "fonnte_token_xxx" }`
-**Response 200:** `{ "success": true, "data": { "state": "CONNECTED", "phoneNumber": "+6281234567890" } }`
-**Errors:** `WA_ALREADY_CONNECTED` · `TRIAL_ALREADY_USED`
+### `POST /whatsapp/generate-qr`
+**Auth required.** Generate QR code untuk user scan.
+Dipanggil saat user buka Settings > WA Connection dan belum connected.
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": {
+    "qrCode": "data:image/png;base64,...",
+    "expiresAt": "2026-05-17T10:01:00Z",
+    "expiresInSeconds": 60
+  }
+}
+```
+
+**Errors:** `WA_ALREADY_CONNECTED`
+
+---
+
+### `GET /whatsapp/qr-status`
+**Auth required.** Polling endpoint — frontend call setiap 3 detik untuk cek apakah QR sudah di-scan.
+
+**Response 200:**
+```json
+{
+  "success": true,
+  "data": {
+    "state": "WAITING_SCAN",
+    "qrExpired": false
+  }
+}
+```
+
+`state` values: `WAITING_SCAN` · `CONNECTED` · `QR_EXPIRED`
 
 ---
 
@@ -267,18 +300,7 @@ Daftarkan user baru. Trial belum aktif sampai WA connect.
 ---
 
 ### `POST /webhook/whatsapp`
-**No auth (validated via webhook secret header `X-Fonnte-Signature`).**
-
-**Request (Fonnte webhook payload):**
-```json
-{
-  "device": "6281234567890",
-  "sender": "6287654321",
-  "message": "Pak, Avanza G ada stoknya?",
-  "name": "Budi",
-  "id": "fonnte_msg_id_xxx"
-}
-```
+**No auth. Validated via `X-Fonnte-Signature` header.**
 
 **Response 200:** `{ "success": true }`
 **Response 200 (duplicate):** `{ "success": true, "code": "DUPLICATE_WEBHOOK" }`
