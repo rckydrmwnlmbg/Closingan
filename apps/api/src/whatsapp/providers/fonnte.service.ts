@@ -46,13 +46,59 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   private getMasterToken(): string {
-    const token = this.configService.get<string>('FONNTE_API_TOKEN');
+    const token = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
     if (!token) {
       throw new InternalServerErrorException(
-        'FONNTE_API_TOKEN is not configured',
+        'FONNTE_SYSTEM_TOKEN is not configured',
       );
     }
     return token;
+  }
+
+  async generateQrCode(
+    tenantId: string,
+  ): Promise<{ qrData: string; expiresAt: Date }> {
+    try {
+      // Create an endpoint call to Fonnte API to get a QR code
+      // We pass the tenantId as a parameter or device to identify the tenant
+      const response = await firstValueFrom(
+        this.httpService.post<{ status: boolean; url?: string; reason?: string }>(
+          `${this.baseUrl}/qr`,
+          { type: 0 },
+          {
+            headers: {
+              Authorization: this.getMasterToken(),
+            },
+          },
+        ),
+      );
+
+      const data = response.data;
+      if (data && data.status && data.url) {
+        this.logger.log(`Generated QR code for Tenant: ${tenantId}`);
+        // Fonnte returns URL or base64. Assuming `url` is returned.
+        // We set expiration to 60 seconds from now
+        const expiresAt = new Date();
+        expiresAt.setSeconds(expiresAt.getSeconds() + 60);
+
+        return {
+          qrData: data.url,
+          expiresAt,
+        };
+      }
+
+      this.logger.error(`Fonnte API failed to generate QR code for Tenant: ${tenantId} - Reason: ${data?.reason}`);
+      throw new InternalServerErrorException('Failed to generate QR code via Fonnte');
+    } catch (error: unknown) {
+      let errorMessage = 'Failed to generate QR code via Fonnte';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      this.logger.error(
+        `Fonnte generate QR code failed for Tenant: ${tenantId} - Error: ${errorMessage}`,
+      );
+      throw new InternalServerErrorException(errorMessage);
+    }
   }
 
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {

@@ -289,6 +289,9 @@ model WhatsappSession {
   provider           String         @default("FONNTE")
   providerSessionId  String?
   providerDeviceId   String?
+  fonnteDeviceId     String?
+  qrCode             String?
+  qrExpiresAt        DateTime?
   state              WaSessionState @default(DISCONNECTED)
   lastConnectedAt    DateTime?
   lastDisconnectedAt DateTime?
