@@ -36,10 +36,10 @@ export class FonnteService implements WhatsappProviderInterface {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
   ) {
-    const url = this.configService.get<string>('FONNTE_API_URL');
+    const url = this.configService.get<string>('FONNTE_BASE_URL');
     if (!url) {
       throw new InternalServerErrorException(
-        'FONNTE_API_URL is not configured',
+        'FONNTE_BASE_URL is not configured',
       );
     }
     this.baseUrl = url;

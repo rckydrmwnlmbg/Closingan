@@ -1,5 +1,6 @@
+import { Inject } from "@nestjs/common";
 import { Injectable, Logger } from '@nestjs/common';
-import { OpenAiService } from '../../ai/openai.service';
+import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -35,7 +36,7 @@ export class HotLeadService {
   ];
 
   constructor(
-    private readonly openAiService: OpenAiService,
+    @Inject('AI_PROVIDER') private readonly openAiService: AiProviderInterface,
     private readonly prisma: PrismaService,
     @InjectQueue('hot-lead') private readonly hotLeadQueue: Queue,
   ) {}
