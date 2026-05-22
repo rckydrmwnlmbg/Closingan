@@ -62,7 +62,7 @@ export class ConversationRepository {
       hasNext = true;
       const nextItem = conversations.pop();
       if (nextItem) {
-          nextCursor = conversations[conversations.length - 1].id;
+        nextCursor = conversations[conversations.length - 1].id;
       }
     }
 

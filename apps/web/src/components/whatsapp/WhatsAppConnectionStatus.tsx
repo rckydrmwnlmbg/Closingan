@@ -15,7 +15,7 @@ export function WhatsAppConnectionStatus() {
   const [status, setStatus] = useState<WhatsAppStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [tokenInput, setTokenInput] = useState("");
+  const [qrCode, setQrCode] = useState<string | null>(null);
 
   const fetchStatus = async () => {
     setLoading(true);
@@ -49,32 +49,29 @@ export function WhatsAppConnectionStatus() {
     fetchStatus();
   }, []);
 
-  const handleConnect = async (e: React.FormEvent) => {
+  const handleRequestQr = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tokenInput) return;
-
     setLoading(true);
     setError("");
     try {
       const token = localStorage.getItem("auth_token") || "";
-      const res = await fetch("/api/whatsapp/connect", {
+      const res = await fetch("/api/whatsapp/request-qr", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ fonnteToken: tokenInput }),
       });
 
       const json = await res.json();
       if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || "Failed to connect");
+        throw new Error(json.error?.message || "Failed to generate QR code");
       }
 
-      await fetchStatus();
-      setTokenInput("");
+      setQrCode(json.data.qrCodeUrl || json.data.qrCode); // Adjust based on API contract
+      setLoading(false);
     } catch (err: unknown) {
-      setError((err as Error).message || "Failed to connect");
+      setError((err as Error).message || "Failed to request QR");
       setLoading(false);
     }
   };
@@ -174,33 +171,32 @@ export function WhatsAppConnectionStatus() {
             </div>
           </div>
         </div>
-      ) : (
-        <form onSubmit={handleConnect} className="mt-4">
-          <div className="mb-4">
-            <label
-              htmlFor="token"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >
-              Fonnte API Token
-            </label>
-            <input
-              type="text"
-              id="token"
-              value={tokenInput}
-              onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Enter your Fonnte token"
-              className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              required
-            />
+      ) : qrCode ? (
+        <div className="mt-4 flex flex-col items-center">
+          <p className="text-gray-700 dark:text-gray-300 mb-4">
+            Scan this QR code with your WhatsApp app to connect.
+          </p>
+          {/* Using a placeholder rendering for QR, you would display the actual image or render from string */}
+          <div className="bg-white p-4 rounded border">
+            <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
           </div>
           <button
-            type="submit"
-            disabled={loading || !tokenInput}
+            onClick={fetchStatus}
+            className="mt-4 px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+          >
+            I have scanned the code
+          </button>
+        </div>
+      ) : (
+        <div className="mt-4">
+          <button
+            onClick={handleRequestQr}
+            disabled={loading}
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {loading ? "Connecting..." : "Connect WhatsApp"}
+            {loading ? "Requesting QR..." : "Connect via QR Code"}
           </button>
-        </form>
+        </div>
       )}
     </div>
   );

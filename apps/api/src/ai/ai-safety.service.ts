@@ -23,7 +23,7 @@ export class AiSafetyService {
     /act as/i,
     /roleplay/i,
     /print (?:all )?(?:the )?instructions/i,
-    /show (?:all )?(?:the )?instructions/i
+    /show (?:all )?(?:the )?instructions/i,
   ];
 
   // Patterns for low confidence
@@ -37,7 +37,7 @@ export class AiSafetyService {
     /mungkin tidak/i,
     /i am not sure/i,
     /i don't know/i,
-    /i do not know/i
+    /i do not know/i,
   ];
 
   // Patterns for credit/loan (TASK 5.2: tidak ada angka simulasi kredit/DP/cicilan)
@@ -67,12 +67,16 @@ export class AiSafetyService {
     'wuling.id',
     'hyundai.com',
     'closingan.com',
-    'wa.me'
+    'wa.me',
   ];
 
   public validateInput(prompt: string): ValidationResult {
     if (!prompt || typeof prompt !== 'string') {
-      return { isSafe: false, reason: 'UNKNOWN_INTENT', blockedContent: prompt };
+      return {
+        isSafe: false,
+        reason: 'UNKNOWN_INTENT',
+        blockedContent: prompt,
+      };
     }
 
     for (const pattern of this.injectionPatterns) {
@@ -90,7 +94,11 @@ export class AiSafetyService {
 
   public validateOutput(output: string): ValidationResult {
     if (!output || typeof output !== 'string') {
-      return { isSafe: false, reason: 'UNKNOWN_INTENT', blockedContent: output };
+      return {
+        isSafe: false,
+        reason: 'UNKNOWN_INTENT',
+        blockedContent: output,
+      };
     }
 
     // 1. Low Confidence Check
@@ -155,8 +163,8 @@ export class AiSafetyService {
         const parsedUrl = new URL(url);
         const domain = parsedUrl.hostname.replace(/^www\./, '');
 
-        const isAllowed = this.allowedDomains.some(allowed =>
-          domain === allowed || domain.endsWith(`.${allowed}`)
+        const isAllowed = this.allowedDomains.some(
+          (allowed) => domain === allowed || domain.endsWith(`.${allowed}`),
         );
 
         if (!isAllowed) {

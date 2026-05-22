@@ -15,7 +15,10 @@ export class ConversationController {
     @TenantId() tenantId: string,
     @Query() query: GetConversationsQueryDto,
   ) {
-    const { data, meta } = await this.conversationService.getConversations(tenantId, query);
+    const { data, meta } = await this.conversationService.getConversations(
+      tenantId,
+      query,
+    );
     return ResponseBuilder.list(data, meta);
   }
 
@@ -24,7 +27,10 @@ export class ConversationController {
     @TenantId() tenantId: string,
     @Param('id') conversationId: string,
   ) {
-    const result = await this.conversationService.generateAiSuggestion(tenantId, conversationId);
+    const result = await this.conversationService.generateAiSuggestion(
+      tenantId,
+      conversationId,
+    );
     return ResponseBuilder.success(result);
   }
 }

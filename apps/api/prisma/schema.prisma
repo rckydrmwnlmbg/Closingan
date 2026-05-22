@@ -286,7 +286,9 @@ model WhatsappSession {
   phoneNumber        String
   phoneNumberHash    String // SHA-256 for trial abuse prevention
   displayName        String?
-  fonnteToken        String // AES-256 encrypted
+  provider           String         @default("FONNTE")
+  providerSessionId  String?
+  providerDeviceId   String?
   state              WaSessionState @default(DISCONNECTED)
   lastConnectedAt    DateTime?
   lastDisconnectedAt DateTime?

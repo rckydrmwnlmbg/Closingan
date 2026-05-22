@@ -43,7 +43,9 @@ export class ConversationGateway
       }
 
       const payload = await this.jwtService.verifyAsync(token, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
+        secret:
+          this.configService.get<string>('JWT_ACCESS_SECRET') ||
+          'default_secret',
       });
 
       const tenantId = payload.tenantId;
@@ -62,9 +64,10 @@ export class ConversationGateway
         userId: payload.sub,
         tenantId,
       };
-
     } catch (error) {
-      this.logger.error(`Connection error for client ${client.id}: ${error.message}`);
+      this.logger.error(
+        `Connection error for client ${client.id}: ${error.message}`,
+      );
       client.disconnect();
     }
   }
@@ -79,32 +82,55 @@ export class ConversationGateway
       const [type, token] = authorization.split(' ');
       if (type === 'Bearer') return token;
     }
-    return (client.handshake.auth?.token as string) || (client.handshake.query?.token as string);
+    return (
+      (client.handshake.auth?.token as string) ||
+      (client.handshake.query?.token as string)
+    );
   }
 
   // --- Broadcast Methods for Internal Services ---
 
-  broadcastConversationUpdated(tenantId: string, data: { conversationId: string; unreadCount: number; lastMessage: string }) {
+  broadcastConversationUpdated(
+    tenantId: string,
+    data: { conversationId: string; unreadCount: number; lastMessage: string },
+  ) {
     this.server.to(`tenant-${tenantId}`).emit('conversation:updated', data);
   }
 
-  broadcastConversationStateChanged(tenantId: string, data: { conversationId: string; state: string }) {
-    this.server.to(`tenant-${tenantId}`).emit('conversation:state_changed', data);
+  broadcastConversationStateChanged(
+    tenantId: string,
+    data: { conversationId: string; state: string },
+  ) {
+    this.server
+      .to(`tenant-${tenantId}`)
+      .emit('conversation:state_changed', data);
   }
 
-  broadcastLeadHeatChanged(tenantId: string, data: { conversationId: string; heatTier: string; heatReasons: string[] }) {
+  broadcastLeadHeatChanged(
+    tenantId: string,
+    data: { conversationId: string; heatTier: string; heatReasons: string[] },
+  ) {
     this.server.to(`tenant-${tenantId}`).emit('lead:heat_changed', data);
   }
 
-  broadcastAiModeChanged(tenantId: string, data: { conversationId: string; aiMode: string }) {
+  broadcastAiModeChanged(
+    tenantId: string,
+    data: { conversationId: string; aiMode: string },
+  ) {
     this.server.to(`tenant-${tenantId}`).emit('ai:mode_changed', data);
   }
 
-  broadcastSystemAlert(tenantId: string, data: { type: string; message: string; conversationId?: string }) {
+  broadcastSystemAlert(
+    tenantId: string,
+    data: { type: string; message: string; conversationId?: string },
+  ) {
     this.server.to(`tenant-${tenantId}`).emit('system:alert', data);
   }
 
-  broadcastAiSuggestion(tenantId: string, data: { conversationId: string; suggestion: string }) {
+  broadcastAiSuggestion(
+    tenantId: string,
+    data: { conversationId: string; suggestion: string },
+  ) {
     this.server.to(`tenant-${tenantId}`).emit('ai:suggestion', data);
   }
 }
