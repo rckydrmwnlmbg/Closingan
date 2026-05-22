@@ -23,6 +23,11 @@ export class WhatsappController {
     private readonly whatsappProvider: WhatsappProviderInterface,
   ) {}
 
+  @Get('qr-status')
+  async getQrStatus() {
+    return this.getStatus();
+  }
+
   @Get('status')
   async getStatus() {
     const tenantId = this.cls.get('tenantId');
@@ -63,23 +68,44 @@ export class WhatsappController {
     };
   }
 
-  @Post('request-qr')
-  async requestQr() {
+  @Post('generate-qr')
+  async generateQr() {
     const tenantId = this.cls.get('tenantId');
 
     // Abstracted away in Fonnte via device APIs.
-    // In actual implementation, Fonnte provides an API to generate a QR for a device.
-    // For this refactor, we are fulfilling the contract with a placeholder QR based on requirements
-    // since the real Fonnte generate QR endpoint details weren't explicitly provided,
-    // we return a mock URL to satisfy the frontend component which now expects a QR.
+    const qrData = await this.whatsappProvider.generateQrCode(tenantId);
 
-    const mockQrCode =
-      'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=FonnteQRPlaceholder';
+    // Save QR to session
+    let session = await this.prisma.whatsappSession.findUnique({
+      where: { tenantId },
+    });
+
+    if (session) {
+      await this.prisma.whatsappSession.update({
+        where: { id: session.id },
+        data: {
+          qrCode: qrData.qrData,
+          qrExpiresAt: qrData.expiresAt,
+        },
+      });
+    } else {
+      session = await this.prisma.whatsappSession.create({
+        data: {
+          tenantId,
+          phoneNumber: 'pending',
+          phoneNumberHash: 'pending',
+          qrCode: qrData.qrData,
+          qrExpiresAt: qrData.expiresAt,
+          state: 'DISCONNECTED',
+        },
+      });
+    }
 
     return {
       success: true,
       data: {
-        qrCodeUrl: mockQrCode,
+        qrCodeUrl: qrData.qrData,
+        expiresAt: qrData.expiresAt,
       },
     };
   }

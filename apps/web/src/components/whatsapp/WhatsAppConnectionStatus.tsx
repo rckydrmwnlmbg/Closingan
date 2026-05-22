@@ -18,10 +18,13 @@ export function WhatsAppConnectionStatus() {
   const [qrCode, setQrCode] = useState<string | null>(null);
 
   const fetchStatus = async () => {
-    setLoading(true);
+    // Only show global loading on initial fetch
+    if (!status && !qrCode) {
+      setLoading(true);
+    }
     try {
       const token = localStorage.getItem("auth_token") || "";
-      const res = await fetch("/api/whatsapp/status", {
+      const res = await fetch("/api/whatsapp/qr-status", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -33,6 +36,9 @@ export function WhatsAppConnectionStatus() {
       const json = await res.json();
       if (json.success && json.data) {
         setStatus(json.data);
+        if (json.data.state === "CONNECTED") {
+          setQrCode(null);
+        }
       } else {
         setStatus({ state: "DISCONNECTED" });
       }
@@ -47,15 +53,44 @@ export function WhatsAppConnectionStatus() {
 
   useEffect(() => {
     fetchStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleRequestQr = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Polling logic when QR code is active and status is DISCONNECTED
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (qrCode && status?.state !== "CONNECTED") {
+      interval = setInterval(() => {
+        fetchStatus();
+      }, 3000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrCode, status?.state]);
+
+  // QR Refresh logic
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (qrCode && status?.state !== "CONNECTED") {
+      interval = setInterval(() => {
+        handleRequestQr(null);
+      }, 60000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [qrCode, status?.state]);
+
+  const handleRequestQr = async (e: React.FormEvent | null) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError("");
     try {
       const token = localStorage.getItem("auth_token") || "";
-      const res = await fetch("/api/whatsapp/request-qr", {
+      const res = await fetch("/api/whatsapp/generate-qr", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -71,7 +106,7 @@ export function WhatsAppConnectionStatus() {
       setQrCode(json.data.qrCodeUrl || json.data.qrCode); // Adjust based on API contract
       setLoading(false);
     } catch (err: unknown) {
-      setError((err as Error).message || "Failed to request QR");
+      setError((err as Error).message || "Failed to generate QR");
       setLoading(false);
     }
   };
@@ -178,6 +213,7 @@ export function WhatsAppConnectionStatus() {
           </p>
           {/* Using a placeholder rendering for QR, you would display the actual image or render from string */}
           <div className="bg-white p-4 rounded border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />
           </div>
           <button

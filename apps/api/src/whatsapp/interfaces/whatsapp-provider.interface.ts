@@ -19,6 +19,9 @@ export interface ConnectionStatusResult {
 import { FonnteWebhookPayload } from './fonnte-webhook.interface';
 
 export interface WhatsappProviderInterface {
+  generateQrCode(
+    tenantId: string,
+  ): Promise<{ qrData: string; expiresAt: Date }>;
   sendMessage(options: SendMessageOptions): Promise<SendMessageResult>;
   checkConnectionStatus(tenantId?: string): Promise<ConnectionStatusResult>;
   validateWebhookSignature(
