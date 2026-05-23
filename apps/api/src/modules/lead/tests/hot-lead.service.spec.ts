@@ -88,9 +88,12 @@ describe('HotLeadService', () => {
       ]);
 
       openaiService.analyzeLead.mockResolvedValue({
-        heat_tier: 'HOT',
-        heat_score: 85,
-        heat_reasons: ['Tanya harga'],
+        result: {
+          heat_tier: 'HOT',
+          heat_score: 85,
+          heat_reasons: ['Tanya harga'],
+        },
+        tokensUsed: 10
       });
 
       (prismaService.lead.update as jest.Mock).mockResolvedValue({
@@ -130,8 +133,11 @@ describe('HotLeadService', () => {
 
       // OpenAI returns invalid schema (missing heat_reasons)
       openaiService.analyzeLead.mockResolvedValue({
-        heat_tier: 'HOT',
-        heat_score: 85,
+        result: {
+          heat_tier: 'HOT',
+          heat_score: 85,
+        },
+        tokensUsed: 10
       });
 
       clsService.get.mockReturnValue('tenant-1');
@@ -156,9 +162,12 @@ describe('HotLeadService', () => {
       ]);
 
       openaiService.analyzeLead.mockResolvedValue({
-        heat_tier: 'HOT',
-        heat_score: 88,
-        heat_reasons: ['Tanya diskon'],
+        result: {
+          heat_tier: 'HOT',
+          heat_score: 88,
+          heat_reasons: ['Tanya diskon'],
+        },
+        tokensUsed: 10
       });
 
       // Still HOT

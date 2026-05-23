@@ -109,8 +109,11 @@ export class ConversationService {
       .join('\n');
 
     let suggestion: string;
+    let tokensUsed = 0;
     try {
-      suggestion = await this.aiProvider.generateReply(tenantId, historyText);
+      const response = await this.aiProvider.generateReply(tenantId, historyText);
+      suggestion = response.reply;
+      tokensUsed = response.tokensUsed;
     } catch (error) {
       if (error instanceof AiSafetyException) {
         throw new AppException(
@@ -129,11 +132,11 @@ export class ConversationService {
       );
     }
 
-    // Deduct quota
-    if (tokenQuota) {
+    // Deduct actual quota
+    if (tokenQuota && tokensUsed > 0) {
       await this.prisma.tokenQuota.update({
         where: { tenantId },
-        data: { usedQuota: { increment: 1 } },
+        data: { usedQuota: { increment: tokensUsed } },
       });
     }
 
@@ -143,7 +146,7 @@ export class ConversationService {
       entityId: conversationId,
       metadata: {
         step: 'SUGGESTION_GENERATED',
-        tokensUsed: 1,
+        tokensUsed: tokensUsed,
       },
     });
 

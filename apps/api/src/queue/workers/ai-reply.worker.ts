@@ -151,10 +151,12 @@ export class AiReplyWorker extends WorkerHost {
               .map((m) => `${m.senderType}: ${m.content}`)
               .join('\n');
 
-            const suggestion = await this.aiProvider.generateReply(
+            const response = await this.aiProvider.generateReply(
               tenantId,
               historyText,
             );
+            const suggestion = response.reply;
+            const tokensUsed = response.tokensUsed;
 
             // Emit suggestion via WebSocket
             this.conversationGateway.broadcastAiSuggestion(tenantId, {
@@ -163,10 +165,10 @@ export class AiReplyWorker extends WorkerHost {
             });
 
             // Deduct quota
-            if (tokenQuota) {
+            if (tokenQuota && tokensUsed > 0) {
               await this.prisma.tokenQuota.update({
                 where: { tenantId },
-                data: { usedQuota: { increment: 1 } },
+                data: { usedQuota: { increment: tokensUsed } },
               });
             }
 
@@ -181,6 +183,7 @@ export class AiReplyWorker extends WorkerHost {
 
         // 5. Core Conversation Logic (AUTO_REPLY)
         let aiResponse: string;
+        let tokensUsed = 0;
         try {
           // Get recent messages for context
           const recentMessages = await this.prisma.message.findMany({
@@ -194,20 +197,24 @@ export class AiReplyWorker extends WorkerHost {
             .map((m) => `${m.senderType}: ${m.content}`)
             .join('\n');
 
-          const timeout = new Promise<never>((_, reject) =>
-            setTimeout(
+          let timeoutId: NodeJS.Timeout;
+          const timeout = new Promise<any>((_, reject) => {
+            timeoutId = setTimeout(
               () =>
                 reject(
                   new AppException('AI_TIMEOUT', 'AI provider timed out', 504),
                 ),
               25000,
-            ),
-          );
+            );
+          });
 
-          aiResponse = await Promise.race([
+          const raceResult = await Promise.race([
             this.aiProvider.generateReply(tenantId, historyText),
             timeout,
           ]);
+          clearTimeout(timeoutId!);
+          aiResponse = raceResult.reply;
+          tokensUsed = raceResult.tokensUsed;
         } catch (error) {
           // Safety Escalation Layer
           if (error instanceof AiSafetyException) {
@@ -253,13 +260,43 @@ export class AiReplyWorker extends WorkerHost {
 
             return { success: false, reason: 'escalated_to_human' };
           }
-          throw error;
+
+          // Fallback for API Errors / Timeouts to prevent infinite BullMQ loops
+          this.logger.error(`AI Provider Error for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
+
+          await this.prisma.conversation.update({
+            where: { id: conversation.id },
+            data: {
+              state: 'ESCALATED', // Fallback to human assist on technical error
+              unreadCount: { increment: 1 },
+            },
+          });
+
+          const waSession = await this.prisma.whatsappSession.findUnique({
+            where: { tenantId },
+          });
+
+          if (waSession && waSession.phoneNumber) {
+            const salesPhone = waSession.phoneNumber;
+            const alertMessage = `🚨 [CLOSINGAN SYSTEM ERROR] 🚨\n\nAI mengalami kendala teknis saat merespon pelanggan ${conversation.customerName || sender} (${sender}).\n\nMohon segera ambil alih percakapan (HUMAN TAKEOVER).`;
+            try {
+              await this.whatsappProvider.sendMessage({
+                tenantId,
+                to: salesPhone,
+                message: alertMessage,
+              });
+            } catch (waError) {}
+          }
+
+          return { success: false, reason: 'provider_error_escalated' };
+
         }
 
         let sendResult;
         try {
-          const timeout = new Promise<never>((_, reject) =>
-            setTimeout(
+          let waTimeoutId: NodeJS.Timeout;
+          const timeout = new Promise<never>((_, reject) => {
+            waTimeoutId = setTimeout(
               () =>
                 reject(
                   new AppException(
@@ -269,8 +306,8 @@ export class AiReplyWorker extends WorkerHost {
                   ),
                 ),
               15000,
-            ),
-          );
+            );
+          });
 
           sendResult = (await Promise.race([
             this.whatsappProvider.sendMessage({
@@ -280,6 +317,7 @@ export class AiReplyWorker extends WorkerHost {
             }),
             timeout,
           ])) as any;
+          clearTimeout(waTimeoutId!);
 
           if (!sendResult.success) {
             throw new AppException(
@@ -318,11 +356,11 @@ export class AiReplyWorker extends WorkerHost {
 
         // 8. Audit Logging & Quota Update (Deduction tracking)
         // Deduct 1 from token quota for generating an AI reply
-        if (tokenQuota) {
+        if (tokenQuota && tokensUsed > 0) {
           await this.prisma.tokenQuota.update({
             where: { tenantId },
             data: {
-              usedQuota: { increment: 1 },
+              usedQuota: { increment: tokensUsed },
             },
           });
         }
@@ -335,7 +373,7 @@ export class AiReplyWorker extends WorkerHost {
           metadata: {
             step: 'COMPLETED',
             messageId: outgoingMessage.id,
-            tokensUsed: 1, // Example flat token usage, will integrate with true token usage from OpenAI later
+            tokensUsed: tokensUsed,
           },
         });
 
