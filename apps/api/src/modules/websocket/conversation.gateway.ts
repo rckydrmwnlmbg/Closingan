@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { ClsService } from 'nestjs-cls';
 
 @WebSocketGateway({
   cors: {
@@ -28,6 +29,7 @@ export class ConversationGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly cls: ClsService,
   ) {}
 
   afterInit(server: Server) {
@@ -89,12 +91,21 @@ export class ConversationGateway
   }
 
   // --- Broadcast Methods for Internal Services ---
+  // To prevent broadcast leakage, these methods securely extract the tenantId from the execution context,
+  // preventing arbitrary external callers from spoofing broadcasts.
+  private getSecureTenantRoom(): string {
+    const contextTenantId = this.cls.get('tenantId');
+    if (!contextTenantId) {
+        throw new Error('Tenant context missing for WebSocket broadcast.');
+    }
+    return `tenant-${contextTenantId}`;
+  }
 
   broadcastConversationUpdated(
     tenantId: string,
     data: { conversationId: string; unreadCount: number; lastMessage: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('conversation:updated', data);
+    this.server.to(this.getSecureTenantRoom()).emit('conversation:updated', data);
   }
 
   broadcastConversationStateChanged(
@@ -102,7 +113,7 @@ export class ConversationGateway
     data: { conversationId: string; state: string },
   ) {
     this.server
-      .to(`tenant-${tenantId}`)
+      .to(this.getSecureTenantRoom())
       .emit('conversation:state_changed', data);
   }
 
@@ -110,27 +121,27 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; heatTier: string; heatReasons: string[] },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('lead:heat_changed', data);
+    this.server.to(this.getSecureTenantRoom()).emit('lead:heat_changed', data);
   }
 
   broadcastAiModeChanged(
     tenantId: string,
     data: { conversationId: string; aiMode: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('ai:mode_changed', data);
+    this.server.to(this.getSecureTenantRoom()).emit('ai:mode_changed', data);
   }
 
   broadcastSystemAlert(
     tenantId: string,
     data: { type: string; message: string; conversationId?: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('system:alert', data);
+    this.server.to(this.getSecureTenantRoom()).emit('system:alert', data);
   }
 
   broadcastAiSuggestion(
     tenantId: string,
     data: { conversationId: string; suggestion: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('ai:suggestion', data);
+    this.server.to(this.getSecureTenantRoom()).emit('ai:suggestion', data);
   }
 }
