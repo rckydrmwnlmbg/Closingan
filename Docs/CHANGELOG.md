@@ -55,7 +55,7 @@ Format:
 - [x] ✅ TASK 5.5 — AI Assist Mode (Suggestion UI)
 
 ### Milestone 6 — Dashboard MVP
-- [ ] ⏳ TASK 6.1 — Dashboard API
+- [x] ✅ TASK 6.1 — Dashboard API
 - [ ] ⏳ TASK 6.2 — Dashboard UI
 - [ ] ⏳ TASK 6.3 — Follow-up Management
 
@@ -166,6 +166,9 @@ Format:
 ### [Tanggal mulai development]
 - 🚀 Project dimulai
 - 📄 Semua dokumentasi siap: PRD, Phase 1-3 Dev Plan, Project Context, .env.example
+
+### 23 Mei 2026
+- ✅ TASK 6.1 — Dashboard API
 
 ### 22 Mei 2026
 - ✅ TASK 3.1 — Fonnte Integration Service
