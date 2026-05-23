@@ -54,7 +54,7 @@ jobs:
           echo "NODE_ENV=test" >> $GITHUB_ENV
 
       - name: Run Prisma Migrations
-        run: npx prisma migrate deploy
+        run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
 
       - name: Execute End-to-End Tests
         run: npm run test:e2e
