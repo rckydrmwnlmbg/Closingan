@@ -62,4 +62,5 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Execute End-to-End Tests
+        working-directory: apps/api
         run: npm run test:e2e
