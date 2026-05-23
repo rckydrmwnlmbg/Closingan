@@ -5,13 +5,16 @@ import { ClsService } from 'nestjs-cls';
 import { AuditService } from '../common/audit/audit.service';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
-import { Inject } from '@nestjs/common';
+import { Inject, OnModuleDestroy } from '@nestjs/common';
 import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
 import { PrismaService } from '../common/prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { Redis } from 'ioredis';
 
 @Injectable()
-export class WebhookService {
+export class WebhookService implements OnModuleDestroy {
   private readonly logger = new Logger(WebhookService.name);
+  private redisClient: Redis;
 
   constructor(
     @Inject(WHATSAPP_PROVIDER)
@@ -20,7 +23,18 @@ export class WebhookService {
     private readonly auditService: AuditService,
     @InjectQueue('ai-reply') private readonly aiReplyQueue: Queue,
     private readonly prisma: PrismaService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.redisClient = new Redis({
+      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
+      port: this.configService.get<number>('REDIS_PORT', 6379),
+      password: this.configService.get<string>('REDIS_PASSWORD'),
+    });
+  }
+
+  onModuleDestroy() {
+    this.redisClient.disconnect();
+  }
 
   async handleFonnteIncomingMessage(
     payload: FonnteWebhookPayload,
@@ -56,6 +70,18 @@ export class WebhookService {
 
     // Set Tenant Isolation Context
     this.cls.set('tenantId', tenantId);
+
+    // Webhook Idempotency Check using Redis
+    if (payload.id) {
+      const idempotencyKey = `tenant:${tenantId}:webhook:${payload.id}`;
+      // Set key with 24 hours (86400 seconds) expiration if it doesn't exist ('NX')
+      const isNew = await this.redisClient.set(idempotencyKey, '1', 'EX', 86400, 'NX');
+
+      if (!isNew) {
+        this.logger.warn(`Duplicate webhook payload received for Tenant: ${tenantId}, ID: ${payload.id}. Ignoring.`);
+        return { success: true, duplicated: true };
+      }
+    }
 
     // Audit Logging
     await this.auditService.log({

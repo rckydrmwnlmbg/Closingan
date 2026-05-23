@@ -85,18 +85,6 @@ export class DisconnectDetectionService {
         },
       });
 
-      // Pause outgoing queues for this tenant.
-      // In BullMQ open source, pausing the whole queue affects all tenants.
-      // As a workaround, we pause the global queues. In a production environment with BullMQ Pro,
-      // we would use pause by group. For now, we pause globally as an abstraction.
-      // If we don't want to pause globally, workers should check `WhatsappSession` state.
-      // To satisfy "queue freeze selama disconnect" we will use the native pause method.
-      try {
-        await this.aiReplyQueue.pause();
-        await this.blastCampaignQueue.pause();
-      } catch (err) {
-        this.logger.error(`Failed to pause queues: ${err}`);
-      }
 
       // Audit log
       await this.auditService.log({

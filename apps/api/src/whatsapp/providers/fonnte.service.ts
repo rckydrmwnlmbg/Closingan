@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout as rxTimeout, catchError, throwError, TimeoutError } from 'rxjs';
 import {
   ConnectionStatusResult,
   SendMessageOptions,
@@ -74,7 +74,15 @@ export class FonnteService implements WhatsappProviderInterface {
               Authorization: this.getMasterToken(),
             },
           },
-        ),
+        ).pipe(
+          rxTimeout(5000),
+          catchError((err) => {
+            if (err instanceof TimeoutError) {
+              return throwError(() => new Error('Fonnte API timeout'));
+            }
+            return throwError(() => err);
+          }),
+        )
       );
 
       const data = response.data;
@@ -124,7 +132,15 @@ export class FonnteService implements WhatsappProviderInterface {
               Authorization: this.getMasterToken(),
             },
           },
-        ),
+        ).pipe(
+          rxTimeout(5000),
+          catchError((err) => {
+            if (err instanceof TimeoutError) {
+              return throwError(() => new Error('Fonnte API timeout'));
+            }
+            return throwError(() => err);
+          }),
+        )
       );
 
       const data = response.data;
@@ -173,7 +189,15 @@ export class FonnteService implements WhatsappProviderInterface {
               Authorization: this.getMasterToken(),
             },
           },
-        ),
+        ).pipe(
+          rxTimeout(5000),
+          catchError((err) => {
+            if (err instanceof TimeoutError) {
+              return throwError(() => new Error('Fonnte API timeout'));
+            }
+            return throwError(() => err);
+          }),
+        )
       );
 
       const data = response.data;

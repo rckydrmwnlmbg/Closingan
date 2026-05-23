@@ -3,6 +3,8 @@ import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { BlastJobData } from '../interfaces/job-data.interface';
 import { ClsService } from 'nestjs-cls';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { AppException } from '../../common/exceptions/app.exception';
 
 @Processor('blast', {
   concurrency: 1, // Low concurrency to not block ai-reply and hot-lead
@@ -14,7 +16,10 @@ import { ClsService } from 'nestjs-cls';
 export class BlastWorker extends WorkerHost {
   private readonly logger = new Logger(BlastWorker.name);
 
-  constructor(private readonly cls: ClsService) {
+  constructor(
+    private readonly cls: ClsService,
+    private readonly prisma: PrismaService,
+  ) {
     super();
   }
 
@@ -24,6 +29,22 @@ export class BlastWorker extends WorkerHost {
 
     return this.cls.run(async () => {
       this.cls.set('tenantId', tenantId);
+
+      // Fetch WhatsApp session first to verify it is CONNECTED
+      const waSession = await this.prisma.whatsappSession.findUnique({
+        where: { tenantId },
+      });
+
+      if (!waSession || waSession.state !== 'CONNECTED') {
+        this.logger.warn(
+          `Delaying blast job: WhatsApp session is not connected for tenant ${tenantId}`,
+        );
+        throw new AppException(
+          'WHATSAPP_DISCONNECTED',
+          `WhatsApp session is ${waSession?.state || 'missing'} for tenant ${tenantId}. Job delayed.`,
+          503,
+        );
+      }
 
       // Dummy processing
       await new Promise((resolve) => setTimeout(resolve, 500));
