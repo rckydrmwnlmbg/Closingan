@@ -48,6 +48,10 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
           provide: require('../common/audit/audit.service').AuditService,
           useValue: mockAuditService,
         },
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockReturnValue('localhost') },
+        },
       ],
     }).compile();
 
