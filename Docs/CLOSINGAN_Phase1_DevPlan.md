@@ -356,9 +356,9 @@ MILESTONE 7: Stabilisasi & QA      (Minggu 6-7)
 > "Buatkan NestJS endpoint `GET /dashboard/summary` yang return: (1) jumlah hot leads hari ini, (2) jumlah conversation pending reply (customer waiting > 30 menit), (3) jumlah follow-up jatuh tempo hari ini, (4) jumlah follow-up overdue, (5) AI operational status (mode dan apakah aktif), (6) WhatsApp connection status. Response harus cepat — target < 200ms. Gunakan Redis cache dengan TTL 30 detik."
 
 **Checklist selesai:**
-- [ ] Response time < 200ms di production (test dengan k6 atau wrk)
-- [ ] Data akurat dan sesuai dengan data di database
-- [ ] Cache invalidated saat ada perubahan relevan
+- [x] Response time < 200ms di production (test dengan k6 atau wrk)
+- [x] Data akurat dan sesuai dengan data di database
+- [x] Cache invalidated saat ada perubahan relevan
 
 ---
 
