@@ -101,9 +101,14 @@ export class AiReplyWorker extends WorkerHost {
 
         if (!waSession || waSession.state !== 'CONNECTED') {
           this.logger.warn(
-            `Skipping AI reply: WhatsApp session is not connected for tenant ${tenantId}`,
+            `Delaying AI reply: WhatsApp session is not connected for tenant ${tenantId}`,
           );
-          return { success: false, reason: 'whatsapp_not_connected' };
+          // By throwing an AppException, BullMQ will catch it and apply the exponential backoff defined in the queue config, explicitly delaying processing for this specific job/tenant.
+          throw new AppException(
+            'WHATSAPP_DISCONNECTED',
+            `WhatsApp session is ${waSession?.state || 'missing'} for tenant ${tenantId}. Job delayed.`,
+            503
+          );
         }
 
         // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
