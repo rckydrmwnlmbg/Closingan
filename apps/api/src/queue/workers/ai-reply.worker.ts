@@ -59,6 +59,18 @@ export class AiReplyWorker extends WorkerHost {
         // Extract message from Fonnte payload format
         const userMessage = payload.message || payload.text || 'Hello';
         const sender = payload.sender || payload.from || 'unknown';
+        const messageExternalId = payload.id;
+
+        // Idempotency Check: Prevent duplicate processing if BullMQ retries after DB insertion
+        if (messageExternalId) {
+          const existingMessage = await this.prisma.message.findFirst({
+            where: { tenantId, externalId: messageExternalId }
+          });
+          if (existingMessage) {
+            this.logger.warn(`Idempotency hit: Message ${messageExternalId} already exists in DB. Skipping AI reply.`);
+            return { success: true, duplicated: true };
+          }
+        }
 
         // 1. Upsert Conversation and Save Incoming Message
         let conversation = await this.prisma.conversation.findFirst({
@@ -80,6 +92,7 @@ export class AiReplyWorker extends WorkerHost {
           data: {
             tenantId,
             conversationId: conversation.id,
+            externalId: messageExternalId,
             senderType: 'CUSTOMER',
             content: userMessage,
             deliveryState: 'DELIVERED',

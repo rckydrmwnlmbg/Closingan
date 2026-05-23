@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AiReplyWorker } from './workers/ai-reply.worker';
-import { HotLeadWorker } from './workers/hot-lead.worker';
 import { BlastWorker } from './workers/blast.worker';
 
 import { AiModule } from '../ai/ai.module';
@@ -39,10 +38,10 @@ import { WebsocketModule } from '../modules/websocket/websocket.module';
       { name: 'follow-up' },
       { name: 'summary' },
       { name: 'analytics' },
-      { name: 'blast' },
+      { name: 'blast-campaign' },
     ),
   ],
-  providers: [AiReplyWorker, HotLeadWorker, BlastWorker],
+  providers: [AiReplyWorker, BlastWorker],
   exports: [BullModule],
 })
 export class QueueModule {}

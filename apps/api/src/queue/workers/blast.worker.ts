@@ -6,7 +6,7 @@ import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
 
-@Processor('blast', {
+@Processor('blast-campaign', {
   concurrency: 1, // Low concurrency to not block ai-reply and hot-lead
   limiter: {
     max: 10, // 10 jobs

@@ -4,8 +4,15 @@ import { Job } from 'bullmq';
 import { HotLeadService } from '../hot-lead.service';
 import { ClsService } from 'nestjs-cls';
 import { AiAnalysisJobData } from '../../../queue/interfaces/job-data.interface';
+import { AppException } from '../../../common/exceptions/app.exception';
 
-@Processor('ai-analysis')
+@Processor('ai-analysis', {
+  concurrency: 5,
+  limiter: {
+    max: 10,
+    duration: 1000,
+  },
+})
 export class AiAnalysisProcessor extends WorkerHost {
   private readonly logger = new Logger(AiAnalysisProcessor.name);
 
@@ -35,7 +42,21 @@ export class AiAnalysisProcessor extends WorkerHost {
         `Processing AI analysis for conversation: ${conversationId}`,
       );
       try {
-        await this.hotLeadService.analyzeLead(conversationId, messageContent);
+        let timeoutId: NodeJS.Timeout;
+        const timeout = new Promise<never>((_, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(new AppException('AI_TIMEOUT', 'AI analysis timed out', 504));
+          }, 25000);
+        });
+
+        try {
+          await Promise.race([
+            this.hotLeadService.analyzeLead(conversationId, messageContent),
+            timeout,
+          ]);
+        } finally {
+          clearTimeout(timeoutId!);
+        }
       } catch (error) {
         this.logger.error(
           `Error during AI analysis for ${conversationId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
