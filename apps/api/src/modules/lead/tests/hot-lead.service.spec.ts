@@ -4,12 +4,14 @@ import { OpenAiService } from '../../../ai/openai.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { HeatTier } from '@prisma/client';
+import { ClsService } from 'nestjs-cls';
 
 describe('HotLeadService', () => {
   let service: HotLeadService;
   let openaiService: jest.Mocked<OpenAiService>;
   let prismaService: jest.Mocked<PrismaService>;
   let mockQueue: any;
+  let clsService: jest.Mocked<ClsService>;
 
   beforeEach(async () => {
     openaiService = {
@@ -30,12 +32,18 @@ describe('HotLeadService', () => {
       add: jest.fn(),
     };
 
+    clsService = {
+      get: jest.fn(),
+      set: jest.fn(),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HotLeadService,
         { provide: 'AI_PROVIDER', useValue: openaiService },
         { provide: PrismaService, useValue: prismaService },
         { provide: getQueueToken('hot-lead'), useValue: mockQueue },
+        { provide: ClsService, useValue: clsService },
       ],
     }).compile();
 
@@ -94,7 +102,8 @@ describe('HotLeadService', () => {
         lastAlertSentAt: null,
       });
 
-      await service.analyzeLead('tenant-1', 'conv-1', 'berapa harga otr?');
+      clsService.get.mockReturnValue('tenant-1');
+      await service.analyzeLead('conv-1', 'berapa harga otr?');
 
       expect(openaiService.analyzeLead).toHaveBeenCalled();
       expect(prismaService.lead.update).toHaveBeenCalledWith(
@@ -125,7 +134,8 @@ describe('HotLeadService', () => {
         heat_score: 85,
       });
 
-      await service.analyzeLead('tenant-1', 'conv-1', 'berapa harga otr?');
+      clsService.get.mockReturnValue('tenant-1');
+      await service.analyzeLead('conv-1', 'berapa harga otr?');
 
       // Update should not be called due to schema validation failure
       expect(prismaService.lead.update).not.toHaveBeenCalled();
@@ -161,7 +171,8 @@ describe('HotLeadService', () => {
         lastAlertSentAt: fiveMinsAgo,
       });
 
-      await service.analyzeLead('tenant-1', 'conv-1', 'ada diskon?');
+      clsService.get.mockReturnValue('tenant-1');
+      await service.analyzeLead('conv-1', 'ada diskon?');
 
       // Queue should NOT be triggered due to 30 min cooldown
       expect(mockQueue.add).not.toHaveBeenCalled();

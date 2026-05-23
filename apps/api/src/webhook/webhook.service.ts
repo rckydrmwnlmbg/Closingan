@@ -7,6 +7,7 @@ import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.inte
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { Inject } from '@nestjs/common';
 import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
+import { PrismaService } from '../common/prisma/prisma.service';
 
 @Injectable()
 export class WebhookService {
@@ -18,31 +19,43 @@ export class WebhookService {
     private readonly cls: ClsService,
     private readonly auditService: AuditService,
     @InjectQueue('ai-reply') private readonly aiReplyQueue: Queue,
+    private readonly prisma: PrismaService,
   ) {}
 
   async handleFonnteIncomingMessage(
     payload: FonnteWebhookPayload,
     signature: string,
-    tenantId: string,
   ) {
-    if (!tenantId) {
-      throw new UnauthorizedException('Missing tenantId in webhook request');
-    }
-
-    // Set Tenant Isolation Context
-    this.cls.set('tenantId', tenantId);
-
-    // Validate Signature
+    // Validate Signature first
     const isValid = this.whatsappProvider.validateWebhookSignature(
       payload,
       signature,
-      tenantId,
     );
 
     if (!isValid) {
-      this.logger.error(`Invalid webhook signature for Tenant: ${tenantId}`);
+      this.logger.error(`Invalid webhook signature.`);
       throw new UnauthorizedException('Invalid webhook signature');
     }
+
+    // Fetch the WhatsappSession using payload.device
+    if (!payload.device) {
+       this.logger.error('Missing device id in payload');
+       throw new UnauthorizedException('Missing device identifier');
+    }
+
+    const session = await this.prisma.whatsappSession.findFirst({
+        where: { phoneNumber: payload.device } // Assuming Fonnte 'device' matches our phoneNumber
+    });
+
+    if (!session) {
+      this.logger.error(`No tenant matches device: ${payload.device}`);
+      throw new UnauthorizedException('Unknown device');
+    }
+
+    const tenantId = session.tenantId;
+
+    // Set Tenant Isolation Context
+    this.cls.set('tenantId', tenantId);
 
     // Audit Logging
     await this.auditService.log({

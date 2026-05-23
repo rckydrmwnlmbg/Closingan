@@ -36,7 +36,6 @@ export class AiAnalysisProcessor extends WorkerHost {
       );
       try {
         await this.hotLeadService.analyzeLead(
-          tenantId,
           conversationId,
           messageContent,
         );
