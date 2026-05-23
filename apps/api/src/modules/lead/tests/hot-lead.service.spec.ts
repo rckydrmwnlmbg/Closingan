@@ -71,6 +71,7 @@ describe('HotLeadService', () => {
       // Mock data
       (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
         id: 'lead-1',
+        tenantId: 'tenant-1',
         conversationId: 'conv-1',
         heatTier: HeatTier.LOW,
       });
@@ -111,6 +112,7 @@ describe('HotLeadService', () => {
     it('should abort if JSON validation fails', async () => {
       (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
         id: 'lead-1',
+        tenantId: 'tenant-1',
         conversationId: 'conv-1',
       });
       (prismaService.message.findMany as jest.Mock).mockResolvedValue([
@@ -134,6 +136,7 @@ describe('HotLeadService', () => {
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
       (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
         id: 'lead-1',
+        tenantId: 'tenant-1',
         conversationId: 'conv-1',
         heatTier: HeatTier.HOT,
         lastAlertSentAt: fiveMinsAgo,

@@ -85,8 +85,8 @@ export class HotLeadService {
       where: { conversationId },
     });
 
-    if (!lead) {
-      this.logger.warn(`Lead not found for conversation: ${conversationId}`);
+    if (!lead || lead.tenantId !== tenantId) {
+      this.logger.warn(`Lead not found or tenant mismatch for conversation: ${conversationId}`);
       return;
     }
 
@@ -95,7 +95,7 @@ export class HotLeadService {
     try {
       // Dapatkan beberapa riwayat chat untuk konteks (batasi jumlahnya)
       const recentMessages = await this.prisma.message.findMany({
-        where: { conversationId },
+        where: { conversationId, tenantId },
         orderBy: { createdAt: 'desc' },
         take: 5,
       });

@@ -47,12 +47,12 @@ export class WhatsappController {
     // Sync state if necessary
     if (status.isConnected && session.state !== 'CONNECTED') {
       await this.prisma.whatsappSession.update({
-        where: { id: session.id },
+        where: { id: session.id, tenantId },
         data: { state: 'CONNECTED', lastConnectedAt: new Date() },
       });
     } else if (!status.isConnected && session.state === 'CONNECTED') {
       await this.prisma.whatsappSession.update({
-        where: { id: session.id },
+        where: { id: session.id, tenantId },
         data: { state: 'DISCONNECTED', lastDisconnectedAt: new Date() },
       });
     }
@@ -92,7 +92,7 @@ export class WhatsappController {
 
     if (session) {
       await this.prisma.whatsappSession.update({
-        where: { id: session.id },
+        where: { id: session.id, tenantId },
         data: {
           qrCode: qrData.qrData,
           qrExpiresAt: qrData.expiresAt,

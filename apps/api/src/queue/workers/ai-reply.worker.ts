@@ -15,6 +15,7 @@ import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsa
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 import { AiReplyJobData } from '../interfaces/job-data.interface';
 import { ConversationGateway } from '../../modules/websocket/conversation.gateway';
+import { AppException } from '../../common/exceptions/app.exception';
 
 @Processor('ai-reply', {
   concurrency: 5,
@@ -188,10 +189,14 @@ export class AiReplyWorker extends WorkerHost {
             .map((m) => `${m.senderType}: ${m.content}`)
             .join('\n');
 
-          aiResponse = await this.aiProvider.generateReply(
-            tenantId,
-            historyText,
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new AppException('AI_TIMEOUT', 'AI provider timed out', 504)), 25000)
           );
+
+          aiResponse = await Promise.race([
+            this.aiProvider.generateReply(tenantId, historyText),
+            timeout
+          ]) as string;
         } catch (error) {
           // Safety Escalation Layer
           if (error instanceof AiSafetyException) {
@@ -240,14 +245,26 @@ export class AiReplyWorker extends WorkerHost {
           throw error;
         }
 
-        const sendResult = await this.whatsappProvider.sendMessage({
-          tenantId,
-          to: sender,
-          message: aiResponse,
-        });
+        let sendResult;
+        try {
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new AppException('WA_TIMEOUT', 'WhatsApp provider timed out', 504)), 15000)
+          );
 
-        if (!sendResult.success) {
-          throw new Error(`Failed to send message: ${sendResult.error}`);
+          sendResult = await Promise.race([
+            this.whatsappProvider.sendMessage({
+              tenantId,
+              to: sender,
+              message: aiResponse,
+            }),
+            timeout
+          ]) as any;
+
+          if (!sendResult.success) {
+            throw new AppException('WA_SEND_FAILED', `Failed to send message: ${sendResult.error}`, 500);
+          }
+        } catch (error) {
+           throw error;
         }
 
         // 6. Save outgoing AI message
@@ -286,6 +303,7 @@ export class AiReplyWorker extends WorkerHost {
         }
 
         await this.auditService.log({
+          tenantId,
           action: 'AI_MODE_CHANGED' as any,
           entityType: 'JOB',
           entityId: job.id,
