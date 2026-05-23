@@ -24,8 +24,7 @@ export class DashboardService implements OnModuleDestroy {
     this.redisClient.disconnect();
   }
 
-  async getSummary(): Promise<Record<string, unknown>> {
-    const tenantId = this.cls.get<string>('tenantId');
+  async getSummary(tenantId: string): Promise<Record<string, unknown>> {
     const cacheKey = `dashboard:summary:${tenantId}`;
 
     const cachedData = await this.redisClient.get(cacheKey);

@@ -52,12 +52,12 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
       this.cls.set('tenantId', tenantId);
       this.logger.log(`Processing hot lead alert for lead: ${leadId}`);
 
-      const lead = await this.prisma.lead.findUnique({
-        where: { id: leadId },
+      const lead = await this.prisma.lead.findFirst({
+        where: { id: leadId, tenantId },
       });
 
       if (!lead) {
-        this.logger.warn(`Lead not found: ${leadId}`);
+        this.logger.warn(`Lead not found: ${leadId} for tenant ${tenantId}`);
         return;
       }
 

@@ -84,11 +84,11 @@ export class FollowUpService {
   }
 
   async completeFollowUp(tenantId: string, id: string) {
-    const followUp = await this.prisma.followUp.findUnique({
-      where: { id },
+    const followUp = await this.prisma.followUp.findFirst({
+      where: { id, tenantId },
     });
 
-    if (!followUp || followUp.tenantId !== tenantId) {
+    if (!followUp) {
       throw new NotFoundException({
         code: 'NOT_FOUND',
         message: 'Follow-up tidak ditemukan',
@@ -107,11 +107,11 @@ export class FollowUpService {
   }
 
   async snoozeFollowUp(tenantId: string, id: string, dto: SnoozeFollowUpDto) {
-    const followUp = await this.prisma.followUp.findUnique({
-      where: { id },
+    const followUp = await this.prisma.followUp.findFirst({
+      where: { id, tenantId },
     });
 
-    if (!followUp || followUp.tenantId !== tenantId) {
+    if (!followUp) {
       throw new NotFoundException({
         code: 'NOT_FOUND',
         message: 'Follow-up tidak ditemukan',
@@ -133,11 +133,11 @@ export class FollowUpService {
   }
 
   async deleteFollowUp(tenantId: string, id: string) {
-    const followUp = await this.prisma.followUp.findUnique({
-      where: { id },
+    const followUp = await this.prisma.followUp.findFirst({
+      where: { id, tenantId },
     });
 
-    if (!followUp || followUp.tenantId !== tenantId) {
+    if (!followUp) {
       throw new NotFoundException({
         code: 'NOT_FOUND',
         message: 'Follow-up tidak ditemukan',

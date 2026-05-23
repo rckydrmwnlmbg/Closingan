@@ -77,7 +77,7 @@ export class DisconnectDetectionService {
 
       // Update state
       await this.prisma.whatsappSession.update({
-        where: { id: session.id },
+        where: { id: session.id, tenantId: session.tenantId },
         data: {
           state: 'RECONNECTING',
           lastDisconnectedAt: new Date(),
@@ -124,7 +124,7 @@ export class DisconnectDetectionService {
       if (session.reconnectAttempts >= 3) {
         // Stop retrying
         await this.prisma.whatsappSession.update({
-          where: { id: session.id },
+          where: { id: session.id, tenantId: session.tenantId },
           data: { state: 'DISCONNECTED' },
         });
 
@@ -158,7 +158,7 @@ export class DisconnectDetectionService {
         );
 
         await this.prisma.whatsappSession.update({
-          where: { id: session.id },
+          where: { id: session.id, tenantId: session.tenantId },
           data: {
             state: 'CONNECTED',
             lastConnectedAt: new Date(),
@@ -179,7 +179,7 @@ export class DisconnectDetectionService {
         );
       } else {
         await this.prisma.whatsappSession.update({
-          where: { id: session.id },
+          where: { id: session.id, tenantId: session.tenantId },
           data: {
             reconnectAttempts: { increment: 1 },
           },

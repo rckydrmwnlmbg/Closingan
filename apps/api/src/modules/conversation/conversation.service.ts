@@ -63,8 +63,8 @@ export class ConversationService {
 
   async generateAiSuggestion(tenantId: string, conversationId: string) {
     const startTime = Date.now();
-    const conversation = await this.prisma.conversation.findUnique({
-      where: { id: conversationId },
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId },
     });
 
     if (!conversation) {
@@ -98,7 +98,7 @@ export class ConversationService {
 
     // Get recent messages for context
     const recentMessages = await this.prisma.message.findMany({
-      where: { conversationId },
+      where: { conversationId, tenantId },
       orderBy: { createdAt: 'desc' },
       take: 10,
     });
