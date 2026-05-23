@@ -56,7 +56,7 @@ Format:
 
 ### Milestone 6 — Dashboard MVP
 - [x] ✅ TASK 6.1 — Dashboard API
-- [ ] ⏳ TASK 6.2 — Dashboard UI
+- [x] ✅ TASK 6.2 — Dashboard UI
 - [ ] ⏳ TASK 6.3 — Follow-up Management
 
 ### Milestone 7 — Stabilisasi & QA
@@ -159,6 +159,9 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+
+### 23 May 2026
+- ✅ TASK 6.2 — Dashboard UI
 
 <!-- Setiap kali task selesai, tambahkan entry di bawah ini -->
 <!-- Format: ### [TANGGAL] lalu list task yang selesai -->
