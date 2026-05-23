@@ -39,12 +39,12 @@ export class WebhookService {
 
     // Fetch the WhatsappSession using payload.device
     if (!payload.device) {
-       this.logger.error('Missing device id in payload');
-       throw new UnauthorizedException('Missing device identifier');
+      this.logger.error('Missing device id in payload');
+      throw new UnauthorizedException('Missing device identifier');
     }
 
     const session = await this.prisma.whatsappSession.findFirst({
-        where: { phoneNumber: payload.device } // Assuming Fonnte 'device' matches our phoneNumber
+      where: { phoneNumber: payload.device }, // Assuming Fonnte 'device' matches our phoneNumber
     });
 
     if (!session) {
@@ -59,7 +59,7 @@ export class WebhookService {
 
     // Audit Logging
     await this.auditService.log({
-      action: 'WA_CONNECTED' as any, // Closest match without schema modification, or we can use custom logging
+      action: 'WA_CONNECTED', // Closest match without schema modification, or we can use custom logging
       entityType: 'WEBHOOK_PAYLOAD',
       entityId: payload.id || 'unknown',
     });

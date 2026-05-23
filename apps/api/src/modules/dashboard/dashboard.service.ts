@@ -25,7 +25,8 @@ export class DashboardService implements OnModuleDestroy {
   }
 
   async getSummary(tenantId: string): Promise<Record<string, unknown>> {
-    const cacheKey = `dashboard:summary:${tenantId}`;
+    // Audit rule: Cache keys must be namespaced with tenantId to prevent leakage
+    const cacheKey = `tenant:${tenantId}:dashboard:summary`;
 
     const cachedData = await this.redisClient.get(cacheKey);
     if (cachedData) {

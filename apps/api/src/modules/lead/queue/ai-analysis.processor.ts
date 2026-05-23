@@ -35,10 +35,7 @@ export class AiAnalysisProcessor extends WorkerHost {
         `Processing AI analysis for conversation: ${conversationId}`,
       );
       try {
-        await this.hotLeadService.analyzeLead(
-          conversationId,
-          messageContent,
-        );
+        await this.hotLeadService.analyzeLead(conversationId, messageContent);
       } catch (error) {
         this.logger.error(
           `Error during AI analysis for ${conversationId}: ${error instanceof Error ? error.message : 'Unknown error'}`,

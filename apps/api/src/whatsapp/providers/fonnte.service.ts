@@ -62,7 +62,11 @@ export class FonnteService implements WhatsappProviderInterface {
       // Create an endpoint call to Fonnte API to get a QR code
       // We pass the tenantId as a parameter or device to identify the tenant
       const response = await firstValueFrom(
-        this.httpService.post<{ status: boolean; url?: string; reason?: string }>(
+        this.httpService.post<{
+          status: boolean;
+          url?: string;
+          reason?: string;
+        }>(
           `${this.baseUrl}/qr`,
           { type: 0 },
           {
@@ -87,8 +91,12 @@ export class FonnteService implements WhatsappProviderInterface {
         };
       }
 
-      this.logger.error(`Fonnte API failed to generate QR code for Tenant: ${tenantId} - Reason: ${data?.reason}`);
-      throw new InternalServerErrorException('Failed to generate QR code via Fonnte');
+      this.logger.error(
+        `Fonnte API failed to generate QR code for Tenant: ${tenantId} - Reason: ${data?.reason}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to generate QR code via Fonnte',
+      );
     } catch (error: unknown) {
       let errorMessage = 'Failed to generate QR code via Fonnte';
       if (error instanceof Error) {
@@ -203,16 +211,20 @@ export class FonnteService implements WhatsappProviderInterface {
     const systemToken = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
     // For Fonnte platform-managed setup, webhook requests often send the exact system token back in the authorization header
     if (_signature === systemToken) {
-        return true;
+      return true;
     }
 
     // We check for a specific Fonnte Webhook secret if configured separately
-    const webhookSecret = this.configService.get<string>('FONNTE_WEBHOOK_SECRET');
+    const webhookSecret = this.configService.get<string>(
+      'FONNTE_WEBHOOK_SECRET',
+    );
     if (webhookSecret && _signature === webhookSecret) {
-        return true;
+      return true;
     }
 
-    this.logger.warn(`Invalid Fonnte Webhook Signature. Received: ${_signature}`);
+    this.logger.warn(
+      `Invalid Fonnte Webhook Signature. Received: ${_signature}`,
+    );
     return false;
   }
 }

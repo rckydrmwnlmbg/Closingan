@@ -69,10 +69,7 @@ export class FollowUpController {
   }
 
   @Delete(':id')
-  async deleteFollowUp(
-    @TenantId() tenantId: string,
-    @Param('id') id: string,
-  ) {
+  async deleteFollowUp(@TenantId() tenantId: string, @Param('id') id: string) {
     await this.followUpService.deleteFollowUp(tenantId, id);
     return ResponseBuilder.success(null);
   }

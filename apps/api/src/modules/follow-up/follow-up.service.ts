@@ -164,7 +164,8 @@ export class FollowUpService {
     });
 
     for (const followUp of overdueFollowUps) {
-      const hoursOverdue = (now.getTime() - followUp.dueAt.getTime()) / (1000 * 60 * 60);
+      const hoursOverdue =
+        (now.getTime() - followUp.dueAt.getTime()) / (1000 * 60 * 60);
 
       const updateData: Prisma.FollowUpUpdateInput = {
         status: FollowUpStatus.OVERDUE,

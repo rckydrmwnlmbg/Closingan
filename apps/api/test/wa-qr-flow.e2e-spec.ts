@@ -14,8 +14,7 @@ describe('WA QR Flow (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    })
-      .compile();
+    }).compile();
 
     app = moduleFixture.createNestApplication();
     prisma = moduleFixture.get<PrismaService>(PrismaService);
@@ -41,16 +40,25 @@ describe('WA QR Flow (e2e)', () => {
   it('Setup: Create tenant', async () => {
     const res = await request(app.getHttpServer())
       .post('/v1/auth/register')
-      .send({ email: 'wa@example.com', password: 'password', fullName: 'WA User' });
+      .send({
+        email: 'wa@example.com',
+        password: 'password',
+        fullName: 'WA User',
+      });
 
-    await prisma.user.update({ where: { id: res.body.data.userId }, data: { emailVerified: true }});
+    await prisma.user.update({
+      where: { id: res.body.data.userId },
+      data: { emailVerified: true },
+    });
 
     const login = await request(app.getHttpServer())
       .post('/v1/auth/login')
       .send({ email: 'wa@example.com', password: 'password' });
     token = login.body.data.accessToken;
 
-    const user = await prisma.user.findUnique({ where: { email: 'wa@example.com' } });
+    const user = await prisma.user.findUnique({
+      where: { email: 'wa@example.com' },
+    });
     tenantId = user!.tenantId;
   });
 
@@ -61,7 +69,9 @@ describe('WA QR Flow (e2e)', () => {
     // Wait, let's fix the module setup
 
     // Instead of overriding which requires re-instantiating, we can just spy on the service since we know it's FonnteService
-    const { WHATSAPP_PROVIDER } = require('../src/whatsapp/interfaces/whatsapp-provider.interface');
+    const {
+      WHATSAPP_PROVIDER,
+    } = require('../src/whatsapp/interfaces/whatsapp-provider.interface');
     const whatsappService = app.get(WHATSAPP_PROVIDER);
 
     jest.spyOn(whatsappService, 'generateQrCode').mockResolvedValue({
@@ -81,7 +91,9 @@ describe('WA QR Flow (e2e)', () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data.qrCodeUrl).toBeDefined();
 
-    const session = await prisma.whatsappSession.findUnique({ where: { tenantId } });
+    const session = await prisma.whatsappSession.findUnique({
+      where: { tenantId },
+    });
     expect(session).toBeDefined();
     expect(session!.state).toBe('DISCONNECTED');
     deviceId = session!.fonnteDeviceId;

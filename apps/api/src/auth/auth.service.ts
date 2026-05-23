@@ -411,7 +411,7 @@ export class AuthService {
       update: {
         userId: user.id,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        usedAt: null
+        usedAt: null,
       },
       create: {
         userId: user.id,

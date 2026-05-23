@@ -93,7 +93,8 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
 
       // 3. WhatsApp Internal Alert Logic
       if (user.waPersonalNumber) {
-        const redisKey = `hot-lead-alert:${tenantId}:${leadId}`;
+        // Audit rule: Cache keys must be namespaced with tenantId to prevent leakage
+        const redisKey = `tenant:${tenantId}:hot-lead-alert:${leadId}`;
         const isRateLimited = await this.redisClient.exists(redisKey);
 
         if (isRateLimited) {

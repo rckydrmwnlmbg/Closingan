@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { ClsService } from 'nestjs-cls';
 
 @WebSocketGateway({
   cors: {
@@ -28,6 +29,7 @@ export class ConversationGateway
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly cls: ClsService,
   ) {}
 
   afterInit(server: Server) {
@@ -89,20 +91,38 @@ export class ConversationGateway
   }
 
   // --- Broadcast Methods for Internal Services ---
+  // Hard constraint: Broadcast methods must strictly derive the target room from ClsService context
+  // rather than trusting caller-provided tenant IDs to prevent broadcast leakage.
 
   broadcastConversationUpdated(
     tenantId: string,
     data: { conversationId: string; unreadCount: number; lastMessage: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('conversation:updated', data);
+    const activeTenantId = this.cls.get('tenantId');
+    if (!activeTenantId || activeTenantId !== tenantId) {
+      this.logger.warn(
+        `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
+      );
+      return;
+    }
+    this.server
+      .to(`tenant-${activeTenantId}`)
+      .emit('conversation:updated', data);
   }
 
   broadcastConversationStateChanged(
     tenantId: string,
     data: { conversationId: string; state: string },
   ) {
+    const activeTenantId = this.cls.get('tenantId');
+    if (!activeTenantId || activeTenantId !== tenantId) {
+      this.logger.warn(
+        `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
+      );
+      return;
+    }
     this.server
-      .to(`tenant-${tenantId}`)
+      .to(`tenant-${activeTenantId}`)
       .emit('conversation:state_changed', data);
   }
 
@@ -110,27 +130,55 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; heatTier: string; heatReasons: string[] },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('lead:heat_changed', data);
+    const activeTenantId = this.cls.get('tenantId');
+    if (!activeTenantId || activeTenantId !== tenantId) {
+      this.logger.warn(
+        `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
+      );
+      return;
+    }
+    this.server.to(`tenant-${activeTenantId}`).emit('lead:heat_changed', data);
   }
 
   broadcastAiModeChanged(
     tenantId: string,
     data: { conversationId: string; aiMode: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('ai:mode_changed', data);
+    const activeTenantId = this.cls.get('tenantId');
+    if (!activeTenantId || activeTenantId !== tenantId) {
+      this.logger.warn(
+        `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
+      );
+      return;
+    }
+    this.server.to(`tenant-${activeTenantId}`).emit('ai:mode_changed', data);
   }
 
   broadcastSystemAlert(
     tenantId: string,
     data: { type: string; message: string; conversationId?: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('system:alert', data);
+    const activeTenantId = this.cls.get('tenantId');
+    if (!activeTenantId || activeTenantId !== tenantId) {
+      this.logger.warn(
+        `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
+      );
+      return;
+    }
+    this.server.to(`tenant-${activeTenantId}`).emit('system:alert', data);
   }
 
   broadcastAiSuggestion(
     tenantId: string,
     data: { conversationId: string; suggestion: string },
   ) {
-    this.server.to(`tenant-${tenantId}`).emit('ai:suggestion', data);
+    const activeTenantId = this.cls.get('tenantId');
+    if (!activeTenantId || activeTenantId !== tenantId) {
+      this.logger.warn(
+        `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
+      );
+      return;
+    }
+    this.server.to(`tenant-${activeTenantId}`).emit('ai:suggestion', data);
   }
 }

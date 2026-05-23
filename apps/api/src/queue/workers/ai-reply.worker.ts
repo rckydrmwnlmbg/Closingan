@@ -50,7 +50,7 @@ export class AiReplyWorker extends WorkerHost {
 
       try {
         await this.auditService.log({
-          action: 'AI_MODE_CHANGED' as any, // Using existing enum value for ai trigger log
+          action: 'AI_MODE_CHANGED', // Using existing enum value for ai trigger log
           entityType: 'JOB',
           entityId: job.id,
           metadata: { step: 'STARTED' },
@@ -190,13 +190,19 @@ export class AiReplyWorker extends WorkerHost {
             .join('\n');
 
           const timeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new AppException('AI_TIMEOUT', 'AI provider timed out', 504)), 25000)
+            setTimeout(
+              () =>
+                reject(
+                  new AppException('AI_TIMEOUT', 'AI provider timed out', 504),
+                ),
+              25000,
+            ),
           );
 
           aiResponse = await Promise.race([
             this.aiProvider.generateReply(tenantId, historyText),
-            timeout
-          ]) as string;
+            timeout,
+          ]);
         } catch (error) {
           // Safety Escalation Layer
           if (error instanceof AiSafetyException) {
@@ -248,23 +254,37 @@ export class AiReplyWorker extends WorkerHost {
         let sendResult;
         try {
           const timeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new AppException('WA_TIMEOUT', 'WhatsApp provider timed out', 504)), 15000)
+            setTimeout(
+              () =>
+                reject(
+                  new AppException(
+                    'WA_TIMEOUT',
+                    'WhatsApp provider timed out',
+                    504,
+                  ),
+                ),
+              15000,
+            ),
           );
 
-          sendResult = await Promise.race([
+          sendResult = (await Promise.race([
             this.whatsappProvider.sendMessage({
               tenantId,
               to: sender,
               message: aiResponse,
             }),
-            timeout
-          ]) as any;
+            timeout,
+          ])) as any;
 
           if (!sendResult.success) {
-            throw new AppException('WA_SEND_FAILED', `Failed to send message: ${sendResult.error}`, 500);
+            throw new AppException(
+              'WA_SEND_FAILED',
+              `Failed to send message: ${sendResult.error}`,
+              500,
+            );
           }
         } catch (error) {
-           throw error;
+          throw error;
         }
 
         // 6. Save outgoing AI message
@@ -304,7 +324,7 @@ export class AiReplyWorker extends WorkerHost {
 
         await this.auditService.log({
           tenantId,
-          action: 'AI_MODE_CHANGED' as any,
+          action: 'AI_MODE_CHANGED',
           entityType: 'JOB',
           entityId: job.id,
           metadata: {
@@ -347,7 +367,7 @@ export class AiReplyWorker extends WorkerHost {
         });
 
         await this.auditService.log({
-          action: 'WA_DISCONNECTED' as any, // Nearest semantic log to a disconnected process
+          action: 'WA_DISCONNECTED', // Nearest semantic log to a disconnected process
           tenantId: job.data.tenantId, // Must provide tenantId due to Isolation rule
           entityType: 'FAILED_JOB',
           entityId: job.id,

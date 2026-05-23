@@ -42,7 +42,11 @@ describe('Auth Flow (e2e)', () => {
   it('1. Register', async () => {
     const res = await request(app.getHttpServer())
       .post('/v1/auth/register')
-      .send({ email: 'authflow@example.com', password: 'password123', fullName: 'Auth Flow User' })
+      .send({
+        email: 'authflow@example.com',
+        password: 'password123',
+        fullName: 'Auth Flow User',
+      })
       .expect(201);
 
     expect(res.body.success).toBe(true);
@@ -116,7 +120,9 @@ describe('Auth Flow (e2e)', () => {
     expect(res.body.success).toBe(true);
 
     // Make sure token is marked as used in DB
-    const tokenInDb = await prisma.refreshToken.findFirst({ where: { token: refreshToken } });
+    const tokenInDb = await prisma.refreshToken.findFirst({
+      where: { token: refreshToken },
+    });
     expect(tokenInDb!.usedAt).not.toBeNull();
   });
 });

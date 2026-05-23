@@ -1,4 +1,4 @@
-import { Inject } from "@nestjs/common";
+import { Inject } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -88,7 +88,9 @@ export class HotLeadService {
     });
 
     if (!lead || lead.tenantId !== tenantId) {
-      this.logger.warn(`Lead not found or tenant mismatch for conversation: ${conversationId}`);
+      this.logger.warn(
+        `Lead not found or tenant mismatch for conversation: ${conversationId}`,
+      );
       return;
     }
 
