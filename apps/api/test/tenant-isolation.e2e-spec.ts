@@ -39,10 +39,17 @@ describe('Tenant Isolation (e2e)', () => {
     // Tenant A
     const resA = await request(app.getHttpServer())
       .post('/v1/auth/register')
-      .send({ email: 'userAti@example.com', password: 'password123', fullName: 'User A' })
+      .send({
+        email: 'userAti@example.com',
+        password: 'password123',
+        fullName: 'User A',
+      })
       .expect(201);
 
-    await prisma.user.update({ where: { id: resA.body.data.userId }, data: { emailVerified: true } });
+    await prisma.user.update({
+      where: { id: resA.body.data.userId },
+      data: { emailVerified: true },
+    });
 
     const loginA = await request(app.getHttpServer())
       .post('/v1/auth/login')
@@ -50,16 +57,25 @@ describe('Tenant Isolation (e2e)', () => {
       .expect(200);
     tenantAToken = loginA.body.data.accessToken;
 
-    const userA = await prisma.user.findUnique({ where: { email: 'userAti@example.com' } });
+    const userA = await prisma.user.findUnique({
+      where: { email: 'userAti@example.com' },
+    });
     const tenantAId = userA!.tenantId;
 
     // Tenant B
     const resB = await request(app.getHttpServer())
       .post('/v1/auth/register')
-      .send({ email: 'userBti@example.com', password: 'password123', fullName: 'User B' })
+      .send({
+        email: 'userBti@example.com',
+        password: 'password123',
+        fullName: 'User B',
+      })
       .expect(201);
 
-    await prisma.user.update({ where: { id: resB.body.data.userId }, data: { emailVerified: true } });
+    await prisma.user.update({
+      where: { id: resB.body.data.userId },
+      data: { emailVerified: true },
+    });
 
     const loginB = await request(app.getHttpServer())
       .post('/v1/auth/login')
@@ -67,7 +83,9 @@ describe('Tenant Isolation (e2e)', () => {
       .expect(200);
     tenantBToken = loginB.body.data.accessToken;
 
-    const userB = await prisma.user.findUnique({ where: { email: 'userBti@example.com' } });
+    const userB = await prisma.user.findUnique({
+      where: { email: 'userBti@example.com' },
+    });
     const tenantBId = userB!.tenantId;
 
     // Create a conversation for Tenant A
@@ -77,7 +95,7 @@ describe('Tenant Isolation (e2e)', () => {
         customerName: 'Customer A',
         customerPhone: '628123456789',
         state: 'OPEN',
-      }
+      },
     });
 
     // Create a conversation for Tenant B
@@ -87,7 +105,7 @@ describe('Tenant Isolation (e2e)', () => {
         customerName: 'Customer B',
         customerPhone: '628987654321',
         state: 'OPEN',
-      }
+      },
     });
   });
 

@@ -41,16 +41,25 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
   it('Setup: Create tenant and session', async () => {
     const res = await request(app.getHttpServer())
       .post('/v1/auth/register')
-      .send({ email: 'webhook999@example.com', password: 'password', fullName: 'Webhook User' });
+      .send({
+        email: 'webhook999@example.com',
+        password: 'password',
+        fullName: 'Webhook User',
+      });
 
-    await prisma.user.update({ where: { id: res.body.data.userId }, data: { emailVerified: true }});
+    await prisma.user.update({
+      where: { id: res.body.data.userId },
+      data: { emailVerified: true },
+    });
 
     const login = await request(app.getHttpServer())
       .post('/v1/auth/login')
       .send({ email: 'webhook999@example.com', password: 'password' });
     token = login.body.data.accessToken;
 
-    const user = await prisma.user.findUnique({ where: { email: 'webhook999@example.com' } });
+    const user = await prisma.user.findUnique({
+      where: { email: 'webhook999@example.com' },
+    });
     tenantId = user!.tenantId;
 
     deviceId = 'test_device_123';
@@ -60,8 +69,8 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
         fonnteDeviceId: deviceId,
         state: 'CONNECTED',
         phoneNumber: '628999999999',
-        phoneNumberHash: 'hash123'
-      }
+        phoneNumberHash: 'hash123',
+      },
     });
   });
 
@@ -71,7 +80,7 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
       sender: customerPhone,
       message: 'Halo, mau tanya harga mobil',
       name: 'Customer B',
-      status: 'success'
+      status: 'success',
     };
 
     const res = await request(app.getHttpServer())
@@ -86,7 +95,7 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
 
     const conversation = await prisma.conversation.findFirst({
       where: { customerPhone, tenantId },
-      include: { messages: true }
+      include: { messages: true },
     });
 
     // Test will fail without the proper queue setup or fake provider, but we're testing the critical path.

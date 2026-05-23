@@ -23,9 +23,6 @@ export class WebhookController {
     @Headers('authorization') signature: string,
     @Req() request: Request,
   ) {
-    return this.webhookService.handleFonnteIncomingMessage(
-      payload,
-      signature,
-    );
+    return this.webhookService.handleFonnteIncomingMessage(payload, signature);
   }
 }

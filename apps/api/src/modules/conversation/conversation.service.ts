@@ -138,7 +138,7 @@ export class ConversationService {
     }
 
     await this.auditService.log({
-      action: 'AI_MODE_CHANGED' as any,
+      action: 'AI_MODE_CHANGED',
       entityType: 'CONVERSATION',
       entityId: conversationId,
       metadata: {
