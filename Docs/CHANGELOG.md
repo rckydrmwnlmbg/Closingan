@@ -162,6 +162,7 @@ Format:
 
 ### 23 May 2026
 - ✅ TASK 6.3 — Follow-up Management
+
 - ✅ TASK 6.2 — Dashboard UI
 
 <!-- Setiap kali task selesai, tambahkan entry di bawah ini -->
