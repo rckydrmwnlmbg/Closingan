@@ -110,10 +110,10 @@ export class HotLeadService {
         .join('\n');
       const prompt = `Analyze this automotive sales conversation:\n${historyText}\n\nAssess the lead's heat tier. Output JSON: { "heat_tier": "LOW"|"WARM"|"HOT"|"CRITICAL", "heat_score": 0-100, "heat_reasons": ["reason1", "reason2"] }`;
 
-      const rawResult = await this.openAiService.analyzeLead(tenantId, prompt);
+      const response = await this.openAiService.analyzeLead(tenantId, prompt);
 
       // Strict Schema Validation dengan Zod
-      aiResult = LeadAnalysisSchema.parse(rawResult);
+      aiResult = LeadAnalysisSchema.parse(response.result);
     } catch (error) {
       this.logger.error(
         `AI Analysis failed or invalid JSON for conversation ${conversationId}`,
