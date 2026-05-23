@@ -6,6 +6,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { LeadAnalysisSchema, LeadAnalysisDto } from './dto/lead-analysis.dto';
 import { HeatTier } from '@prisma/client';
+import { ClsService } from 'nestjs-cls';
 
 @Injectable()
 export class HotLeadService {
@@ -39,6 +40,7 @@ export class HotLeadService {
     @Inject('AI_PROVIDER') private readonly openAiService: AiProviderInterface,
     private readonly prisma: PrismaService,
     @InjectQueue('hot-lead') private readonly hotLeadQueue: Queue,
+    private readonly cls: ClsService,
   ) {}
 
   /**
@@ -68,10 +70,10 @@ export class HotLeadService {
    * Mengharapkan pemanggilan di dalam worker/background job yang sudah dibungkus `cls.run()`.
    */
   async analyzeLead(
-    tenantId: string,
     conversationId: string,
     messageContent: string,
   ): Promise<void> {
+    const tenantId = this.cls.get('tenantId');
     // 1. Cost Control & Pre-Filtering
     if (!this.shouldAnalyzeMessage(messageContent)) {
       this.logger.debug(

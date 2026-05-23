@@ -199,14 +199,20 @@ export class FonnteService implements WhatsappProviderInterface {
   validateWebhookSignature(
     _payload: FonnteWebhookPayload,
     _signature: string,
-    tenantId?: string,
   ): boolean {
-    // Implement validation logic based on Fonnte documentation if they use a signature
-    // This often involves hashing payload or checking a secret token from headers
-    // Dummy return for now
-    this.logger.log(
-      `Webhook signature validation called for Tenant: ${tenantId || 'Unknown'}`,
-    );
-    return true;
+    const systemToken = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
+    // For Fonnte platform-managed setup, webhook requests often send the exact system token back in the authorization header
+    if (_signature === systemToken) {
+        return true;
+    }
+
+    // We check for a specific Fonnte Webhook secret if configured separately
+    const webhookSecret = this.configService.get<string>('FONNTE_WEBHOOK_SECRET');
+    if (webhookSecret && _signature === webhookSecret) {
+        return true;
+    }
+
+    this.logger.warn(`Invalid Fonnte Webhook Signature. Received: ${_signature}`);
+    return false;
   }
 }

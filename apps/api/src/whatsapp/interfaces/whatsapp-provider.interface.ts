@@ -27,7 +27,6 @@ export interface WhatsappProviderInterface {
   validateWebhookSignature(
     payload: FonnteWebhookPayload,
     signature: string,
-    tenantId?: string,
   ): boolean;
 }
 

@@ -83,38 +83,46 @@ export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
                   argsClone.data = { ...argsClone.data, tenantId };
                 }
               }
-            } else if (['update', 'delete', 'upsert'].includes(operation)) {
-              // For update and delete, we need to ensure the record belongs to the tenant
-              // before performing the operation.
-
+            } else if (['update', 'delete'].includes(operation)) {
               // Check ownership by fetching the record first without tenantId restriction
               // to see if it exists, and then verifying tenantId matches
               if (argsClone.where) {
                 const record = await (self.baseClient as any)[
                   model as string
                 ].findUnique({ where: argsClone.where });
-                if (record) {
-                  if (record.tenantId !== tenantId) {
-                    throw new Error(
-                      `Record not found or does not belong to tenant for operation ${operation} on model ${model}`,
-                    );
-                  }
-                } else {
-                  if (operation !== 'upsert') {
-                    throw new Error(
-                      `Record not found or does not belong to tenant for operation ${operation} on model ${model}`,
-                    );
-                  }
+                if (!record || record.tenantId !== tenantId) {
+                  throw new Error(
+                    `Record not found or does not belong to tenant for operation ${operation} on model ${model}`,
+                  );
                 }
               }
+            } else if (operation === 'upsert') {
+              // Convert upsert to manual findFirst -> update / create to strictly guarantee tenant verification.
+              // Since findUnique requires unique compound, findFirst bypasses that and enforces tenant filter.
+              const existingRecord = await (self.baseClient as any)[model as string].findFirst({
+                 where: { ...argsClone.where, tenantId }
+              });
 
-              if (operation === 'upsert') {
-                if (argsClone.create) {
-                  argsClone.create.tenantId = tenantId;
-                }
-                if (argsClone.update) {
-                  argsClone.update.tenantId = tenantId;
-                }
+              if (existingRecord) {
+                 // Convert to update
+                 const updateArgs = {
+                    ...argsClone,
+                    where: argsClone.where,
+                    data: { ...argsClone.update, tenantId }
+                 };
+                 delete updateArgs.create;
+                 delete updateArgs.update;
+                 return (self.baseClient as any)[model as string].update(updateArgs);
+              } else {
+                 // Convert to create
+                 const createArgs = {
+                    ...argsClone,
+                    data: { ...argsClone.create, tenantId }
+                 };
+                 delete createArgs.create;
+                 delete createArgs.update;
+                 delete createArgs.where;
+                 return (self.baseClient as any)[model as string].create(createArgs);
               }
             } else if (['updateMany', 'deleteMany'].includes(operation)) {
               argsClone.where = { ...argsClone.where, tenantId };

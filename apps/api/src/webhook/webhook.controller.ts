@@ -21,13 +21,11 @@ export class WebhookController {
   async handleFonnteWebhook(
     @Body() payload: FonnteWebhookPayloadDto,
     @Headers('authorization') signature: string,
-    @Query('tenantId') tenantId: string,
     @Req() request: Request,
   ) {
     return this.webhookService.handleFonnteIncomingMessage(
       payload,
       signature,
-      tenantId,
     );
   }
 }
