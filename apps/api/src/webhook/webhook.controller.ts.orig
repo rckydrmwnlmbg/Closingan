@@ -16,7 +16,7 @@ import { FonnteWebhookPayloadDto } from '../whatsapp/interfaces/fonnte-webhook.d
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
-  @Post('whatsapp')
+  @Post('fonnte')
   @HttpCode(HttpStatus.OK)
   async handleFonnteWebhook(
     @Body() payload: FonnteWebhookPayloadDto,

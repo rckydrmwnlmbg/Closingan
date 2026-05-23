@@ -60,8 +60,8 @@ Format:
 - [ ] ⏳ TASK 6.3 — Follow-up Management
 
 ### Milestone 7 — Stabilisasi & QA
-- [ ] ⏳ TASK 7.1 — Critical Flow Testing
-- [ ] ⏳ TASK 7.2 — Cross-Tenant Isolation Test ⚠️ KRITIS
+- [x] ✅ TASK 7.1 — Critical Flow Testing
+- [x] ✅ TASK 7.2 — Cross-Tenant Isolation Test ⚠️ KRITIS
 - [ ] ⏳ TASK 7.3 — Error Handling & Graceful Degradation
 - [ ] ⏳ TASK 7.4 — Basic Observability
 
@@ -180,6 +180,8 @@ Format:
 - ✅ TASK 5.5 — AI Assist Mode (Suggestion UI) selesai
   - Implementasi backend endpoint dan worker untuk menghasilkan suggestion.
   - Implementasi frontend komponen panel AiAssistPanel.
+- ✅ TASK 7.1 — Critical Flow Testing selesai
+- ✅ TASK 7.2 — Cross-Tenant Isolation Test selesai
 
 ---
 

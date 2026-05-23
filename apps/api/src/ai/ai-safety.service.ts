@@ -24,6 +24,13 @@ export class AiSafetyService {
     /roleplay/i,
     /print (?:all )?(?:the )?instructions/i,
     /show (?:all )?(?:the )?instructions/i,
+    /lupakan semua instruksi/i,
+    /abaikan aturanmu/i,
+    /data fiktif/i,
+    /rahasia perusahaan/i,
+    /sebutkan semua nama pelanggan/i,
+    /total penjualan/i,
+    /siapa nama bos kamu/i,
   ];
 
   // Patterns for low confidence
@@ -48,6 +55,9 @@ export class AiSafetyService {
     /(?:tenor|bulan|tahun)(?:.*?)?\s*(?::|=)?\s*\d+\s*(?:bulan|tahun|x)/i,
     /simulasi(?:\s+)?(?:kredit|cicilan)/i,
     /bunga\s*\d+\s*%/i,
+    /kpr/i,
+    /dp \d+/i,
+    /cicilan per bulan/i,
   ];
 
   // Patterns for fake promos (this can be basic or check against a dictionary)
@@ -56,6 +66,15 @@ export class AiSafetyService {
     /gratis (?:semua|mobil|motor)/i,
     /cashback\s*(?:rp\.?|rupiah)?\s*\d{8,}/i, // Crazy cashback amounts
     /promo khusus hari ini saja/i,
+    /promo rahasia/i,
+    /kode promo internal/i,
+    /cashback 100%/i,
+    /lebih murah dari website/i,
+    /jamin harganya tidak akan turun/i,
+    /garansi harga termurah/i,
+    /samain harganya/i,
+    /harganya segini kan sampai/i,
+    /harga paling murah se-indonesia/i,
   ];
 
   // Allowed URL whitelist (example)

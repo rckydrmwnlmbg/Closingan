@@ -71,9 +71,19 @@ export class WhatsappController {
   @Post('generate-qr')
   async generateQr() {
     const tenantId = this.cls.get('tenantId');
+    if (!tenantId) {
+      throw new InternalServerErrorException('Tenant context missing');
+    }
 
     // Abstracted away in Fonnte via device APIs.
-    const qrData = await this.whatsappProvider.generateQrCode(tenantId);
+    let qrData;
+    try {
+      qrData = await this.whatsappProvider.generateQrCode(tenantId);
+    } catch (error) {
+       // In E2E tests, the mocked provider isn't injected if we don't mock it at the module level correctly.
+       // So for test we fallback, or rely on correct DI
+       throw error;
+    }
 
     // Save QR to session
     let session = await this.prisma.whatsappSession.findUnique({

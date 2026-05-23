@@ -23,11 +23,10 @@ describe('HealthController (e2e)', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
-      .expect({
-        success: true,
-        data: {
-          status: 'ok',
-        },
+      .expect((res) => {
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.status).toBe('ok');
+        expect(res.body.data.queue).toBe('job added');
       });
   });
 });
