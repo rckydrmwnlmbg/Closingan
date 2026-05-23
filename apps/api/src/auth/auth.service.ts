@@ -404,8 +404,16 @@ export class AuthService {
       expiresIn: '7d',
     });
 
-    await this.prisma.refreshToken.create({
-      data: {
+    await this.prisma.refreshToken.upsert({
+      where: {
+        token: refreshToken,
+      },
+      update: {
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        usedAt: null
+      },
+      create: {
         userId: user.id,
         token: refreshToken,
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
