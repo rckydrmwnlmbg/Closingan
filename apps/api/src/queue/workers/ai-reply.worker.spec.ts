@@ -35,6 +35,7 @@ describe('AiReplyWorker', () => {
       message: {
         create: jest.fn(),
         findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
       },
       whatsappSession: {
         findUnique: jest.fn().mockResolvedValue({ state: 'CONNECTED', phoneNumber: '123' }),
@@ -86,6 +87,29 @@ describe('AiReplyWorker', () => {
 
   it('should be defined', () => {
     expect(worker).toBeDefined();
+  });
+
+  describe('Idempotency Check', () => {
+    it('should skip processing if message already exists', async () => {
+      const job = {
+        id: '0',
+        data: {
+          tenantId: 'tenant-1',
+          payload: { id: 'ext-msg-123', message: 'hello', sender: '123' },
+        },
+      } as any;
+
+      // Mock that the message is already found in DB
+      prisma.message.findFirst.mockResolvedValue({
+        id: 'msg-already-exists',
+      } as any);
+
+      const result = await worker.process(job);
+
+      expect(result).toEqual({ success: true, duplicated: true });
+      expect(prisma.conversation.findFirst).not.toHaveBeenCalled();
+      expect(aiProvider.generateReply).not.toHaveBeenCalled();
+    });
   });
 
   describe('Prompt Injection Resistance', () => {
