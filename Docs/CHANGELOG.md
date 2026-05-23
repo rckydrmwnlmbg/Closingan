@@ -57,7 +57,7 @@ Format:
 ### Milestone 6 — Dashboard MVP
 - [x] ✅ TASK 6.1 — Dashboard API
 - [x] ✅ TASK 6.2 — Dashboard UI
-- [ ] ⏳ TASK 6.3 — Follow-up Management
+- [x] ✅ TASK 6.3 — Follow-up Management
 
 ### Milestone 7 — Stabilisasi & QA
 - [x] ✅ TASK 7.1 — Critical Flow Testing
@@ -161,6 +161,7 @@ Format:
 ## LOG PERUBAHAN
 
 ### 23 May 2026
+- ✅ TASK 6.3 — Follow-up Management
 - ✅ TASK 6.2 — Dashboard UI
 
 <!-- Setiap kali task selesai, tambahkan entry di bawah ini -->

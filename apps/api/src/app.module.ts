@@ -20,6 +20,7 @@ import { ConversationModule } from './modules/conversation/conversation.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { LeadModule } from './modules/lead/lead.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { FollowUpModule } from './modules/follow-up/follow-up.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     WebsocketModule,
     LeadModule,
     DashboardModule,
+    FollowUpModule,
   ],
   controllers: [AppController],
   providers: [
