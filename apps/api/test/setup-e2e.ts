@@ -2,6 +2,10 @@ import 'reflect-metadata';
 const RedisMock = require('ioredis-mock');
 jest.mock('ioredis', () => ({ Redis: RedisMock, default: RedisMock }));
 
+// Mock Config variables universally
+process.env.FONNTE_BASE_URL = 'http://mock-fonnte-url.com';
+process.env.FONNTE_SYSTEM_TOKEN = 'mock-system-token';
+
 // Mock bullmq
 jest.mock('bullmq', () => {
   return {
@@ -35,3 +39,6 @@ jest.mock('bullmq', () => {
     })),
   };
 });
+
+process.env.OPENAI_API_KEY = 'mock-openai-key';
+process.env.DATABASE_URL = 'postgresql://mockuser:mockpass@localhost:5432/mockdb?schema=public';
