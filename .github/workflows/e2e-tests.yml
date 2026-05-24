@@ -10,11 +10,11 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:15
         env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: closingan_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: closingan_test
         ports:
           - 5432:5432
         options: >-
@@ -24,14 +24,9 @@ jobs:
           --health-retries 5
 
       redis:
-        image: redis:7-alpine
+        image: redis:7
         ports:
           - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - name: Checkout Repository Code
@@ -40,7 +35,7 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
@@ -48,7 +43,7 @@ jobs:
 
       - name: Set Environment Variables for Test
         run: |
-          echo "DATABASE_URL=postgresql://test_user:test_password@localhost:5432/closingan_test_db?schema=public" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgresql://postgres:password@localhost:5432/closingan_test" >> $GITHUB_ENV
           echo "REDIS_HOST=localhost" >> $GITHUB_ENV
           echo "REDIS_PORT=6379" >> $GITHUB_ENV
           echo "NODE_ENV=test" >> $GITHUB_ENV
@@ -59,8 +54,7 @@ jobs:
 
       - name: Run Prisma Migrations
         working-directory: apps/api
-        run: npx prisma migrate deploy
+        run: npx prisma db push --accept-data-loss
 
       - name: Execute End-to-End Tests
-        working-directory: apps/api
-        run: npm run test:e2e
+        run: npm run test:e2e --workspace=apps/api
