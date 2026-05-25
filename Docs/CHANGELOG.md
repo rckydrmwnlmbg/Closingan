@@ -137,7 +137,7 @@ Format:
 
 ### Milestone 18 — Infrastructure Scale
 - [ ] ⏳ TASK 18.1 — Database Read Replica
-- [ ] ⏳ TASK 18.2 — Redis Caching Strategy
+- [x] ✅ TASK 18.2 — Redis Caching Strategy
 - [ ] ⏳ TASK 18.3 — Horizontal Scaling Preparation
 - [ ] ⏳ TASK 18.4 — CDN & Static Asset Optimization
 - [ ] ⏳ TASK 18.5 — Multi-Region Readiness Assessment
@@ -159,6 +159,9 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+
+### 25 May 2026
+- ✅ TASK 18.2 — Redis Caching Strategy (Standardized RedisService, implemented caching for high-read endpoints like WhatsappSession lookup, audited BullMQ memory limits)
 
 ### 24 May 2026
 - ✅ TASK 7.3 — Error Handling & Graceful Degradation (Phase 3 Resilience Fixes: QR Cleanup Job, Comprehensive Idempotency, Timeout & Isolation test coverage)

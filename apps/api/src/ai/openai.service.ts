@@ -35,7 +35,10 @@ export class OpenAiService implements AiProviderInterface {
     return input.replace(/---USER_MESSAGE---/g, '').replace(/---/g, '');
   }
 
-  async generateReply(tenantId: string, prompt: string): Promise<{ reply: string; tokensUsed: number }> {
+  async generateReply(
+    tenantId: string,
+    prompt: string,
+  ): Promise<{ reply: string; tokensUsed: number }> {
     try {
       // 1. Input Validation (Regex layer)
       const inputValidation = this.aiSafetyService.validateInput(prompt);
@@ -96,7 +99,10 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
     }
   }
 
-  async analyzeLead(tenantId: string, conversation: string): Promise<{ result: any; tokensUsed: number }> {
+  async analyzeLead(
+    tenantId: string,
+    conversation: string,
+  ): Promise<{ result: any; tokensUsed: number }> {
     try {
       // 1. Input Validation
       const inputValidation = this.aiSafetyService.validateInput(conversation);

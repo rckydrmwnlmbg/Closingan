@@ -20,7 +20,9 @@ describe('SessionCleanupService', () => {
       ],
     }).compile();
 
-    sessionCleanupService = module.get<SessionCleanupService>(SessionCleanupService);
+    sessionCleanupService = module.get<SessionCleanupService>(
+      SessionCleanupService,
+    );
     prismaService = module.get<PrismaService>(PrismaService);
   });
 

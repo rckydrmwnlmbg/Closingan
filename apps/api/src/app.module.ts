@@ -11,6 +11,7 @@ import { QueueModule } from './queue/queue.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { AiModule } from './ai/ai.module';
 import { PrismaModule } from './common/prisma/prisma.module';
+import { RedisModule } from './common/redis/redis.module';
 import { WebhookModule } from './webhook/webhook.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
@@ -62,6 +63,7 @@ import { FollowUpModule } from './modules/follow-up/follow-up.module';
       },
     ]),
     PrismaModule,
+    RedisModule,
     AuditModule,
     MailModule,
     AuthModule,

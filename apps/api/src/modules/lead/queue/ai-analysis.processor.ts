@@ -45,7 +45,9 @@ export class AiAnalysisProcessor extends WorkerHost {
         let timeoutId: NodeJS.Timeout;
         const timeout = new Promise<never>((_, reject) => {
           timeoutId = setTimeout(() => {
-            reject(new AppException('AI_TIMEOUT', 'AI analysis timed out', 504));
+            reject(
+              new AppException('AI_TIMEOUT', 'AI analysis timed out', 504),
+            );
           }, 25000);
         });
 

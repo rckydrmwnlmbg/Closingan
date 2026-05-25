@@ -99,30 +99,36 @@ export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
             } else if (operation === 'upsert') {
               // Convert upsert to manual findFirst -> update / create to strictly guarantee tenant verification.
               // Since findUnique requires unique compound, findFirst bypasses that and enforces tenant filter.
-              const existingRecord = await (self.baseClient as any)[model as string].findFirst({
-                 where: { ...argsClone.where, tenantId }
+              const existingRecord = await (self.baseClient as any)[
+                model as string
+              ].findFirst({
+                where: { ...argsClone.where, tenantId },
               });
 
               if (existingRecord) {
-                 // Convert to update
-                 const updateArgs = {
-                    ...argsClone,
-                    where: argsClone.where,
-                    data: { ...argsClone.update, tenantId }
-                 };
-                 delete updateArgs.create;
-                 delete updateArgs.update;
-                 return (self.baseClient as any)[model as string].update(updateArgs);
+                // Convert to update
+                const updateArgs = {
+                  ...argsClone,
+                  where: argsClone.where,
+                  data: { ...argsClone.update, tenantId },
+                };
+                delete updateArgs.create;
+                delete updateArgs.update;
+                return (self.baseClient as any)[model as string].update(
+                  updateArgs,
+                );
               } else {
-                 // Convert to create
-                 const createArgs = {
-                    ...argsClone,
-                    data: { ...argsClone.create, tenantId }
-                 };
-                 delete createArgs.create;
-                 delete createArgs.update;
-                 delete createArgs.where;
-                 return (self.baseClient as any)[model as string].create(createArgs);
+                // Convert to create
+                const createArgs = {
+                  ...argsClone,
+                  data: { ...argsClone.create, tenantId },
+                };
+                delete createArgs.create;
+                delete createArgs.update;
+                delete createArgs.where;
+                return (self.baseClient as any)[model as string].create(
+                  createArgs,
+                );
               }
             } else if (['updateMany', 'deleteMany'].includes(operation)) {
               argsClone.where = { ...argsClone.where, tenantId };

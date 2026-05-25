@@ -111,7 +111,10 @@ export class ConversationService {
     let suggestion: string;
     let tokensUsed = 0;
     try {
-      const response = await this.aiProvider.generateReply(tenantId, historyText);
+      const response = await this.aiProvider.generateReply(
+        tenantId,
+        historyText,
+      );
       suggestion = response.reply;
       tokensUsed = response.tokensUsed;
     } catch (error) {

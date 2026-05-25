@@ -14,7 +14,16 @@ import { WebsocketModule } from '../websocket/websocket.module';
     PrismaModule,
     WhatsappModule,
     WebsocketModule,
-    BullModule.registerQueue({ name: 'hot-lead' }, { name: 'ai-analysis' }),
+    BullModule.registerQueue(
+      {
+        name: 'hot-lead',
+        defaultJobOptions: { removeOnComplete: 100, removeOnFail: 500 },
+      },
+      {
+        name: 'ai-analysis',
+        defaultJobOptions: { removeOnComplete: 100, removeOnFail: 500 },
+      },
+    ),
   ],
   providers: [HotLeadService, AiAnalysisProcessor, HotLeadProcessor],
   exports: [HotLeadService],

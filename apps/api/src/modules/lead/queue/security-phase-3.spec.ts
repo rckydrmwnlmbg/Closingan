@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { MailService } from '../../../mail/mail.service';
 import { ConversationGateway } from '../../websocket/conversation.gateway';
 import { WHATSAPP_PROVIDER } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
+import { RedisService } from '../../../common/redis/redis.service';
 
 // Mock Redis directly to prevent initialization errors
 jest.mock('ioredis', () => {
@@ -54,6 +55,10 @@ describe('Security Phase 3 Unit Tests - Queue Worker Isolation', () => {
           useValue: { broadcastLeadHeatChanged: jest.fn() },
         },
         { provide: WHATSAPP_PROVIDER, useValue: { sendMessage: jest.fn() } },
+        {
+          provide: RedisService,
+          useValue: { exists: jest.fn(), set: jest.fn() },
+        },
       ],
     }).compile();
 

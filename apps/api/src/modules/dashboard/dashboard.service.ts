@@ -1,34 +1,23 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { Redis } from 'ioredis';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
-export class DashboardService implements OnModuleDestroy {
-  private redisClient: Redis;
-
+export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
     private readonly configService: ConfigService,
-  ) {
-    this.redisClient = new Redis({
-      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-      port: this.configService.get<number>('REDIS_PORT', 6379),
-      password: this.configService.get<string>('REDIS_PASSWORD'),
-    });
-  }
-
-  onModuleDestroy() {
-    this.redisClient.disconnect();
-  }
+    private readonly redisService: RedisService,
+  ) {}
 
   async getSummary(tenantId: string): Promise<Record<string, unknown>> {
     // Audit rule: Cache keys must be namespaced with tenantId to prevent leakage
     const cacheKey = `tenant:${tenantId}:dashboard:summary`;
 
-    const cachedData = await this.redisClient.get(cacheKey);
+    const cachedData = await this.redisService.get(cacheKey);
     if (cachedData) {
       return JSON.parse(cachedData) as Record<string, unknown>;
     }
@@ -186,7 +175,7 @@ export class DashboardService implements OnModuleDestroy {
       quotaUsagePercent,
     };
 
-    await this.redisClient.set(cacheKey, JSON.stringify(summaryData), 'EX', 30);
+    await this.redisService.set(cacheKey, JSON.stringify(summaryData), 30);
 
     return summaryData;
   }

@@ -5,7 +5,13 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { firstValueFrom, timeout as rxTimeout, catchError, throwError, TimeoutError } from 'rxjs';
+import {
+  firstValueFrom,
+  timeout as rxTimeout,
+  catchError,
+  throwError,
+  TimeoutError,
+} from 'rxjs';
 import {
   ConnectionStatusResult,
   SendMessageOptions,
@@ -62,27 +68,29 @@ export class FonnteService implements WhatsappProviderInterface {
       // Create an endpoint call to Fonnte API to get a QR code
       // We pass the tenantId as a parameter or device to identify the tenant
       const response = await firstValueFrom(
-        this.httpService.post<{
-          status: boolean;
-          url?: string;
-          reason?: string;
-        }>(
-          `${this.baseUrl}/qr`,
-          { type: 0 },
-          {
-            headers: {
-              Authorization: this.getMasterToken(),
+        this.httpService
+          .post<{
+            status: boolean;
+            url?: string;
+            reason?: string;
+          }>(
+            `${this.baseUrl}/qr`,
+            { type: 0 },
+            {
+              headers: {
+                Authorization: this.getMasterToken(),
+              },
             },
-          },
-        ).pipe(
-          rxTimeout(5000),
-          catchError((err) => {
-            if (err instanceof TimeoutError) {
-              return throwError(() => new Error('Fonnte API timeout'));
-            }
-            return throwError(() => err);
-          }),
-        )
+          )
+          .pipe(
+            rxTimeout(5000),
+            catchError((err) => {
+              if (err instanceof TimeoutError) {
+                return throwError(() => new Error('Fonnte API timeout'));
+              }
+              return throwError(() => err);
+            }),
+          ),
       );
 
       const data = response.data;
@@ -121,26 +129,28 @@ export class FonnteService implements WhatsappProviderInterface {
     const { tenantId, to, message } = options;
     try {
       const response = await firstValueFrom(
-        this.httpService.post<FonnteSendResponse>(
-          `${this.baseUrl}/send`,
-          {
-            target: to,
-            message: message,
-          },
-          {
-            headers: {
-              Authorization: this.getMasterToken(),
+        this.httpService
+          .post<FonnteSendResponse>(
+            `${this.baseUrl}/send`,
+            {
+              target: to,
+              message: message,
             },
-          },
-        ).pipe(
-          rxTimeout(5000),
-          catchError((err) => {
-            if (err instanceof TimeoutError) {
-              return throwError(() => new Error('Fonnte API timeout'));
-            }
-            return throwError(() => err);
-          }),
-        )
+            {
+              headers: {
+                Authorization: this.getMasterToken(),
+              },
+            },
+          )
+          .pipe(
+            rxTimeout(5000),
+            catchError((err) => {
+              if (err instanceof TimeoutError) {
+                return throwError(() => new Error('Fonnte API timeout'));
+              }
+              return throwError(() => err);
+            }),
+          ),
       );
 
       const data = response.data;
@@ -181,23 +191,25 @@ export class FonnteService implements WhatsappProviderInterface {
   ): Promise<ConnectionStatusResult> {
     try {
       const response = await firstValueFrom(
-        this.httpService.post<FonnteDeviceResponse>(
-          `${this.baseUrl}/device`,
-          {},
-          {
-            headers: {
-              Authorization: this.getMasterToken(),
+        this.httpService
+          .post<FonnteDeviceResponse>(
+            `${this.baseUrl}/device`,
+            {},
+            {
+              headers: {
+                Authorization: this.getMasterToken(),
+              },
             },
-          },
-        ).pipe(
-          rxTimeout(5000),
-          catchError((err) => {
-            if (err instanceof TimeoutError) {
-              return throwError(() => new Error('Fonnte API timeout'));
-            }
-            return throwError(() => err);
-          }),
-        )
+          )
+          .pipe(
+            rxTimeout(5000),
+            catchError((err) => {
+              if (err instanceof TimeoutError) {
+                return throwError(() => new Error('Fonnte API timeout'));
+              }
+              return throwError(() => err);
+            }),
+          ),
       );
 
       const data = response.data;

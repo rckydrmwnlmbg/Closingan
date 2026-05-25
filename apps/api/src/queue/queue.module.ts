@@ -27,6 +27,10 @@ import { WebsocketModule } from '../modules/websocket/websocket.module';
             port: redisPort,
             password: redisPassword,
           },
+          defaultJobOptions: {
+            removeOnComplete: 100,
+            removeOnFail: 500,
+          },
         };
       },
     }),
