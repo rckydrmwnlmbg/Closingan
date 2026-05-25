@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSocket } from "@/hooks/useSocket";
 
 type ConnectionState = "CONNECTED" | "DISCONNECTED" | "CONNECTING";
 
@@ -16,6 +17,8 @@ export function WhatsAppConnectionStatus() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [qrCode, setQrCode] = useState<string | null>(null);
+
+  const socket = useSocket();
 
   const fetchStatus = async () => {
     // Only show global loading on initial fetch
@@ -44,8 +47,6 @@ export function WhatsAppConnectionStatus() {
       }
     } catch (err: unknown) {
       setError((err as Error).message || "Failed to fetch status");
-      // Fallback for visual mock if api is unavailable during dev:
-      // setStatus({ state: "DISCONNECTED" });
     } finally {
       setLoading(false);
     }
@@ -56,19 +57,22 @@ export function WhatsAppConnectionStatus() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Polling logic when QR code is active and status is DISCONNECTED
+  // Use WebSocket instead of interval polling for status updates
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (qrCode && status?.state !== "CONNECTED") {
-      interval = setInterval(() => {
-        fetchStatus();
-      }, 3000);
-    }
+    if (!socket) return;
+
+    const handleWaStatusChanged = () => {
+      fetchStatus();
+    };
+
+    socket.on('wa:status_changed', handleWaStatusChanged);
+
     return () => {
-      if (interval) clearInterval(interval);
+      socket.off('wa:status_changed', handleWaStatusChanged);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qrCode, status?.state]);
+  }, [socket]);
+
 
   // QR Refresh logic
   useEffect(() => {
@@ -211,7 +215,6 @@ export function WhatsAppConnectionStatus() {
           <p className="text-gray-700 dark:text-gray-300 mb-4">
             Scan this QR code with your WhatsApp app to connect.
           </p>
-          {/* Using a placeholder rendering for QR, you would display the actual image or render from string */}
           <div className="bg-white p-4 rounded border">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={qrCode} alt="WhatsApp QR Code" className="w-64 h-64" />

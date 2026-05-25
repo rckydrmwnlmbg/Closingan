@@ -26,6 +26,20 @@ export class ConversationGateway
 
   private readonly logger = new Logger(ConversationGateway.name);
 
+  // Map to hold our timeout identifiers for debouncing
+  private debounceMap = new Map<string, NodeJS.Timeout>();
+
+  private emitDebounced(room: string, event: string, key: string, data: any, delay = 500) {
+    if (this.debounceMap.has(key)) {
+      clearTimeout(this.debounceMap.get(key));
+    }
+    const timeout = setTimeout(() => {
+      this.server.to(room).emit(event, data);
+      this.debounceMap.delete(key);
+    }, delay);
+    this.debounceMap.set(key, timeout);
+  }
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -105,9 +119,11 @@ export class ConversationGateway
       );
       return;
     }
-    this.server
-      .to(`tenant-${activeTenantId}`)
-      .emit('conversation:updated', data);
+
+    // Performance Optimization: Debounce frequent conversation updates to save bandwidth
+    const room = `tenant-${activeTenantId}`;
+    const key = `${room}:conv_updated:${data.conversationId}`;
+    this.emitDebounced(room, 'conversation:updated', key, data, 500);
   }
 
   broadcastConversationStateChanged(

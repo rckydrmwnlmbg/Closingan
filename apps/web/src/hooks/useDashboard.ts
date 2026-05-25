@@ -1,18 +1,18 @@
 import useSWR from 'swr';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { fetcher } from '@/lib/api';
 import { useDashboardStore, DashboardSummary } from '@/store/useDashboardStore';
 import { useSocket } from './useSocket';
+import { debounce } from 'lodash';
 
 export function useDashboard() {
   const { summary, setSummary, updateWaStatus, updateQuotaUsage, addCriticalAlert } = useDashboardStore();
 
-  // Use SWR for polling every 30 seconds
   const { data, error, isLoading, mutate } = useSWR<DashboardSummary>(
     '/v1/dashboard/summary',
     fetcher,
     {
-      refreshInterval: 30000, // 30 seconds auto refresh
+      // Polling removed in favor of WebSocket events to save bandwidth
     }
   );
 
@@ -24,22 +24,28 @@ export function useDashboard() {
 
   const socket = useSocket();
 
+  // Debounce the SWR mutate call to prevent redundant API fetches on rapid WS chatter
+  const debouncedMutate = useMemo(
+    () => debounce(() => mutate(), 1000),
+    [mutate]
+  );
+
   useEffect(() => {
     if (!socket) return;
 
     const handleSystemAlert = (alert: { type?: string; message: string; conversationId?: string }) => {
       addCriticalAlert({ type: alert.type || 'SYSTEM_ALERT', message: alert.message, conversationId: alert.conversationId || 'system' });
-      mutate();
+      debouncedMutate();
     };
 
     const handleQuotaWarning = (data: { percent: number }) => {
       updateQuotaUsage(data.percent);
-      mutate();
+      debouncedMutate();
     };
 
     const handleWaStatusChanged = (data: { state: string }) => {
       updateWaStatus(data.state);
-      mutate();
+      debouncedMutate();
     };
 
     socket.on('system:alert', handleSystemAlert);
@@ -50,8 +56,9 @@ export function useDashboard() {
       socket.off('system:alert', handleSystemAlert);
       socket.off('quota:warning', handleQuotaWarning);
       socket.off('wa:status_changed', handleWaStatusChanged);
+      debouncedMutate.cancel();
     };
-  }, [socket, updateWaStatus, updateQuotaUsage, addCriticalAlert, mutate]);
+  }, [socket, updateWaStatus, updateQuotaUsage, addCriticalAlert, debouncedMutate]);
 
   return {
     summary: summary || data,

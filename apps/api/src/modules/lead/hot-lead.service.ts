@@ -94,6 +94,26 @@ export class HotLeadService {
       return;
     }
 
+    // AI Cost Optimization: Skip analysis if lead is already CRITICAL
+    if (lead.heatTier === 'CRITICAL') {
+      this.logger.debug(
+        `Skipping AI analysis: Lead is already CRITICAL for conversation ${conversationId}`
+      );
+      return;
+    }
+
+    // AI Cost Optimization: Rate limit analysis (e.g., skip if analyzed in the last 5 minutes)
+    if (lead.heatUpdatedAt) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      if (lead.heatUpdatedAt > fiveMinutesAgo) {
+        this.logger.debug(
+          `Skipping AI analysis: Analyzed recently for conversation ${conversationId}`
+        );
+        return;
+      }
+    }
+
+
     // 2. Analisis dengan AI (Zod Validated)
     let aiResult: LeadAnalysisDto;
     try {

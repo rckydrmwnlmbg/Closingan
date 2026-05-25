@@ -160,6 +160,11 @@ Format:
 
 ## LOG PERUBAHAN
 
+### Optimize WebSockets and AI Execution Layer (Performance)
+- [x] ✅ Replaced interval-based polling in frontend WhatsApp connection status with WebSocket-driven SWR mutations.
+- [x] ✅ Implemented debouncing for WebSocket broadcasts in ConversationGateway to reduce unnecessary frontend re-renders and save bandwidth.
+- [x] ✅ Added AI cost-saving optimizations: skipping redundant lead heat analysis if already CRITICAL and preventing redundant AI replies if the last message is already from the AI.
+
 ### 25 May 2026
 - ✅ TASK 18.2 — Redis Caching Strategy (Standardized RedisService, implemented caching for high-read endpoints like WhatsappSession lookup, audited BullMQ memory limits)
 
