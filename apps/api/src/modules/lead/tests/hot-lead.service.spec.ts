@@ -93,7 +93,7 @@ describe('HotLeadService', () => {
           heat_score: 85,
           heat_reasons: ['Tanya harga'],
         },
-        tokensUsed: 10
+        tokensUsed: 10,
       });
 
       (prismaService.lead.update as jest.Mock).mockResolvedValue({
@@ -137,7 +137,7 @@ describe('HotLeadService', () => {
           heat_tier: 'HOT',
           heat_score: 85,
         },
-        tokensUsed: 10
+        tokensUsed: 10,
       });
 
       clsService.get.mockReturnValue('tenant-1');
@@ -167,7 +167,7 @@ describe('HotLeadService', () => {
           heat_score: 88,
           heat_reasons: ['Tanya diskon'],
         },
-        tokensUsed: 10
+        tokensUsed: 10,
       });
 
       // Still HOT

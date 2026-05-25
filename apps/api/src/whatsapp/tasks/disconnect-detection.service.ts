@@ -85,7 +85,6 @@ export class DisconnectDetectionService {
         },
       });
 
-
       // Audit log
       await this.auditService.log({
         action: 'WA_DISCONNECTED',

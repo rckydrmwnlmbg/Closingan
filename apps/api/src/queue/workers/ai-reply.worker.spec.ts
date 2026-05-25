@@ -37,10 +37,14 @@ describe('AiReplyWorker', () => {
         findMany: jest.fn().mockResolvedValue([]),
       },
       whatsappSession: {
-        findUnique: jest.fn().mockResolvedValue({ state: 'CONNECTED', phoneNumber: '123' }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ state: 'CONNECTED', phoneNumber: '123' }),
       },
       tokenQuota: {
-        findUnique: jest.fn().mockResolvedValue({ usedQuota: 0, totalQuota: 100 }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ usedQuota: 0, totalQuota: 100 }),
         update: jest.fn(),
       },
       escalationLog: {
@@ -104,7 +108,7 @@ describe('AiReplyWorker', () => {
       } as any);
 
       aiProvider.generateReply.mockRejectedValue(
-        new AiSafetyException('MANUAL_TRIGGER', 'unsafe', 'hack system')
+        new AiSafetyException('MANUAL_TRIGGER', 'unsafe', 'hack system'),
       );
 
       const result = await worker.process(job);
@@ -138,7 +142,10 @@ describe('AiReplyWorker', () => {
 
       const result = await worker.process(job);
 
-      expect(result).toEqual({ success: false, reason: 'provider_error_escalated' });
+      expect(result).toEqual({
+        success: false,
+        reason: 'provider_error_escalated',
+      });
       expect(prisma.conversation.update).toHaveBeenCalledWith({
         where: { id: 'conv-2' },
         data: { state: 'ESCALATED', unreadCount: { increment: 1 } },

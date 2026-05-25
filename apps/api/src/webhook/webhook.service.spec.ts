@@ -5,26 +5,18 @@ import { ClsService } from 'nestjs-cls';
 import { ConfigService } from '@nestjs/config';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { getQueueToken } from '@nestjs/bullmq';
-
-jest.mock('ioredis', () => {
-  return {
-    Redis: jest.fn().mockImplementation(() => {
-      return {
-        set: jest.fn(),
-        disconnect: jest.fn(),
-      };
-    }),
-  };
-});
+import { RedisService } from '../common/redis/redis.service';
 
 describe('WebhookService - Duplicate Webhook Idempotency', () => {
   let webhookService: WebhookService;
-  let mockRedisClient: any;
+  let mockRedisService: any;
 
   beforeEach(async () => {
     const mockPrismaService = {
       whatsappSession: {
-        findFirst: jest.fn().mockResolvedValue({ tenantId: 'tenant-1', phoneNumber: '123' }),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ tenantId: 'tenant-1', phoneNumber: '123' }),
       },
     };
 
@@ -45,7 +37,15 @@ describe('WebhookService - Duplicate Webhook Idempotency', () => {
     };
 
     const mockConfigService = {
-        get: jest.fn().mockReturnValue('localhost'),
+      get: jest.fn().mockReturnValue('localhost'),
+    };
+
+    mockRedisService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      setNx: jest.fn(),
+      del: jest.fn(),
+      exists: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -60,11 +60,11 @@ describe('WebhookService - Duplicate Webhook Idempotency', () => {
           useValue: mockAuditService,
         },
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
     webhookService = module.get<WebhookService>(WebhookService);
-    mockRedisClient = (webhookService as any).redisClient;
   });
 
   afterEach(() => {
@@ -72,21 +72,37 @@ describe('WebhookService - Duplicate Webhook Idempotency', () => {
   });
 
   it('should process webhook if payload is new', async () => {
-    const payload = { device: '123', id: 'msg-1', sender: 'test', message: 'test' };
+    const payload = {
+      device: '123',
+      id: 'msg-1',
+      sender: 'test',
+      message: 'test',
+    };
 
-    mockRedisClient.set.mockResolvedValue('OK'); // NX returns OK when key is set
+    mockRedisService.setNx.mockResolvedValue(true); // NX returns true when key is set
 
-    const res = await webhookService.handleFonnteIncomingMessage(payload as any, 'secret');
+    const res = await webhookService.handleFonnteIncomingMessage(
+      payload,
+      'secret',
+    );
     expect(res.success).toBe(true);
     expect(res).not.toHaveProperty('duplicated');
   });
 
   it('should ignore webhook if payload is a duplicate (idempotency)', async () => {
-    const payload = { device: '123', id: 'msg-1', sender: 'test', message: 'test' };
+    const payload = {
+      device: '123',
+      id: 'msg-1',
+      sender: 'test',
+      message: 'test',
+    };
 
-    mockRedisClient.set.mockResolvedValue(null); // NX returns null when key exists
+    mockRedisService.setNx.mockResolvedValue(false); // NX returns false when key exists
 
-    const res = await webhookService.handleFonnteIncomingMessage(payload as any, 'secret');
+    const res = await webhookService.handleFonnteIncomingMessage(
+      payload,
+      'secret',
+    );
     expect(res.success).toBe(true);
     expect(res.duplicated).toBe(true);
   });

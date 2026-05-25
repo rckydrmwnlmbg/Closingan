@@ -9,12 +9,11 @@ import { MailService } from '../../../mail/mail.service';
 import { ConversationGateway } from '../../websocket/conversation.gateway';
 import { WHATSAPP_PROVIDER } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
-import { Redis } from 'ioredis';
+import { RedisService } from '../../../common/redis/redis.service';
 
 @Processor('hot-lead')
-export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
+export class HotLeadProcessor extends WorkerHost {
   private readonly logger = new Logger(HotLeadProcessor.name);
-  private redisClient: Redis;
 
   constructor(
     private readonly cls: ClsService,
@@ -24,17 +23,9 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
     private readonly conversationGateway: ConversationGateway,
     @Inject(WHATSAPP_PROVIDER)
     private readonly whatsappProvider: WhatsappProviderInterface,
+    private readonly redisService: RedisService,
   ) {
     super();
-    this.redisClient = new Redis({
-      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-      port: this.configService.get<number>('REDIS_PORT', 6379),
-      password: this.configService.get<string>('REDIS_PASSWORD'),
-    });
-  }
-
-  onModuleDestroy() {
-    this.redisClient.disconnect();
   }
 
   async process(job: Job<HotLeadJobData, unknown, string>): Promise<unknown> {
@@ -95,7 +86,7 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
       if (user.waPersonalNumber) {
         // Audit rule: Cache keys must be namespaced with tenantId to prevent leakage
         const redisKey = `tenant:${tenantId}:hot-lead-alert:${leadId}`;
-        const isRateLimited = await this.redisClient.exists(redisKey);
+        const isRateLimited = await this.redisService.exists(redisKey);
 
         if (isRateLimited) {
           this.logger.log(
@@ -113,7 +104,7 @@ export class HotLeadProcessor extends WorkerHost implements OnModuleDestroy {
             this.logger.log(`WhatsApp hot lead alert sent to user ${user.id}`);
 
             // Set rate limit: Max 1 alert per 30 minutes (1800 seconds)
-            await this.redisClient.set(redisKey, '1', 'EX', 1800);
+            await this.redisService.set(redisKey, '1', 1800);
           } catch (error) {
             this.logger.error(
               `Failed to send WA hot lead alert to user ${user.id}: ${error instanceof Error ? error.message : 'Unknown'}`,

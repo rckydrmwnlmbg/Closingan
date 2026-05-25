@@ -9,12 +9,11 @@ import { Inject, OnModuleDestroy } from '@nestjs/common';
 import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { Redis } from 'ioredis';
+import { RedisService } from '../common/redis/redis.service';
 
 @Injectable()
-export class WebhookService implements OnModuleDestroy {
+export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
-  private redisClient: Redis;
 
   constructor(
     @Inject(WHATSAPP_PROVIDER)
@@ -24,17 +23,8 @@ export class WebhookService implements OnModuleDestroy {
     @InjectQueue('ai-reply') private readonly aiReplyQueue: Queue,
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {
-    this.redisClient = new Redis({
-      host: this.configService.get<string>('REDIS_HOST', 'localhost'),
-      port: this.configService.get<number>('REDIS_PORT', 6379),
-      password: this.configService.get<string>('REDIS_PASSWORD'),
-    });
-  }
-
-  onModuleDestroy() {
-    this.redisClient.disconnect();
-  }
+    private readonly redisService: RedisService,
+  ) {}
 
   async handleFonnteIncomingMessage(
     payload: FonnteWebhookPayload,
@@ -57,9 +47,22 @@ export class WebhookService implements OnModuleDestroy {
       throw new UnauthorizedException('Missing device identifier');
     }
 
-    const session = await this.prisma.whatsappSession.findFirst({
-      where: { phoneNumber: payload.device }, // Assuming Fonnte 'device' matches our phoneNumber
-    });
+    // High read cache for WhatsappSession lookup
+    const cacheKey = `wa-session:device:${payload.device}`;
+    let session: any = null;
+    const cachedSessionStr = await this.redisService.get(cacheKey);
+
+    if (cachedSessionStr) {
+      session = JSON.parse(cachedSessionStr);
+    } else {
+      session = await this.prisma.whatsappSession.findFirst({
+        where: { phoneNumber: payload.device }, // Assuming Fonnte 'device' matches our phoneNumber
+      });
+
+      if (session) {
+        await this.redisService.set(cacheKey, JSON.stringify(session), 3600); // 1 hour TTL
+      }
+    }
 
     if (!session) {
       this.logger.error(`No tenant matches device: ${payload.device}`);
@@ -75,10 +78,12 @@ export class WebhookService implements OnModuleDestroy {
     if (payload.id) {
       const idempotencyKey = `tenant:${tenantId}:webhook:${payload.id}`;
       // Set key with 24 hours (86400 seconds) expiration if it doesn't exist ('NX')
-      const isNew = await this.redisClient.set(idempotencyKey, '1', 'EX', 86400, 'NX');
+      const isNew = await this.redisService.setNx(idempotencyKey, '1', 86400);
 
       if (!isNew) {
-        this.logger.warn(`Duplicate webhook payload received for Tenant: ${tenantId}, ID: ${payload.id}. Ignoring.`);
+        this.logger.warn(
+          `Duplicate webhook payload received for Tenant: ${tenantId}, ID: ${payload.id}. Ignoring.`,
+        );
         return { success: true, duplicated: true };
       }
     }

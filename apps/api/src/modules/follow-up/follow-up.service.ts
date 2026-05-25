@@ -170,7 +170,13 @@ export class FollowUpService {
     // 2. Update those that are overdue > 48 hours (bump urgency to CRITICAL)
     await this.prisma.followUp.updateMany({
       where: {
-        status: { in: [FollowUpStatus.PENDING, FollowUpStatus.DUE, FollowUpStatus.OVERDUE] },
+        status: {
+          in: [
+            FollowUpStatus.PENDING,
+            FollowUpStatus.DUE,
+            FollowUpStatus.OVERDUE,
+          ],
+        },
         dueAt: { lt: fortyEightHoursAgo },
         urgency: { not: FollowUpUrgency.CRITICAL }, // Avoid unnecessary updates
       },

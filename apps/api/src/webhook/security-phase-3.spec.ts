@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { UnauthorizedException } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
+import { RedisService } from '../common/redis/redis.service';
 
 describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
   let webhookService: WebhookService;
@@ -51,6 +52,13 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue('localhost') },
+        },
+        {
+          provide: RedisService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            setNx: jest.fn(),
+          },
         },
       ],
     }).compile();

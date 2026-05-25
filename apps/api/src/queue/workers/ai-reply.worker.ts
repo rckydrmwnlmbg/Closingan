@@ -64,10 +64,12 @@ export class AiReplyWorker extends WorkerHost {
         // Idempotency Check: Prevent duplicate processing if BullMQ retries after DB insertion
         if (messageExternalId) {
           const existingMessage = await this.prisma.message.findFirst({
-            where: { tenantId, externalId: messageExternalId }
+            where: { tenantId, externalId: messageExternalId },
           });
           if (existingMessage) {
-            this.logger.warn(`Idempotency hit: Message ${messageExternalId} already exists in DB. Skipping AI reply.`);
+            this.logger.warn(
+              `Idempotency hit: Message ${messageExternalId} already exists in DB. Skipping AI reply.`,
+            );
             return { success: true, duplicated: true };
           }
         }
@@ -120,7 +122,7 @@ export class AiReplyWorker extends WorkerHost {
           throw new AppException(
             'WHATSAPP_DISCONNECTED',
             `WhatsApp session is ${waSession?.state || 'missing'} for tenant ${tenantId}. Job delayed.`,
-            503
+            503,
           );
         }
 
@@ -275,7 +277,9 @@ export class AiReplyWorker extends WorkerHost {
           }
 
           // Fallback for API Errors / Timeouts to prevent infinite BullMQ loops
-          this.logger.error(`AI Provider Error for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`);
+          this.logger.error(
+            `AI Provider Error for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`,
+          );
 
           await this.prisma.conversation.update({
             where: { id: conversation.id },
@@ -302,7 +306,6 @@ export class AiReplyWorker extends WorkerHost {
           }
 
           return { success: false, reason: 'provider_error_escalated' };
-
         }
 
         let sendResult;

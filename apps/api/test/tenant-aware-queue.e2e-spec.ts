@@ -13,8 +13,18 @@ describe('Tenant Aware Queue Isolation Test', () => {
     const mockPrismaService = {
       whatsappSession: {
         findMany: jest.fn().mockResolvedValue([
-          { id: 'session-1', tenantId: 'tenant-a', state: 'CONNECTED', tenant: { users: [] } },
-          { id: 'session-2', tenantId: 'tenant-b', state: 'CONNECTED', tenant: { users: [] } },
+          {
+            id: 'session-1',
+            tenantId: 'tenant-a',
+            state: 'CONNECTED',
+            tenant: { users: [] },
+          },
+          {
+            id: 'session-2',
+            tenantId: 'tenant-b',
+            state: 'CONNECTED',
+            tenant: { users: [] },
+          },
         ]),
         update: jest.fn(),
       },
@@ -51,11 +61,16 @@ describe('Tenant Aware Queue Isolation Test', () => {
         { provide: WHATSAPP_PROVIDER, useValue: mockWhatsappProvider },
         { provide: getQueueToken('ai-reply'), useValue: mockQueue },
         { provide: getQueueToken('blast-campaign'), useValue: mockQueue },
-        { provide: require('../src/common/audit/audit.service').AuditService, useValue: mockAuditService },
+        {
+          provide: require('../src/common/audit/audit.service').AuditService,
+          useValue: mockAuditService,
+        },
       ],
     }).compile();
 
-    disconnectDetectionService = module.get<DisconnectDetectionService>(DisconnectDetectionService);
+    disconnectDetectionService = module.get<DisconnectDetectionService>(
+      DisconnectDetectionService,
+    );
     prismaService = module.get<PrismaService>(PrismaService);
   });
 
@@ -67,14 +82,14 @@ describe('Tenant Aware Queue Isolation Test', () => {
       expect.objectContaining({
         where: { id: 'session-1', tenantId: 'tenant-a' },
         data: expect.objectContaining({ state: 'RECONNECTING' }),
-      })
+      }),
     );
 
     // Tenant B should not be updated
     expect(prismaService.whatsappSession.update).not.toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'session-2', tenantId: 'tenant-b' },
-      })
+      }),
     );
   });
 });
