@@ -33,9 +33,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
-    env:
-      NODE_OPTIONS: "--max-old-space-size=512"
-
     steps:
       - name: Checkout Repository Code
         uses: actions/checkout@v3
@@ -55,6 +52,7 @@ jobs:
           echo "REDIS_HOST=localhost" >> $GITHUB_ENV
           echo "REDIS_PORT=6379" >> $GITHUB_ENV
           echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "NODE_OPTIONS=--max-old-space-size=512" >> $GITHUB_ENV
 
       - name: Run Prisma Migrations
         run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
