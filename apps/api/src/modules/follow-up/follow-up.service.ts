@@ -154,32 +154,30 @@ export class FollowUpService {
   @Cron(CronExpression.EVERY_30_MINUTES)
   async processOverdueFollowUps() {
     const now = new Date();
+    const fortyEightHoursAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
-    // Find DUE or PENDING follow-ups that are past their due date
-    const overdueFollowUps = await this.prisma.followUp.findMany({
+    // 1. Update those that are overdue but <= 48 hours
+    await this.prisma.followUp.updateMany({
       where: {
         status: { in: [FollowUpStatus.PENDING, FollowUpStatus.DUE] },
-        dueAt: { lt: now },
+        dueAt: { lt: now, gte: fortyEightHoursAgo },
+      },
+      data: {
+        status: FollowUpStatus.OVERDUE,
       },
     });
 
-    for (const followUp of overdueFollowUps) {
-      const hoursOverdue =
-        (now.getTime() - followUp.dueAt.getTime()) / (1000 * 60 * 60);
-
-      const updateData: Prisma.FollowUpUpdateInput = {
+    // 2. Update those that are overdue > 48 hours (bump urgency to CRITICAL)
+    await this.prisma.followUp.updateMany({
+      where: {
+        status: { in: [FollowUpStatus.PENDING, FollowUpStatus.DUE, FollowUpStatus.OVERDUE] },
+        dueAt: { lt: fortyEightHoursAgo },
+        urgency: { not: FollowUpUrgency.CRITICAL }, // Avoid unnecessary updates
+      },
+      data: {
         status: FollowUpStatus.OVERDUE,
-      };
-
-      // If overdue > 48 hours, bump urgency to CRITICAL
-      if (hoursOverdue > 48) {
-        updateData.urgency = FollowUpUrgency.CRITICAL;
-      }
-
-      await this.prisma.followUp.update({
-        where: { id: followUp.id },
-        data: updateData,
-      });
-    }
+        urgency: FollowUpUrgency.CRITICAL,
+      },
+    });
   }
 }

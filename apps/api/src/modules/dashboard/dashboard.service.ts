@@ -41,77 +41,112 @@ export class DashboardService implements OnModuleDestroy {
 
     const now = new Date();
 
-    // 1. Hot Leads Today
-    const hotLeadsToday = await this.prisma.lead.count({
-      where: {
-        tenantId,
-        heatTier: { in: ['HOT', 'CRITICAL'] },
-        heatUpdatedAt: {
-          gte: todayStart,
-          lte: todayEnd,
+    const [
+      hotLeadsToday,
+      pendingReply,
+      oldestPendingConversation,
+      followUpToday,
+      followUpOverdue,
+      waSession,
+      criticalAlertsRaw,
+      tokenQuota,
+    ] = await Promise.all([
+      // 1. Hot Leads Today
+      this.prisma.lead.count({
+        where: {
+          tenantId,
+          heatTier: { in: ['HOT', 'CRITICAL'] },
+          heatUpdatedAt: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
         },
-      },
-    });
+      }),
 
-    // 2. Pending Reply
-    const pendingReply = await this.prisma.conversation.count({
-      where: {
-        tenantId,
-        state: 'WAITING_SELLER',
-      },
-    });
+      // 2. Pending Reply Count
+      this.prisma.conversation.count({
+        where: {
+          tenantId,
+          state: 'WAITING_SELLER',
+        },
+      }),
+
+      // 2. Longest Pending Reply
+      this.prisma.conversation.findFirst({
+        where: {
+          tenantId,
+          state: 'WAITING_SELLER',
+        },
+        orderBy: {
+          lastMessageAt: 'asc',
+        },
+        select: {
+          lastMessageAt: true,
+        },
+      }),
+
+      // 3. Follow-up Today
+      this.prisma.followUp.count({
+        where: {
+          tenantId,
+          dueAt: {
+            gte: todayStart,
+            lte: todayEnd,
+          },
+        },
+      }),
+
+      // 3. Follow-up Overdue
+      this.prisma.followUp.count({
+        where: {
+          tenantId,
+          dueAt: {
+            lt: now,
+          },
+          status: {
+            notIn: ['COMPLETED', 'CANCELLED'],
+          },
+        },
+      }),
+
+      // 4. WhatsApp Status
+      this.prisma.whatsappSession.findUnique({
+        where: { tenantId },
+        select: { state: true, phoneNumber: true },
+      }),
+
+      // 5. Critical Alerts
+      this.prisma.escalationLog.findMany({
+        where: {
+          tenantId,
+          resolvedAt: null,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 5,
+        include: {
+          conversation: {
+            select: {
+              customerName: true,
+              customerPhone: true,
+            },
+          },
+        },
+      }),
+
+      // 6. Token Quota
+      this.prisma.tokenQuota.findUnique({
+        where: { tenantId },
+      }),
+    ]);
 
     let longestPendingMinutes = 0;
-    if (pendingReply > 0) {
-      const oldestPendingConversation =
-        await this.prisma.conversation.findFirst({
-          where: {
-            tenantId,
-            state: 'WAITING_SELLER',
-          },
-          orderBy: {
-            lastMessageAt: 'asc',
-          },
-          select: {
-            lastMessageAt: true,
-          },
-        });
-
-      if (oldestPendingConversation?.lastMessageAt) {
-        const diffMs =
-          now.getTime() - oldestPendingConversation.lastMessageAt.getTime();
-        longestPendingMinutes = Math.floor(diffMs / (1000 * 60));
-      }
+    if (pendingReply > 0 && oldestPendingConversation?.lastMessageAt) {
+      const diffMs =
+        now.getTime() - oldestPendingConversation.lastMessageAt.getTime();
+      longestPendingMinutes = Math.floor(diffMs / (1000 * 60));
     }
-
-    // 3. Follow-up Today & Overdue
-    const followUpToday = await this.prisma.followUp.count({
-      where: {
-        tenantId,
-        dueAt: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
-      },
-    });
-
-    const followUpOverdue = await this.prisma.followUp.count({
-      where: {
-        tenantId,
-        dueAt: {
-          lt: now,
-        },
-        status: {
-          notIn: ['COMPLETED', 'CANCELLED'],
-        },
-      },
-    });
-
-    // 4. WhatsApp Status & AI Status
-    const waSession = await this.prisma.whatsappSession.findUnique({
-      where: { tenantId },
-      select: { state: true, phoneNumber: true },
-    });
 
     const waStatus = {
       state: waSession?.state || 'DISCONNECTED',
@@ -126,36 +161,11 @@ export class DashboardService implements OnModuleDestroy {
       mode: 'AUTO_REPLY',
     };
 
-    // 5. Critical Alerts (Escalations)
-    const criticalAlertsRaw = await this.prisma.escalationLog.findMany({
-      where: {
-        tenantId,
-        resolvedAt: null,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 5,
-      include: {
-        conversation: {
-          select: {
-            customerName: true,
-            customerPhone: true,
-          },
-        },
-      },
-    });
-
     const criticalAlerts = criticalAlertsRaw.map((alert) => ({
       type: 'ESCALATION_PENDING',
       message: `${alert.conversation.customerName || alert.conversation.customerPhone} ${this.formatEscalationReason(alert.reason)}`,
       conversationId: alert.conversationId,
     }));
-
-    // 6. Quota Usage Percent
-    const tokenQuota = await this.prisma.tokenQuota.findUnique({
-      where: { tenantId },
-    });
 
     let quotaUsagePercent = 0;
     if (tokenQuota && tokenQuota.totalQuota > 0) {
