@@ -332,6 +332,7 @@ model Conversation {
   labelAssignments ConversationLabelAssignment[]
 
   @@index([tenantId])
+  @@index([tenantId, state])
   @@index([tenantId, lastMessageAt])
   @@index([customerPhone, tenantId])
 }
@@ -357,6 +358,7 @@ model Message {
   tenant       Tenant       @relation(fields: [tenantId], references: [id])
 
   @@index([conversationId])
+  @@index([conversationId, createdAt])
   @@index([tenantId])
   @@index([externalId])
 }
@@ -387,6 +389,7 @@ model Lead {
 
   @@index([tenantId])
   @@index([tenantId, heatUpdatedAt])
+  @@index([tenantId, heatTier, heatUpdatedAt])
 }
 
 // ─── FOLLOW-UPS ──────────────────────────────────────────────
@@ -412,6 +415,7 @@ model FollowUp {
   conversation Conversation @relation(fields: [conversationId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, status, dueAt])
 }
 
 // ─── AI SYSTEM ───────────────────────────────────────────────
@@ -457,6 +461,7 @@ model EscalationLog {
 
   @@index([tenantId])
   @@index([conversationId])
+  @@index([tenantId, resolvedAt, createdAt])
 }
 
 model AiFeedback {
