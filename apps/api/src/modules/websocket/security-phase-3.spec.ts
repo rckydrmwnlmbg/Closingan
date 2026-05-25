@@ -48,6 +48,12 @@ describe('Security Phase 3 Unit Tests', () => {
   });
 
   describe('WebSocket Broadcast Isolation', () => {
+    beforeAll(() => {
+      jest.useFakeTimers();
+    });
+    afterAll(() => {
+      jest.useRealTimers();
+    });
     it('should reject broadcast if ClsService context does not match target tenantId', () => {
       (mockClsService.get as jest.Mock).mockReturnValue('tenant-A');
 
@@ -74,6 +80,7 @@ describe('Security Phase 3 Unit Tests', () => {
         lastMessage: 'test',
       });
 
+      jest.runAllTimers();
       expect(mockServer.to).toHaveBeenCalledWith('tenant-tenant-A');
       expect(mockServer.emit).toHaveBeenCalledWith(
         'conversation:updated',

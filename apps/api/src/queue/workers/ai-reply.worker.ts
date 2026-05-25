@@ -161,6 +161,12 @@ export class AiReplyWorker extends WorkerHost {
               take: 10,
             });
 
+            // AI Cost Optimization: Early Exit if the last message in the thread is already from AI
+            if (recentMessages.length > 0 && recentMessages[0].senderType === 'AI') {
+              this.logger.log(`Skipping AI suggestion: Last message in conversation ${conversation.id} is already from AI`);
+              return { success: true, reason: 'suggestion_already_generated' };
+            }
+
             const historyText = recentMessages
               .reverse()
               .map((m) => `${m.senderType}: ${m.content}`)
@@ -206,6 +212,12 @@ export class AiReplyWorker extends WorkerHost {
             orderBy: { createdAt: 'desc' },
             take: 10,
           });
+
+          // AI Cost Optimization: Early Exit if the last message in the thread is already from AI
+          if (recentMessages.length > 0 && recentMessages[0].senderType === 'AI') {
+            this.logger.log(`Skipping AI auto-reply: Last message in conversation ${conversation.id} is already from AI`);
+            return { success: true, reason: 'already_replied' };
+          }
 
           const historyText = recentMessages
             .reverse()
