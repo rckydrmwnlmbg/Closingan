@@ -69,4 +69,11 @@ jobs:
 
       - name: Execute End-to-End Tests
         working-directory: apps/api
-        run: npm run test:e2e
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+        run: |
+        npx jest --config ./test/jest-e2e.json \
+        --runInBand \
+        --forceExit \
+        --detectOpenHandles \
+        --testTimeout=60000
