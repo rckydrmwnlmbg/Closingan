@@ -40,7 +40,7 @@ jobs:
       - name: Setup Node.js Environment
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: '20'
           cache: 'npm'
 
       - name: Install Dependencies
@@ -52,6 +52,17 @@ jobs:
           echo "REDIS_HOST=localhost" >> $GITHUB_ENV
           echo "REDIS_PORT=6379" >> $GITHUB_ENV
           echo "NODE_ENV=test" >> $GITHUB_ENV
+          echo "JWT_ACCESS_SECRET=test-access-secret-for-ci" >> $GITHUB_ENV
+          echo "JWT_REFRESH_SECRET=test-refresh-secret-for-ci" >> $GITHUB_ENV
+          echo "JWT_ACCESS_EXPIRES_IN=15m" >> $GITHUB_ENV
+          echo "JWT_REFRESH_EXPIRES_IN=7d" >> $GITHUB_ENV
+          echo "FONNTE_SYSTEM_TOKEN=mock-fonnte-token-for-ci" >> $GITHUB_ENV
+          echo "FONNTE_WEBHOOK_SECRET=mock-webhook-secret" >> $GITHUB_ENV
+          echo "OPENAI_API_KEY=mock-openai-key-for-ci" >> $GITHUB_ENV
+          echo "NODE_OPTIONS=--max-old-space-size=512" >> $GITHUB_ENV
+
+      - name: Generate Prisma Client
+        run: npx prisma generate --schema=apps/api/prisma/schema.prisma
 
       - name: Run Prisma Migrations
         run: npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
@@ -59,5 +70,3 @@ jobs:
       - name: Execute End-to-End Tests
         working-directory: apps/api
         run: npm run test:e2e
-        
-        
