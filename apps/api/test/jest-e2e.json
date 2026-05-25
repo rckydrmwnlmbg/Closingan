@@ -6,5 +6,8 @@
   "setupFilesAfterEnv": ["<rootDir>/setup-e2e.ts"],
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
-  }
+  },
+  "maxWorkers": 1,
+  "testTimeout": 30000,
+  "workerIdleMemoryLimit": "512MB"
 }
