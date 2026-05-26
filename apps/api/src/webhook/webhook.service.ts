@@ -37,7 +37,7 @@ export class WebhookService {
     );
 
     if (!isValid) {
-      this.logger.error(`Invalid webhook signature.`);
+      this.logger.error({ webhookId: payload.id, sender: payload.sender || payload.from }, `Invalid webhook signature.`);
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
@@ -81,7 +81,7 @@ export class WebhookService {
       const isNew = await this.redisService.setNx(idempotencyKey, '1', 86400);
 
       if (!isNew) {
-        this.logger.warn(
+        this.logger.warn({ tenantId, webhookId: payload.id },
           `Duplicate webhook payload received for Tenant: ${tenantId}, ID: ${payload.id}. Ignoring.`,
         );
         return { success: true, duplicated: true };
@@ -95,7 +95,7 @@ export class WebhookService {
       entityId: payload.id || 'unknown',
     });
 
-    this.logger.log(`Webhook received and verified for Tenant: ${tenantId}`);
+    this.logger.log({ tenantId, webhookId: payload.id }, `Webhook received and verified for Tenant: ${tenantId}`);
 
     // Anti-Looping: Check Redis for Human Takeover Status
     const sender = payload.sender || payload.from;

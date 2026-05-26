@@ -31,6 +31,12 @@ async function bootstrap() {
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new GlobalExceptionFilter(httpAdapterHost));
 
+
+  // 5. Catch Unhandled Promise Rejections
+  process.on('unhandledRejection', (reason, promise) => {
+    app.get(Logger).error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+  });
+
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
 }

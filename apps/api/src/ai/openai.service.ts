@@ -82,7 +82,7 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
       // 4. Output Sanitization (Markdown, links)
       const sanitizedOutput = this.aiSafetyService.sanitizeOutput(output);
 
-      this.logger.log(`AI Reply Generated for Tenant: ${tenantId}`);
+      this.logger.log({ tenantId, tokensUsed }, `AI Reply Generated for Tenant: ${tenantId}`);
 
       return { reply: sanitizedOutput, tokensUsed };
     } catch (error) {
@@ -144,7 +144,7 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
         );
       }
 
-      this.logger.log(`Lead Analyzed for Tenant: ${tenantId}`);
+      this.logger.log({ tenantId, tokensUsed }, `Lead Analyzed for Tenant: ${tenantId}`);
 
       return { result: JSON.parse(output), tokensUsed };
     } catch (error) {
