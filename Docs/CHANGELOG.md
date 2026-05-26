@@ -15,25 +15,25 @@ Format:
 
 | Phase | Status | Progress |
 |---|---|---|
-| Phase 1 — MVP Core | ⏳ Belum dimulai | 0 / 24 task |
-| Phase 2 — Production Hardening | ⏳ Belum dimulai | 0 / 22 task |
-| Phase 3 — Growth & Scale | ⏳ Belum dimulai | 0 / 26 task |
+| Phase 1 — MVP Core | 🔄 Sedang dikerjakan | 25 / 28 task |
+| Phase 2 — Production Hardening | ⏳ Belum dimulai | 0 / 28 task |
+| Phase 3 — Growth & Scale | 🔄 Sedang dikerjakan | 1 / 29 task |
 
 ---
 
 ## PHASE 1 — MVP Core
 
 ### Milestone 1 — Fondasi Proyek
-- [ ] ⏳ TASK 1.1 — Setup Monorepo / Project Structure
-- [ ] ⏳ TASK 1.2 — Database Schema (Core Tables)
-- [ ] ⏳ TASK 1.3 — NestJS Base Setup
-- [ ] ⏳ TASK 1.4 — Queue Infrastructure (BullMQ)
+- [x] ✅ TASK 1.1 — Setup Monorepo / Project Structure
+- [x] ✅ TASK 1.2 — Database Schema (Core Tables)
+- [x] ✅ TASK 1.3 — NestJS Base Setup
+- [x] ✅ TASK 1.4 — Queue Infrastructure (BullMQ)
 
 ### Milestone 2 — Auth & User
-- [ ] ⏳ TASK 2.1 — Authentication System
-- [ ] ⏳ TASK 2.2 — Email OTP Verification
-- [ ] ⏳ TASK 2.3 — Tenant Isolation Middleware ⚠️ KRITIS
-- [ ] ⏳ TASK 2.4 — Audit Logging
+- [x] ✅ TASK 2.1 — Authentication System
+- [x] ✅ TASK 2.2 — Email OTP Verification
+- [x] ✅ TASK 2.3 — Tenant Isolation Middleware ⚠️ KRITIS
+- [x] ✅ TASK 2.4 — Audit Logging
 
 ### Milestone 3 — WhatsApp Connection
 - [x] ✅ TASK 3.1 — Fonnte Integration Service
@@ -42,9 +42,9 @@ Format:
 - [x] ✅ TASK 3.4 — Disconnect Detection & Auto-Recovery
 
 ### Milestone 4 — Inbox & Conversation
-- [ ] ⏳ TASK 4.1 — Conversation List API
-- [ ] ⏳ TASK 4.2 — Realtime WebSocket
-- [ ] ⏳ TASK 4.3 — Inbox UI
+- [x] ✅ TASK 4.1 — Conversation List API
+- [x] ✅ TASK 4.2 — Realtime WebSocket
+- [x] ✅ TASK 4.3 — Inbox UI
 - [ ] ⏳ TASK 4.4 — Human Takeover Logic
 
 ### Milestone 5 — AI Flow
@@ -159,6 +159,20 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+
+### 26 Mei 2024
+- ✅ TASK 1.1 — Setup Monorepo / Project Structure
+- ✅ TASK 1.2 — Database Schema (Core Tables)
+- ✅ TASK 1.3 — NestJS Base Setup
+- ✅ TASK 1.4 — Queue Infrastructure (BullMQ)
+- ✅ TASK 2.1 — Authentication System
+- ✅ TASK 2.2 — Email OTP Verification
+- ✅ TASK 2.3 — Tenant Isolation Middleware
+- ✅ TASK 2.4 — Audit Logging
+- ✅ TASK 4.1 — Conversation List API
+- ✅ TASK 4.2 — Realtime WebSocket
+- ✅ TASK 4.3 — Inbox UI
+
 
 ### Phase 1: Tech Debt & Types Refactoring
 - [x] ✅ Refactor: Removed safely identifiable dead code and unused imports from various nestjs apps modules to fix ESLint errors.
