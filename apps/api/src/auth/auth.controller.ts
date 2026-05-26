@@ -2,12 +2,14 @@ import {
   Controller,
   Post,
   Body,
-  Req,
   UseGuards,
   Ip,
   HttpCode,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { AuthTokenService } from './auth-token.service';
+import { AuthOtpService } from './auth-otp.service';
+import { AuthPasswordService } from './auth-password.service';
 import { ResponseBuilder } from '../common/helpers/response.builder';
 import {
   RegisterDto,
@@ -24,7 +26,12 @@ import { AuditAction } from '@prisma/client';
 
 @Controller('v1/auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly authTokenService: AuthTokenService,
+    private readonly authOtpService: AuthOtpService,
+    private readonly authPasswordService: AuthPasswordService,
+  ) {}
 
   @Post('register')
   @Audit(AuditAction.USER_REGISTER)
@@ -36,14 +43,14 @@ export class AuthController {
   @Post('verify-otp')
   @HttpCode(200)
   async verifyOtp(@Body() dto: VerifyOtpDto) {
-    const result = await this.authService.verifyOtp(dto);
+    const result = await this.authOtpService.verifyOtp(dto);
     return ResponseBuilder.success(result);
   }
 
   @Post('resend-otp')
   @HttpCode(200)
   async resendOtp(@Body() dto: ResendOtpDto) {
-    const result = await this.authService.resendOtp(dto.userId);
+    const result = await this.authOtpService.resendOtp(dto.userId);
     return ResponseBuilder.success(result);
   }
 
@@ -58,7 +65,7 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(200)
   async refreshTokens(@Body() dto: RefreshTokenDto) {
-    const result = await this.authService.refreshTokens(dto);
+    const result = await this.authTokenService.refreshTokens(dto);
     return ResponseBuilder.success(result);
   }
 
@@ -67,21 +74,21 @@ export class AuthController {
   @HttpCode(200)
   @Audit(AuditAction.USER_LOGOUT)
   async logout(@Body() dto: RefreshTokenDto) {
-    await this.authService.logout(dto.refreshToken);
+    await this.authTokenService.logout(dto.refreshToken);
     return ResponseBuilder.success({ success: true });
   }
 
   @Post('forgot-password')
   @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    const result = await this.authService.forgotPassword(dto.email);
+    const result = await this.authPasswordService.forgotPassword(dto.email);
     return ResponseBuilder.success(result);
   }
 
   @Post('reset-password')
   @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    await this.authService.resetPassword(dto.token, dto.newPassword);
+    await this.authPasswordService.resetPassword(dto.token, dto.newPassword);
     return ResponseBuilder.success({ success: true });
   }
 }
