@@ -1,8 +1,8 @@
-import { IsEnum, IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsEnum, IsOptional, IsString } from 'class-validator';
 import { ConversationState, AiMode, HeatTier } from '@prisma/client';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 
-export class GetConversationsQueryDto {
+export class GetConversationsQueryDto extends PaginationDto {
   @IsOptional()
   @IsEnum(ConversationState)
   state?: ConversationState;
@@ -18,15 +18,4 @@ export class GetConversationsQueryDto {
   @IsOptional()
   @IsString()
   search?: string;
-
-  @IsOptional()
-  @IsString()
-  cursor?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
 }

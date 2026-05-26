@@ -1,20 +1,9 @@
-import { IsEnum, IsOptional, IsString, IsInt, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsEnum, IsOptional } from 'class-validator';
 import { FollowUpStatus } from '@prisma/client';
+import { PaginationDto } from '../../../common/dto/pagination.dto';
 
-export class GetFollowUpsDto {
+export class GetFollowUpsDto extends PaginationDto {
   @IsOptional()
   @IsEnum(FollowUpStatus)
   status?: FollowUpStatus;
-
-  @IsOptional()
-  @IsString()
-  cursor?: string;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(50)
-  limit?: number = 20;
 }

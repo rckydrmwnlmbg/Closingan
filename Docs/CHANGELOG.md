@@ -160,6 +160,11 @@ Format:
 
 ## LOG PERUBAHAN
 
+### Phase 1: Tech Debt & Types Refactoring
+- [x] ✅ Refactor: Removed safely identifiable dead code and unused imports from various nestjs apps modules to fix ESLint errors.
+- [x] ✅ Refactor: Consolidated duplicated Pagination attributes into `PaginationDto` used by multiple endpoints.
+- [x] ✅ Refactor: Consolidated shared authentication properties into `EmailDto`.
+
 ### Optimize WebSockets and AI Execution Layer (Performance)
 - [x] ✅ Replaced interval-based polling in frontend WhatsApp connection status with WebSocket-driven SWR mutations.
 - [x] ✅ Implemented debouncing for WebSocket broadcasts in ConversationGateway to reduce unnecessary frontend re-renders and save bandwidth.

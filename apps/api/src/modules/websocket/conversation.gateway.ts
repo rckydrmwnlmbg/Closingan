@@ -29,7 +29,13 @@ export class ConversationGateway
   // Map to hold our timeout identifiers for debouncing
   private debounceMap = new Map<string, NodeJS.Timeout>();
 
-  private emitDebounced(room: string, event: string, key: string, data: any, delay = 500) {
+  private emitDebounced(
+    room: string,
+    event: string,
+    key: string,
+    data: any,
+    delay = 500,
+  ) {
     if (this.debounceMap.has(key)) {
       clearTimeout(this.debounceMap.get(key));
     }

@@ -1,16 +1,7 @@
-import {
-  IsString,
-  IsEmail,
-  MinLength,
-  MaxLength,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsString, MinLength, MaxLength, IsNotEmpty } from 'class-validator';
+import { EmailDto } from '../common/dto/email.dto';
 
-export class RegisterDto {
-  @IsEmail({}, { message: 'Format email tidak valid.' })
-  @IsNotEmpty()
-  email: string;
-
+export class RegisterDto extends EmailDto {
   @IsString()
   @MinLength(8, { message: 'Password minimal 8 karakter.' })
   @IsNotEmpty()
@@ -21,11 +12,7 @@ export class RegisterDto {
   fullName: string;
 }
 
-export class LoginDto {
-  @IsEmail({}, { message: 'Format email tidak valid.' })
-  @IsNotEmpty()
-  email: string;
-
+export class LoginDto extends EmailDto {
   @IsString()
   @IsNotEmpty()
   password: string;
@@ -55,11 +42,7 @@ export class RefreshTokenDto {
   refreshToken: string;
 }
 
-export class ForgotPasswordDto {
-  @IsEmail({}, { message: 'Format email tidak valid.' })
-  @IsNotEmpty()
-  email: string;
-}
+export class ForgotPasswordDto extends EmailDto {}
 
 export class ResetPasswordDto {
   @IsString()
