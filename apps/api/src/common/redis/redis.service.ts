@@ -12,12 +12,9 @@ export class RedisService implements OnModuleDestroy {
       host: this.configService.get<string>('REDIS_HOST', 'localhost'),
       port: this.configService.get<number>('REDIS_PORT', 6379),
       password: this.configService.get<string>('REDIS_PASSWORD'),
-      // Retry strategy to avoid infinite loops on disconnect
+      // Retry indefinitely to prevent queues from stalling or crashing the app, but with exponential backoff up to 5 seconds
       retryStrategy: (times) => {
-        if (times > 3) {
-          return null;
-        }
-        return Math.min(times * 50, 2000);
+        return Math.min(times * 1000, 5000);
       },
     });
 
@@ -35,36 +32,51 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async get(key: string): Promise<string | null> {
-    return this.redisClient.get(key);
-  }
-
-  async set(key: string, value: string, ttlSeconds?: number): Promise<'OK'> {
-    if (ttlSeconds) {
-      return this.redisClient.set(key, value, 'EX', ttlSeconds);
+    try {
+      return await this.redisClient.get(key);
+    } catch (error) {
+      this.logger.error(`Redis get failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return null; // Graceful fallback
     }
-    return this.redisClient.set(key, value);
   }
 
-  async setNx(
-    key: string,
-    value: string,
-    ttlSeconds: number,
-  ): Promise<boolean> {
-    const result = await this.redisClient.set(
-      key,
-      value,
-      'EX',
-      ttlSeconds,
-      'NX',
-    );
-    return result === 'OK';
+  async set(key: string, value: string, ttlSeconds?: number): Promise<'OK' | null> {
+    try {
+      if (ttlSeconds) {
+        return await this.redisClient.set(key, value, 'EX', ttlSeconds);
+      }
+      return await this.redisClient.set(key, value);
+    } catch (error) {
+      this.logger.error(`Redis set failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return null;
+    }
+  }
+
+  async setNx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+    try {
+      const result = await this.redisClient.set(key, value, 'EX', ttlSeconds, 'NX');
+      return result === 'OK';
+    } catch (error) {
+      this.logger.error(`Redis setNx failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return false;
+    }
   }
 
   async del(key: string): Promise<number> {
-    return this.redisClient.del(key);
+    try {
+      return await this.redisClient.del(key);
+    } catch (error) {
+      this.logger.error(`Redis del failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return 0;
+    }
   }
 
   async exists(key: string): Promise<number> {
-    return this.redisClient.exists(key);
+    try {
+      return await this.redisClient.exists(key);
+    } catch (error) {
+      this.logger.error(`Redis exists failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      return 0;
+    }
   }
 }

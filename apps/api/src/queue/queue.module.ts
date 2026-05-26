@@ -26,6 +26,9 @@ import { WebsocketModule } from '../modules/websocket/websocket.module';
             host: redisHost,
             port: redisPort,
             password: redisPassword,
+            retryStrategy: (times) => {
+              return Math.min(times * 1000, 5000);
+            },
           },
           defaultJobOptions: {
             removeOnComplete: 100,
