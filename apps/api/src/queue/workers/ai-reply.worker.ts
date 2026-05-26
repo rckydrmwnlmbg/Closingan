@@ -128,13 +128,14 @@ export class AiReplyWorker extends WorkerHost {
 
         // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
         if (
+          (payload as any).isHumanTakeoverActive ||
           conversation.state === 'HUMAN_ACTIVE' ||
           conversation.aiMode === 'AI_OFF' ||
           (conversation.aiModePausedUntil &&
             conversation.aiModePausedUntil > new Date())
         ) {
           this.logger.log(
-            `Skipping AI reply for conversation ${conversation.id}: Human in control`,
+            `Skipping AI reply for conversation ${conversation.id}: Human in control (Anti-Looping active)`,
           );
           return { success: true, reason: 'skipped_human_override' };
         }

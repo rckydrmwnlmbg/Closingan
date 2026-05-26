@@ -11,6 +11,10 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
+import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
+import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
+import { ConfigService } from '@nestjs/config';
+import { RedisService } from '../../common/redis/redis.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 
@@ -24,6 +28,99 @@ type ConversationWithRelations = Conversation & {
 
 @Injectable()
 export class ConversationService {
+  async sendMessageManual(
+    tenantId: string,
+    conversationId: string,
+    content: string,
+  ) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId },
+    });
+
+    if (!conversation) {
+      throw new AppException(
+        'CONVERSATION_NOT_FOUND',
+        'Percakapan tidak ditemukan.',
+        404,
+      );
+    }
+
+    // Determine Human Takeover Cooldown
+    const cooldownMinutes = this.configService.get<number>('HUMAN_TAKEOVER_COOLDOWN_MINUTES') || 15;
+    const pausedUntil = new Date(Date.now() + cooldownMinutes * 60000);
+
+    const isAiActive = conversation.aiMode === 'AI_ASSIST' || conversation.aiMode === 'SMART_HYBRID' || conversation.aiMode === 'AUTO_REPLY';
+
+    // 1. Set HUMAN_ACTIVE state and pause AI
+    const updatedConversation = await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        state: isAiActive ? 'HUMAN_ACTIVE' : conversation.state,
+        aiModePausedUntil: isAiActive ? pausedUntil : conversation.aiModePausedUntil,
+        lastMessageAt: new Date(),
+        lastMessagePreview: content.substring(0, 100),
+        lastSenderType: 'SELLER',
+      },
+    });
+
+    // 2. Log Audit & Redis caching
+    if (isAiActive) {
+      // SET Redis key to quickly intercept webhook looping without hitting DB
+      const takeoverKey = `tenant:${tenantId}:customerPhone:${conversation.customerPhone}:takeover`;
+      await this.redisService.set(takeoverKey, '1', cooldownMinutes * 60);
+
+      await this.auditService.log({
+        tenantId,
+        action: 'AI_MODE_CHANGED', // Using existing enum
+        entityType: 'CONVERSATION',
+        entityId: conversationId,
+        metadata: {
+          step: 'HUMAN_TAKEOVER',
+          cooldownMinutes,
+          pausedUntil,
+        },
+      });
+    }
+
+    // 3. Save Message to Database
+    const message = await this.prisma.message.create({
+      data: {
+        tenantId,
+        conversationId,
+        senderType: 'SELLER',
+        content,
+        deliveryState: 'SENT',
+        isAiGenerated: false,
+      },
+    });
+
+    // 4. Send via WhatsApp Provider
+    try {
+      const sendResult = await this.whatsappProvider.sendMessage({
+        tenantId,
+        to: conversation.customerPhone,
+        message: content,
+      });
+
+      if (!sendResult.success) {
+        throw new AppException(
+          'WA_SEND_FAILED',
+          `Failed to send message: ${sendResult.error}`,
+          500,
+        );
+      }
+    } catch (error) {
+      // Revert message delivery state if sending failed
+      await this.prisma.message.update({
+        where: { id: message.id },
+        data: { deliveryState: 'FAILED' },
+      });
+      throw error;
+    }
+
+    return message;
+  }
+
   private readonly logger = new Logger(ConversationService.name);
 
   constructor(
@@ -31,6 +128,9 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     @Inject('AI_PROVIDER') private readonly aiProvider: AiProviderInterface,
+    @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider: WhatsappProviderInterface,
+    private readonly configService: ConfigService,
+    private readonly redisService: RedisService,
   ) {}
 
   async getConversations(tenantId: string, query: GetConversationsQueryDto) {

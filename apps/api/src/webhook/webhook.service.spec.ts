@@ -7,12 +7,15 @@ import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.inte
 import { getQueueToken } from '@nestjs/bullmq';
 import { RedisService } from '../common/redis/redis.service';
 
-describe('WebhookService - Duplicate Webhook Idempotency', () => {
+describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () => {
   let webhookService: WebhookService;
   let mockRedisService: any;
+  let mockQueue: any;
+  let mockPrismaService: any;
+  let mockWhatsappProvider: any;
 
   beforeEach(async () => {
-    const mockPrismaService = {
+    mockPrismaService = {
       whatsappSession: {
         findFirst: jest
           .fn()
@@ -24,11 +27,11 @@ describe('WebhookService - Duplicate Webhook Idempotency', () => {
       set: jest.fn(),
     };
 
-    const mockWhatsappProvider = {
+    mockWhatsappProvider = {
       validateWebhookSignature: jest.fn().mockReturnValue(true),
     };
 
-    const mockQueue = {
+    mockQueue = {
       add: jest.fn(),
     };
 
@@ -79,7 +82,7 @@ describe('WebhookService - Duplicate Webhook Idempotency', () => {
       message: 'test',
     };
 
-    mockRedisService.setNx.mockResolvedValue(true); // NX returns true when key is set
+    mockRedisService.setNx.mockResolvedValue(true);
 
     const res = await webhookService.handleFonnteIncomingMessage(
       payload,
@@ -90,20 +93,38 @@ describe('WebhookService - Duplicate Webhook Idempotency', () => {
   });
 
   it('should ignore webhook if payload is a duplicate (idempotency)', async () => {
-    const payload = {
-      device: '123',
-      id: 'msg-1',
-      sender: 'test',
-      message: 'test',
-    };
+    const payload = { device: '123', sender: '628999', message: 'Hi', id: 'msg-dupe' };
 
-    mockRedisService.setNx.mockResolvedValue(false); // NX returns false when key exists
+    mockRedisService.setNx.mockResolvedValue(false);
 
-    const res = await webhookService.handleFonnteIncomingMessage(
-      payload,
-      'secret',
+    const result = await webhookService.handleFonnteIncomingMessage(payload, 'sig');
+
+    expect(result.success).toBe(true);
+    expect((result as any).duplicated).toBe(true);
+    expect(mockQueue.add).not.toHaveBeenCalled();
+  });
+
+  it('should process webhook but flag isHumanTakeoverActive if redis key exists', async () => {
+    const payload = { device: '123', sender: '628999', message: 'Hi', id: 'msg-id' };
+
+    mockRedisService.setNx.mockResolvedValue(true);
+    mockRedisService.get.mockImplementation(async (key: string) => {
+      if (key === 'wa-session:device:123') return JSON.stringify({ tenantId: 'tenant-1' });
+      if (key === 'tenant:tenant-1:customerPhone:628999:takeover') return '1';
+      return null;
+    });
+
+    const result = await webhookService.handleFonnteIncomingMessage(payload, 'sig');
+
+    expect(result.success).toBe(true);
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      'process-message',
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          isHumanTakeoverActive: true,
+        }),
+      }),
+      expect.any(Object),
     );
-    expect(res.success).toBe(true);
-    expect(res.duplicated).toBe(true);
   });
 });
