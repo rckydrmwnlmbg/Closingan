@@ -97,12 +97,31 @@ export class WebhookService {
 
     this.logger.log(`Webhook received and verified for Tenant: ${tenantId}`);
 
+    // Anti-Looping: Check Redis for Human Takeover Status
+    const sender = payload.sender || payload.from;
+    let isHumanTakeoverActive = false;
+
+    if (sender) {
+      const takeoverKey = `tenant:${tenantId}:customerPhone:${sender}:takeover`;
+      const takeoverFlag = await this.redisService.get(takeoverKey);
+      if (takeoverFlag) {
+        this.logger.log(`[Anti-Looping] Webhook paused for ${sender} under Tenant ${tenantId} due to Human Takeover`);
+        isHumanTakeoverActive = true;
+      }
+    }
+
+    // Pass the isHumanTakeoverActive flag so worker can save message but skip AI
+    const extendedPayload = {
+      ...payload,
+      isHumanTakeoverActive
+    };
+
     // Queue Resilience configuration: Exponential Backoff
     await this.aiReplyQueue.add(
       'process-message',
       {
         tenantId,
-        payload,
+        payload: extendedPayload,
       },
       {
         attempts: 5,
