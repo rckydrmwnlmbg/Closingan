@@ -1,22 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma/prisma.service';
-import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
-import { RegisterDto, LoginDto, VerifyOtpDto, RefreshTokenDto } from './dto';
+import { RegisterDto, LoginDto } from './dto';
 import { AppException } from '../common/exceptions/app.exception';
 import { AuditService } from '../common/audit/audit.service';
 import { AuditAction } from '@prisma/client';
+import { AuthTokenService } from './auth-token.service';
+import { AuthOtpService } from './auth-otp.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
-    private readonly mailService: MailService,
     private readonly auditService: AuditService,
+    private readonly authTokenService: AuthTokenService,
+    private readonly authOtpService: AuthOtpService,
   ) {}
 
   private isDisposableEmail(email: string): boolean {
@@ -68,20 +66,8 @@ export class AuthService {
       });
     });
 
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    await this.prisma.otpCode.create({
-      data: {
-        userId: user.id,
-        code: otp,
-        type: 'EMAIL_VERIFY',
-        expiresAt,
-      },
-    });
-
-    await this.mailService.sendOtp(dto.email, otp);
+    // Delegate OTP generation
+    await this.authOtpService.generateRegistrationOtp(user.id, dto.email);
 
     await this.auditService.log({
       tenantId: user.tenantId,
@@ -96,91 +82,6 @@ export class AuthService {
       email: user.email,
       message: 'OTP verifikasi telah dikirim ke email kamu.',
     };
-  }
-
-  async verifyOtp(dto: VerifyOtpDto) {
-    const otpRecord = await this.prisma.otpCode.findFirst({
-      where: {
-        userId: dto.userId,
-        type: 'EMAIL_VERIFY',
-        usedAt: null,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (!otpRecord) {
-      throw new AppException(
-        'OTP_INVALID',
-        'OTP salah atau tidak ditemukan.',
-        422,
-      );
-    }
-
-    if (otpRecord.expiresAt < new Date()) {
-      throw new AppException('OTP_EXPIRED', 'OTP sudah expired.', 422);
-    }
-
-    if (otpRecord.attempts >= 3) {
-      const lockUntil = new Date(Date.now() + 15 * 60 * 1000); // Lock 15 mins
-      await this.prisma.user.update({
-        where: { id: dto.userId },
-        data: { lockedUntil: lockUntil },
-      });
-      throw new AppException(
-        'OTP_MAX_ATTEMPTS',
-        'Terlalu banyak percobaan OTP, coba lagi nanti.',
-        429,
-      );
-    }
-
-    if (otpRecord.code !== dto.code) {
-      await this.prisma.otpCode.update({
-        where: { id: otpRecord.id },
-        data: { attempts: { increment: 1 } },
-      });
-      throw new AppException('OTP_INVALID', 'OTP salah.', 422);
-    }
-
-    await this.prisma.otpCode.update({
-      where: { id: otpRecord.id },
-      data: { usedAt: new Date() },
-    });
-
-    await this.prisma.user.update({
-      where: { id: dto.userId },
-      data: { emailVerified: true },
-    });
-
-    return { verified: true };
-  }
-
-  async resendOtp(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new AppException('USER_NOT_FOUND', 'User tidak ditemukan.', 404);
-    }
-
-    // Invalidate old pending OTPs
-    await this.prisma.otpCode.updateMany({
-      where: { userId, type: 'EMAIL_VERIFY', usedAt: null },
-      data: { usedAt: new Date() },
-    });
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await this.prisma.otpCode.create({
-      data: {
-        userId: user.id,
-        code: otp,
-        type: 'EMAIL_VERIFY',
-        expiresAt,
-      },
-    });
-
-    await this.mailService.sendOtp(user.email, otp);
-
-    return { message: 'OTP baru telah dikirim.' };
   }
 
   async login(dto: LoginDto, ipAddress?: string) {
@@ -263,172 +164,6 @@ export class AuthService {
       ipAddress: ipAddress,
     });
 
-    return this.generateTokens(user);
-  }
-
-  async refreshTokens(dto: RefreshTokenDto) {
-    const record = await this.prisma.refreshToken.findUnique({
-      where: { token: dto.refreshToken },
-      include: { user: true },
-    });
-
-    if (!record || record.usedAt || record.expiresAt < new Date()) {
-      // Security feature: if used token is presented, revoke all sessions?
-      // Minimal requirement: reject
-      throw new AppException(
-        'UNAUTHORIZED',
-        'Token tidak valid atau expired.',
-        401,
-      );
-    }
-
-    await this.prisma.refreshToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() },
-    });
-
-    return this.generateTokens(record.user);
-  }
-
-  async logout(refreshToken: string) {
-    const record = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
-      include: { user: true },
-    });
-
-    if (record && !record.usedAt) {
-      await this.prisma.refreshToken.update({
-        where: { id: record.id },
-        data: { usedAt: new Date() },
-      });
-
-      await this.auditService.log({
-        tenantId: record.user.tenantId,
-        userId: record.user.id,
-        action: AuditAction.USER_LOGOUT,
-      });
-    }
-
-    return true;
-  }
-
-  async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
-
-    // Always return same response to prevent email enumeration
-    if (user) {
-      const token =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
-      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
-
-      await this.prisma.otpCode.create({
-        data: {
-          userId: user.id,
-          code: token,
-          type: 'PASSWORD_RESET',
-          expiresAt,
-        },
-      });
-
-      await this.mailService.sendPasswordReset(email, token);
-    }
-
-    return { message: 'Link reset dikirim ke email.' };
-  }
-
-  async resetPassword(token: string, newPassword: string) {
-    const otpRecord = await this.prisma.otpCode.findFirst({
-      where: { code: token, type: 'PASSWORD_RESET', usedAt: null },
-    });
-
-    if (!otpRecord || otpRecord.expiresAt < new Date()) {
-      throw new AppException(
-        'UNAUTHORIZED',
-        'Token tidak valid atau expired.',
-        401,
-      );
-    }
-
-    const passwordHash = await bcrypt.hash(newPassword, 12);
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: otpRecord.userId },
-    });
-
-    await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: otpRecord.userId },
-        data: { passwordHash },
-      }),
-      this.prisma.otpCode.update({
-        where: { id: otpRecord.id },
-        data: { usedAt: new Date() },
-      }),
-      // Invalidate all refresh tokens for this user
-      this.prisma.refreshToken.updateMany({
-        where: { userId: otpRecord.userId, usedAt: null },
-        data: { usedAt: new Date() },
-      }),
-    ]);
-
-    if (user) {
-      await this.auditService.log({
-        tenantId: user.tenantId,
-        userId: user.id,
-        action: AuditAction.PASSWORD_CHANGED,
-      });
-    }
-
-    return true;
-  }
-
-  private async generateTokens(user: any) {
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      tenantId: user.tenantId,
-      role: user.role,
-    };
-
-    const accessToken = this.jwtService.sign(payload, {
-      secret:
-        this.configService.get<string>('JWT_ACCESS_SECRET') || 'default_secret',
-      expiresIn: '15m',
-    });
-
-    const refreshToken = this.jwtService.sign(payload, {
-      secret:
-        this.configService.get<string>('JWT_REFRESH_SECRET') ||
-        'refresh_secret',
-      expiresIn: '7d',
-    });
-
-    await this.prisma.refreshToken.upsert({
-      where: {
-        token: refreshToken,
-      },
-      update: {
-        userId: user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        usedAt: null,
-      },
-      create: {
-        userId: user.id,
-        token: refreshToken,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: user.role,
-      },
-    };
+    return this.authTokenService.generateTokens(user);
   }
 }
