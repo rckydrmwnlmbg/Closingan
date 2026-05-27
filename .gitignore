@@ -3,3 +3,10 @@ dist/
 *.js.map
 *.d.ts
 !libs/shared/**/*.d.ts
+
+# Jules leftover files
+*.log
+*.patch
+patch_*.py
+fix-*.ts
+fix-*.py
