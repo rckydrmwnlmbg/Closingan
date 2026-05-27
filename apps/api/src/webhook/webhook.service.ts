@@ -37,7 +37,10 @@ export class WebhookService {
     );
 
     if (!isValid) {
-      this.logger.error({ webhookId: payload.id, sender: payload.sender || payload.from }, `Invalid webhook signature.`);
+      this.logger.error(
+        { webhookId: payload.id, sender: payload.sender || payload.from },
+        `Invalid webhook signature.`,
+      );
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
@@ -81,7 +84,8 @@ export class WebhookService {
       const isNew = await this.redisService.setNx(idempotencyKey, '1', 86400);
 
       if (!isNew) {
-        this.logger.warn({ tenantId, webhookId: payload.id },
+        this.logger.warn(
+          { tenantId, webhookId: payload.id },
           `Duplicate webhook payload received for Tenant: ${tenantId}, ID: ${payload.id}. Ignoring.`,
         );
         return { success: true, duplicated: true };
@@ -95,7 +99,10 @@ export class WebhookService {
       entityId: payload.id || 'unknown',
     });
 
-    this.logger.log({ tenantId, webhookId: payload.id }, `Webhook received and verified for Tenant: ${tenantId}`);
+    this.logger.log(
+      { tenantId, webhookId: payload.id },
+      `Webhook received and verified for Tenant: ${tenantId}`,
+    );
 
     // Anti-Looping: Check Redis for Human Takeover Status
     const sender = payload.sender || payload.from;
@@ -105,7 +112,9 @@ export class WebhookService {
       const takeoverKey = `tenant:${tenantId}:customerPhone:${sender}:takeover`;
       const takeoverFlag = await this.redisService.get(takeoverKey);
       if (takeoverFlag) {
-        this.logger.log(`[Anti-Looping] Webhook paused for ${sender} under Tenant ${tenantId} due to Human Takeover`);
+        this.logger.log(
+          `[Anti-Looping] Webhook paused for ${sender} under Tenant ${tenantId} due to Human Takeover`,
+        );
         isHumanTakeoverActive = true;
       }
     }
@@ -113,7 +122,7 @@ export class WebhookService {
     // Pass the isHumanTakeoverActive flag so worker can save message but skip AI
     const extendedPayload = {
       ...payload,
-      isHumanTakeoverActive
+      isHumanTakeoverActive,
     };
 
     // Queue Resilience configuration: Exponential Backoff

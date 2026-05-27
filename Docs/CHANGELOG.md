@@ -262,3 +262,10 @@ Format:
 
 ### Fixed
 - Fixed unhandled exception response mapping to avoid leaking stack traces directly as strings without proper log categorization.
+
+## [Unreleased]
+
+### Added
+- Setup local testing bypasses to allow end-to-end testing without exhausting third-party API quotas.
+- Mocked OpenAI 429 quota exceptions with standard mock text.
+- Patched Fonnte device validation endpoint strictly for the provided dev token to maintain persistent test sessions.

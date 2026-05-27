@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, Query, UseGuards, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  UseGuards,
+  Body,
+} from '@nestjs/common';
 import { SendMessageDto } from './dto/send-message.dto';
 import { ConversationService } from './conversation.service';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';

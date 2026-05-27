@@ -68,7 +68,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     } else {
       // Log unhandled exceptions
       this.logger.error(
-        { error: exception instanceof Error ? exception.message : String(exception) }, `Unhandled Exception: ${exception instanceof Error ? exception.stack : String(exception)}`
+        {
+          error:
+            exception instanceof Error ? exception.message : String(exception),
+        },
+        `Unhandled Exception: ${exception instanceof Error ? exception.stack : String(exception)}`,
       );
     }
 

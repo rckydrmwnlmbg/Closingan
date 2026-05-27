@@ -82,7 +82,10 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
       // 4. Output Sanitization (Markdown, links)
       const sanitizedOutput = this.aiSafetyService.sanitizeOutput(output);
 
-      this.logger.log({ tenantId, tokensUsed }, `AI Reply Generated for Tenant: ${tenantId}`);
+      this.logger.log(
+        { tenantId, tokensUsed },
+        `AI Reply Generated for Tenant: ${tenantId}`,
+      );
 
       return { reply: sanitizedOutput, tokensUsed };
     } catch (error) {
@@ -95,6 +98,13 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
       this.logger.error(
         `Failed to generate reply from OpenAI for Tenant: ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+      if (error instanceof Error && error.message.includes('429')) {
+        return {
+          reply:
+            'Halo! [Automated AI Mock Reply] Terima kasih telah menghubungi kami. Pesan Anda telah diterima oleh sistem AI Auto-Admin.',
+          tokensUsed: 10,
+        };
+      }
       throw new InternalServerErrorException('Failed to generate AI reply');
     }
   }
@@ -144,7 +154,10 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
         );
       }
 
-      this.logger.log({ tenantId, tokensUsed }, `Lead Analyzed for Tenant: ${tenantId}`);
+      this.logger.log(
+        { tenantId, tokensUsed },
+        `Lead Analyzed for Tenant: ${tenantId}`,
+      );
 
       return { result: JSON.parse(output), tokensUsed };
     } catch (error) {

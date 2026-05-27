@@ -46,17 +46,23 @@ export class ConversationService {
     }
 
     // Determine Human Takeover Cooldown
-    const cooldownMinutes = this.configService.get<number>('HUMAN_TAKEOVER_COOLDOWN_MINUTES') || 15;
+    const cooldownMinutes =
+      this.configService.get<number>('HUMAN_TAKEOVER_COOLDOWN_MINUTES') || 15;
     const pausedUntil = new Date(Date.now() + cooldownMinutes * 60000);
 
-    const isAiActive = conversation.aiMode === 'AI_ASSIST' || conversation.aiMode === 'SMART_HYBRID' || conversation.aiMode === 'AUTO_REPLY';
+    const isAiActive =
+      conversation.aiMode === 'AI_ASSIST' ||
+      conversation.aiMode === 'SMART_HYBRID' ||
+      conversation.aiMode === 'AUTO_REPLY';
 
     // 1. Set HUMAN_ACTIVE state and pause AI
     const updatedConversation = await this.prisma.conversation.update({
       where: { id: conversationId },
       data: {
         state: isAiActive ? 'HUMAN_ACTIVE' : conversation.state,
-        aiModePausedUntil: isAiActive ? pausedUntil : conversation.aiModePausedUntil,
+        aiModePausedUntil: isAiActive
+          ? pausedUntil
+          : conversation.aiModePausedUntil,
         lastMessageAt: new Date(),
         lastMessagePreview: content.substring(0, 100),
         lastSenderType: 'SELLER',
@@ -128,7 +134,8 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     @Inject('AI_PROVIDER') private readonly aiProvider: AiProviderInterface,
-    @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider: WhatsappProviderInterface,
+    @Inject(WHATSAPP_PROVIDER)
+    private readonly whatsappProvider: WhatsappProviderInterface,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {}
