@@ -134,7 +134,24 @@ export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
               argsClone.where = { ...argsClone.where, tenantId };
             }
 
-            return query(argsClone);
+            // Apply 10-second timeout
+            const timeoutMs = 10000;
+            let timeoutId: NodeJS.Timeout;
+
+            const timeoutPromise = new Promise((_, reject) => {
+              timeoutId = setTimeout(() => {
+                self.logger.error(`Database slow query timeout: ${model as string}.${operation} exceeded ${timeoutMs}ms`);
+                const { AppException } = require('../exceptions/app.exception');
+                reject(new AppException('DB_TIMEOUT', `Database query timed out for ${model as string}.${operation}`, 504));
+              }, timeoutMs);
+            });
+
+            try {
+              const result = await Promise.race([query(argsClone), timeoutPromise]);
+              return result;
+            } finally {
+              clearTimeout(timeoutId!);
+            }
           },
         },
       },
