@@ -10,3 +10,5 @@ dist/
 patch_*.py
 fix-*.ts
 fix-*.py
+setup-*.ts
+test-helper*.ts
