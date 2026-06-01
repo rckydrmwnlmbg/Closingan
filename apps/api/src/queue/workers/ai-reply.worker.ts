@@ -372,15 +372,8 @@ export class AiReplyWorker extends WorkerHost {
             `WhatsApp Provider Error for conversation ${conversation.id}`
           );
 
-          await this.prisma.conversation.update({
-            where: { id: conversation.id },
-            data: {
-              state: 'ESCALATED',
-              unreadCount: { increment: 1 },
-            },
-          });
-
-          // Notifying the sales rep might fail too if WA is completely down, but we log it via audit or DLQ
+          // By throwing an AppException, BullMQ will catch it and apply the exponential backoff defined in the queue config, explicitly delaying processing for this specific job/tenant.
+          // This ensures the queue is 'frozen' gracefully using backpressure without crashing the system or dropping messages.
           const waSession = await this.prisma.whatsappSession.findUnique({
             where: { tenantId },
           });
@@ -397,7 +390,7 @@ export class AiReplyWorker extends WorkerHost {
             } catch (waError) {}
           }
 
-          return { success: false, reason: 'wa_provider_error_escalated' };
+          throw new AppException('WHATSAPP_DISCONNECTED', 'Fonnte connection failed', 503);
         }
 
         // 6. Save outgoing AI message
