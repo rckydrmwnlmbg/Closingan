@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { AiProviderInterface } from './interfaces/ai-provider.interface';
+import { ObservabilityMetricsService } from '../observability/observability-metrics.service';
 import { AiSafetyService } from './ai-safety.service';
 import { AiSafetyException } from './exceptions/ai-safety.exception';
 
@@ -17,6 +18,7 @@ export class OpenAiService implements AiProviderInterface {
   constructor(
     private readonly configService: ConfigService,
     private readonly aiSafetyService: AiSafetyService,
+    private readonly metricsService: ObservabilityMetricsService,
   ) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
 
@@ -39,6 +41,7 @@ export class OpenAiService implements AiProviderInterface {
     tenantId: string,
     prompt: string,
   ): Promise<{ reply: string; tokensUsed: number }> {
+    await this.metricsService.incrementAiRequestCount();
     try {
       // 1. Input Validation (Regex layer)
       const inputValidation = this.aiSafetyService.validateInput(prompt);
@@ -91,6 +94,7 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
         throw error;
       }
 
+      await this.metricsService.incrementAiErrorCount();
       // HARD CONSTRAINT: Zero-Logging. Do not log the prompt or response content here.
       this.logger.error(
         `Failed to generate reply from OpenAI for Tenant: ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -103,6 +107,7 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
     tenantId: string,
     conversation: string,
   ): Promise<{ result: any; tokensUsed: number }> {
+    await this.metricsService.incrementAiRequestCount();
     try {
       // 1. Input Validation
       const inputValidation = this.aiSafetyService.validateInput(conversation);
@@ -152,6 +157,7 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
         throw error;
       }
 
+      await this.metricsService.incrementAiErrorCount();
       // HARD CONSTRAINT: Zero-Logging. Do not log the conversation content.
       this.logger.error(
         `Failed to analyze lead from OpenAI for Tenant: ${tenantId}`,

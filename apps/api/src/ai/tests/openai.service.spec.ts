@@ -3,6 +3,7 @@ import { OpenAiService } from '../openai.service';
 import { ConfigService } from '@nestjs/config';
 import { AiSafetyService } from '../ai-safety.service';
 import { AiSafetyException } from '../exceptions/ai-safety.exception';
+import { ObservabilityMetricsService } from '../../observability/observability-metrics.service';
 
 jest.mock('openai', () => {
   return jest.fn().mockImplementation(() => ({
@@ -31,11 +32,17 @@ describe('OpenAiService', () => {
       get: jest.fn().mockReturnValue('dummy-key'),
     };
 
+    const metricsServiceMock = {
+      incrementAiRequestCount: jest.fn(),
+      incrementAiErrorCount: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         OpenAiService,
         { provide: AiSafetyService, useValue: aiSafetyServiceMock },
         { provide: ConfigService, useValue: configServiceMock },
+        { provide: ObservabilityMetricsService, useValue: metricsServiceMock },
       ],
     }).compile();
 
