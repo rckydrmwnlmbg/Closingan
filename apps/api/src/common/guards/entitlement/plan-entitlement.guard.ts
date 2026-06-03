@@ -35,7 +35,7 @@ export class PlanEntitlementGuard implements CanActivate {
       const request = context.switchToHttp().getRequest();
       const userTenantId = request.user?.tenantId;
       if (!userTenantId) {
-         throw new ForbiddenException('Subscription context missing.');
+        throw new ForbiddenException('Subscription context missing.');
       }
       return this.checkSubscription(userTenantId);
     }

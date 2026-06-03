@@ -36,6 +36,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/lodash": "^4.17.13",
     "@types/passport-jwt": "^4.0.1",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "ts-jest": "^29.4.11"
   }
 }

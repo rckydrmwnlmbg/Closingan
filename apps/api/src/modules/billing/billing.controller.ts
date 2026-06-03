@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Body,
-  Req,
   Headers,
   BadRequestException,
 } from '@nestjs/common';
@@ -16,7 +15,13 @@ export class BillingController {
 
   @Post()
   async handlePaymentWebhook(
-    @Body() payload: any,
+    @Body()
+    payload: {
+      order_id: string;
+      status_code: string;
+      gross_amount: string;
+      transaction_status: string;
+    },
     @Headers('x-midtrans-signature') signature: string,
   ) {
     if (!signature) {
