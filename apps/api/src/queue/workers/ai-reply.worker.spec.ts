@@ -1,3 +1,5 @@
+import { RedisService } from '../../common/redis/redis.service';
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { AiReplyWorker } from './ai-reply.worker';
 import { ClsService } from 'nestjs-cls';
@@ -72,6 +74,10 @@ describe('AiReplyWorker', () => {
       broadcastAiSuggestion: jest.fn(),
     };
 
+    const mockRedisService = {
+      delPattern: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AiReplyWorker,
@@ -82,6 +88,7 @@ describe('AiReplyWorker', () => {
         { provide: WHATSAPP_PROVIDER, useValue: whatsappProvider },
         { provide: getQueueToken('ai-analysis'), useValue: aiAnalysisQueue },
         { provide: ConversationGateway, useValue: conversationGateway },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 

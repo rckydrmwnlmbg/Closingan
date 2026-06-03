@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Param, Query, UseGuards, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  UseGuards,
+  Body,
+} from '@nestjs/common';
 import { SendMessageDto } from './dto/send-message.dto';
 import { ConversationService } from './conversation.service';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
@@ -9,6 +17,24 @@ import { ResponseBuilder } from '../../common/helpers/response.builder';
 @Controller('conversations')
 @UseGuards(JwtAuthGuard)
 export class ConversationController {
+  @Post(':id/messages')
+  @Get(':id/messages')
+  async getMessages(
+    @TenantId() tenantId: string,
+    @Param('id') conversationId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 30;
+    const { data, meta } = await this.conversationService.getMessages(
+      tenantId,
+      conversationId,
+      cursor,
+      limitNum,
+    );
+    return ResponseBuilder.list(data, meta);
+  }
+
   @Post(':id/messages')
   async sendMessage(
     @TenantId() tenantId: string,

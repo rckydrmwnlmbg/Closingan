@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 @Injectable()
@@ -22,7 +27,13 @@ export class PrismaService
             const timeoutPromise = new Promise((_, reject) => {
               timeoutId = setTimeout(() => {
                 const { AppException } = require('../exceptions/app.exception');
-                reject(new AppException('DB_TIMEOUT', `Database query timed out for ${model as string}.${operation}`, 504));
+                reject(
+                  new AppException(
+                    'DB_TIMEOUT',
+                    `Database query timed out for ${model as string}.${operation}`,
+                    504,
+                  ),
+                );
               }, timeoutMs);
             });
 

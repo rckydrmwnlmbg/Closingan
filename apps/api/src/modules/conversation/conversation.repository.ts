@@ -36,21 +36,45 @@ export class ConversationRepository {
         cursor: { id: cursor },
       }),
       orderBy: { updatedAt: 'desc' },
-      include: {
-        lead: true,
-        labelAssignments: {
-          include: {
-            label: true,
+      select: {
+        id: true,
+        customerPhone: true,
+        customerName: true,
+        state: true,
+        aiMode: true,
+        aiModePausedUntil: true,
+        unreadCount: true,
+        lastMessageAt: true,
+        lastMessagePreview: true,
+        lastSenderType: true,
+        lead: {
+          select: {
+            heatTier: true,
+            heatReasons: true,
           },
         },
-        followUps: {
-          where: {
-            status: 'PENDING',
-            dueAt: {
-              lt: new Date(),
+        labelAssignments: {
+          select: {
+            label: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
             },
           },
-          take: 1,
+        },
+        _count: {
+          select: {
+            followUps: {
+              where: {
+                status: 'PENDING',
+                dueAt: {
+                  lt: new Date(),
+                },
+              },
+            },
+          },
         },
       },
     });

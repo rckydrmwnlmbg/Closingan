@@ -15,7 +15,7 @@ Format:
 
 | Phase | Status | Progress |
 |---|---|---|
-| Phase 1 — MVP Core | 🔄 Sedang dikerjakan | 25 / 28 task |
+| Phase 1 — MVP Core | ✅ Selesai | 28 / 28 task |
 | Phase 2 — Production Hardening | ⏳ Belum dimulai | 0 / 28 task |
 | Phase 3 — Growth & Scale | 🔄 Sedang dikerjakan | 1 / 29 task |
 
@@ -176,6 +176,12 @@ Format:
 
 ### 26 Mei 2026
 - ✅ TASK 4.4 — Human Takeover Logic (Implemented manual send, webhook Redis check for Anti-Looping, and auto-pause AI mode)
+
+
+### 03 June 2026
+- ✅ Phase 1: Completed N+1 Query & Index Fixes (PR 1).
+- ✅ Phase 1: Completed Redis Cache Optimization (PR 2).
+- ✅ Phase 1: Root Directory Cleanup and Phase 1 completion marked (PR 3).
 
 ### Phase 1: Tech Debt & Types Refactoring
 - [x] ✅ Refactor: Removed safely identifiable dead code and unused imports from various nestjs apps modules to fix ESLint errors.

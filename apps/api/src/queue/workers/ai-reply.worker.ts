@@ -1,3 +1,4 @@
+import { RedisService } from '../../common/redis/redis.service';
 import {
   Processor,
   WorkerHost,
@@ -30,6 +31,7 @@ export class AiReplyWorker extends WorkerHost {
   constructor(
     private readonly cls: ClsService,
     private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
     private readonly auditService: AuditService,
     @Inject('AI_PROVIDER') private readonly aiProvider: AiProviderInterface,
     @Inject(WHATSAPP_PROVIDER)
@@ -368,8 +370,11 @@ export class AiReplyWorker extends WorkerHost {
         } catch (error) {
           // Graceful Degradation for Fonnte down
           this.logger.error(
-            { tenantId, error: error instanceof Error ? error.message : 'Unknown' },
-            `WhatsApp Provider Error for conversation ${conversation.id}`
+            {
+              tenantId,
+              error: error instanceof Error ? error.message : 'Unknown',
+            },
+            `WhatsApp Provider Error for conversation ${conversation.id}`,
           );
 
           // By throwing an AppException, BullMQ will catch it and apply the exponential backoff defined in the queue config, explicitly delaying processing for this specific job/tenant.
@@ -390,7 +395,11 @@ export class AiReplyWorker extends WorkerHost {
             } catch (waError) {}
           }
 
-          throw new AppException('WHATSAPP_DISCONNECTED', 'Fonnte connection failed', 503);
+          throw new AppException(
+            'WHATSAPP_DISCONNECTED',
+            'Fonnte connection failed',
+            503,
+          );
         }
 
         // 6. Save outgoing AI message
@@ -442,7 +451,10 @@ export class AiReplyWorker extends WorkerHost {
 
         return { success: true };
       } catch (error: any) {
-        this.logger.error({ jobId: job.id, error: error.message }, `Failed ai-reply job ${job.id}: ${error.message}`);
+        this.logger.error(
+          { jobId: job.id, error: error.message },
+          `Failed ai-reply job ${job.id}: ${error.message}`,
+        );
         throw error; // Let BullMQ handle retries
       }
     });

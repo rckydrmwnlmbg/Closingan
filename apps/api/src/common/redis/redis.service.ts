@@ -35,30 +35,74 @@ export class RedisService implements OnModuleDestroy {
     try {
       return await this.redisClient.get(key);
     } catch (error) {
-      this.logger.error(`Redis get failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Redis get failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return null; // Graceful fallback
     }
   }
 
-  async set(key: string, value: string, ttlSeconds?: number): Promise<'OK' | null> {
+  async set(
+    key: string,
+    value: string,
+    ttlSeconds?: number,
+  ): Promise<'OK' | null> {
     try {
       if (ttlSeconds) {
         return await this.redisClient.set(key, value, 'EX', ttlSeconds);
       }
       return await this.redisClient.set(key, value);
     } catch (error) {
-      this.logger.error(`Redis set failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Redis set failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return null;
     }
   }
 
-  async setNx(key: string, value: string, ttlSeconds: number): Promise<boolean> {
+  async setNx(
+    key: string,
+    value: string,
+    ttlSeconds: number,
+  ): Promise<boolean> {
     try {
-      const result = await this.redisClient.set(key, value, 'EX', ttlSeconds, 'NX');
+      const result = await this.redisClient.set(
+        key,
+        value,
+        'EX',
+        ttlSeconds,
+        'NX',
+      );
       return result === 'OK';
     } catch (error) {
-      this.logger.error(`Redis setNx failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Redis setNx failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return false;
+    }
+  }
+
+  async delPattern(pattern: string): Promise<void> {
+    try {
+      let cursor = '0';
+      do {
+        const result = await this.redisClient.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          100,
+        );
+        cursor = result[0];
+        const keys = result[1];
+        if (keys.length > 0) {
+          await this.redisClient.del(...keys);
+        }
+      } while (cursor !== '0');
+    } catch (error) {
+      this.logger.error(
+        `Redis delPattern failed for pattern ${pattern}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
     }
   }
 
@@ -66,7 +110,9 @@ export class RedisService implements OnModuleDestroy {
     try {
       return await this.redisClient.del(key);
     } catch (error) {
-      this.logger.error(`Redis del failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Redis del failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return 0;
     }
   }
@@ -75,7 +121,9 @@ export class RedisService implements OnModuleDestroy {
     try {
       return await this.redisClient.exists(key);
     } catch (error) {
-      this.logger.error(`Redis exists failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`);
+      this.logger.error(
+        `Redis exists failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
       return 0;
     }
   }

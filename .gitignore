@@ -12,3 +12,15 @@ fix-*.ts
 fix-*.py
 setup-*.ts
 test-helper*.ts
+
+# Temporary execution scripts and log files
+*.log
+*.patch
+fix-*.ts
+fix-*.py
+patch_*.py
+setup-*.ts
+test-helper*.ts
+test-logger.ts
+report.md
+update-changelog.sh
