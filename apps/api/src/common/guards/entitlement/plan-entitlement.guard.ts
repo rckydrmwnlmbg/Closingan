@@ -55,7 +55,7 @@ export class PlanEntitlementGuard implements CanActivate {
       );
     }
 
-    const allowedStates = [
+    const allowedStates: SubscriptionState[] = [
       SubscriptionState.ACTIVE,
       SubscriptionState.TRIAL,
       SubscriptionState.PAST_DUE, // Allowed as a grace period
