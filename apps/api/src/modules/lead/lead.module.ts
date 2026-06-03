@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { HotLeadService } from './hot-lead.service';
+import { LeadController } from './lead.controller';
 import { BullModule } from '@nestjs/bullmq';
 import { AiModule } from '../../ai/ai.module';
 import { PrismaModule } from '../../common/prisma/prisma.module';
@@ -25,6 +26,7 @@ import { WebsocketModule } from '../websocket/websocket.module';
       },
     ),
   ],
+  controllers: [LeadController],
   providers: [HotLeadService, AiAnalysisProcessor, HotLeadProcessor],
   exports: [HotLeadService],
 })

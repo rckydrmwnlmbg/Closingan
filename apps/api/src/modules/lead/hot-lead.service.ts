@@ -1,3 +1,5 @@
+import { GetLeadsQueryDto } from './dto/get-leads.dto';
+import * as crypto from 'crypto';
 import { Inject } from '@nestjs/common';
 import { Injectable, Logger } from '@nestjs/common';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
@@ -7,6 +9,7 @@ import { Queue } from 'bullmq';
 import { LeadAnalysisSchema, LeadAnalysisDto } from './dto/lead-analysis.dto';
 import { HeatTier } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class HotLeadService {
@@ -41,11 +44,76 @@ export class HotLeadService {
     private readonly prisma: PrismaService,
     @InjectQueue('hot-lead') private readonly hotLeadQueue: Queue,
     private readonly cls: ClsService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
    * Pre-filtering untuk menentukan apakah pesan layak dikirim ke LLM.
    */
+
+  async getLeads(tenantId: string, query: GetLeadsQueryDto) {
+    const paramsHash = crypto
+      .createHash('md5')
+      .update(JSON.stringify(query))
+      .digest('hex');
+    const cacheKey = `hot_leads:${tenantId}:${paramsHash}`;
+
+    const cachedData = await this.redisService.get(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+
+    const { heatTier, cursor, limit = 20 } = query;
+    const where: any = { tenantId };
+    if (heatTier) {
+      where.heatTier = heatTier;
+    } else {
+      where.heatTier = { in: ['HOT', 'CRITICAL'] }; // Default to hot leads
+    }
+
+    const leads = await this.prisma.lead.findMany({
+      where,
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { heatUpdatedAt: 'desc' },
+      select: {
+        id: true,
+        conversationId: true,
+        customerName: true,
+        customerPhone: true,
+        heatTier: true,
+        heatReasons: true,
+        heatScore: true,
+        heatUpdatedAt: true,
+      },
+    });
+
+    let hasNext = false;
+    let nextCursor: string | null = null;
+
+    if (leads.length > limit) {
+      hasNext = true;
+      const nextItem = leads.pop();
+      if (nextItem) {
+        nextCursor = leads[leads.length - 1].id;
+      }
+    }
+
+    const result = {
+      data: leads,
+      meta: {
+        nextCursor,
+        hasNext,
+      },
+    };
+
+    await this.redisService.set(cacheKey, JSON.stringify(result), 15);
+    return result;
+  }
+
   shouldAnalyzeMessage(messageContent: string): boolean {
     const contentLower = messageContent.toLowerCase();
 
@@ -151,6 +219,10 @@ export class HotLeadService {
         heatUpdatedAt: new Date(),
       },
     });
+
+    // Invalidate hot leads cache
+    await this.redisService.delPattern(`hot_leads:${tenantId}:*`);
+    await this.redisService.del(`dashboard:summary:${tenantId}`); // also clear dashboard
 
     // 3. Anti-Spam Alerting (Idempotency)
     this.checkAndTriggerAlert(tenantId, lead, updatedLead);

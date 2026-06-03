@@ -29,17 +29,27 @@ export class ObservabilityAlertService {
       return;
     }
 
-    const totalRequests = await this.metricsService.getAndResetMetrics('http_requests_total');
-    const errorRequests = await this.metricsService.getAndResetMetrics('http_requests_error');
-    const totalAiRequests = await this.metricsService.getAndResetMetrics('ai_requests_total');
-    const errorAiRequests = await this.metricsService.getAndResetMetrics('ai_requests_error');
+    const totalRequests = await this.metricsService.getAndResetMetrics(
+      'http_requests_total',
+    );
+    const errorRequests = await this.metricsService.getAndResetMetrics(
+      'http_requests_error',
+    );
+    const totalAiRequests =
+      await this.metricsService.getAndResetMetrics('ai_requests_total');
+    const errorAiRequests =
+      await this.metricsService.getAndResetMetrics('ai_requests_error');
 
     // 1. Error rate > 5% in 5 minutes
     if (totalRequests > 0) {
       const errorRate = (errorRequests / totalRequests) * 100;
       if (errorRate > 5) {
-        this.logger.warn(`High HTTP error rate detected: ${errorRate.toFixed(2)}%`);
-        await this.sendAlert(`🚨 [SYSTEM ALERT] 🚨\n\nHigh HTTP Error Rate: ${errorRate.toFixed(2)}%\nTotal Requests: ${totalRequests}\nErrors: ${errorRequests}`);
+        this.logger.warn(
+          `High HTTP error rate detected: ${errorRate.toFixed(2)}%`,
+        );
+        await this.sendAlert(
+          `🚨 [SYSTEM ALERT] 🚨\n\nHigh HTTP Error Rate: ${errorRate.toFixed(2)}%\nTotal Requests: ${totalRequests}\nErrors: ${errorRequests}`,
+        );
       }
     }
 
@@ -47,8 +57,12 @@ export class ObservabilityAlertService {
     if (totalAiRequests > 0) {
       const aiErrorRate = (errorAiRequests / totalAiRequests) * 100;
       if (aiErrorRate > 10) {
-        this.logger.warn(`High AI failure rate detected: ${aiErrorRate.toFixed(2)}%`);
-        await this.sendAlert(`🚨 [SYSTEM ALERT] 🚨\n\nHigh AI Failure Rate: ${aiErrorRate.toFixed(2)}%\nTotal AI Requests: ${totalAiRequests}\nAI Errors: ${errorAiRequests}`);
+        this.logger.warn(
+          `High AI failure rate detected: ${aiErrorRate.toFixed(2)}%`,
+        );
+        await this.sendAlert(
+          `🚨 [SYSTEM ALERT] 🚨\n\nHigh AI Failure Rate: ${aiErrorRate.toFixed(2)}%\nTotal AI Requests: ${totalAiRequests}\nAI Errors: ${errorAiRequests}`,
+        );
       }
     }
   }

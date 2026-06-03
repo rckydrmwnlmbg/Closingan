@@ -67,6 +67,7 @@ describe('Human Takeover Rule', () => {
           useValue: {
             set: jest.fn(),
             get: jest.fn(),
+            delPattern: jest.fn(),
           },
         },
       ],
@@ -90,9 +91,17 @@ describe('Human Takeover Rule', () => {
       customerPhone: '123456789',
     };
 
-    (prisma.conversation.findFirst as jest.Mock).mockResolvedValue(mockConversation);
-    (prisma.conversation.update as jest.Mock).mockResolvedValue({ ...mockConversation, state: 'HUMAN_ACTIVE' });
-    (prisma.message.create as jest.Mock).mockResolvedValue({ id: 'msg-1', content: 'hello from human' });
+    (prisma.conversation.findFirst as jest.Mock).mockResolvedValue(
+      mockConversation,
+    );
+    (prisma.conversation.update as jest.Mock).mockResolvedValue({
+      ...mockConversation,
+      state: 'HUMAN_ACTIVE',
+    });
+    (prisma.message.create as jest.Mock).mockResolvedValue({
+      id: 'msg-1',
+      content: 'hello from human',
+    });
 
     await service.sendMessageManual('tenant-1', 'conv-1', 'hello from human');
 
@@ -152,9 +161,17 @@ describe('Human Takeover Rule', () => {
       customerPhone: '123456789',
     };
 
-    (prisma.conversation.findFirst as jest.Mock).mockResolvedValue(mockConversation);
-    (prisma.conversation.update as jest.Mock).mockResolvedValue({ ...mockConversation, state: 'OPEN' });
-    (prisma.message.create as jest.Mock).mockResolvedValue({ id: 'msg-1', content: 'hello' });
+    (prisma.conversation.findFirst as jest.Mock).mockResolvedValue(
+      mockConversation,
+    );
+    (prisma.conversation.update as jest.Mock).mockResolvedValue({
+      ...mockConversation,
+      state: 'OPEN',
+    });
+    (prisma.message.create as jest.Mock).mockResolvedValue({
+      id: 'msg-1',
+      content: 'hello',
+    });
 
     await service.sendMessageManual('tenant-1', 'conv-1', 'hello');
 

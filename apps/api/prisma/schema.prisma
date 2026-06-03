@@ -389,6 +389,7 @@ model Lead {
 
   @@index([tenantId])
   @@index([tenantId, heatUpdatedAt])
+  @@index([tenantId, heatTier])
   @@index([tenantId, heatTier, heatUpdatedAt])
 }
 

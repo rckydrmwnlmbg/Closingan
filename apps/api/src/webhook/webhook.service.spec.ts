@@ -47,6 +47,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
       get: jest.fn(),
       set: jest.fn(),
       setNx: jest.fn(),
+      delPattern: jest.fn(),
       del: jest.fn(),
       exists: jest.fn(),
     };
@@ -93,11 +94,19 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
   });
 
   it('should ignore webhook if payload is a duplicate (idempotency)', async () => {
-    const payload = { device: '123', sender: '628999', message: 'Hi', id: 'msg-dupe' };
+    const payload = {
+      device: '123',
+      sender: '628999',
+      message: 'Hi',
+      id: 'msg-dupe',
+    };
 
     mockRedisService.setNx.mockResolvedValue(false);
 
-    const result = await webhookService.handleFonnteIncomingMessage(payload, 'sig');
+    const result = await webhookService.handleFonnteIncomingMessage(
+      payload,
+      'sig',
+    );
 
     expect(result.success).toBe(true);
     expect((result as any).duplicated).toBe(true);
@@ -105,16 +114,25 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
   });
 
   it('should process webhook but flag isHumanTakeoverActive if redis key exists', async () => {
-    const payload = { device: '123', sender: '628999', message: 'Hi', id: 'msg-id' };
+    const payload = {
+      device: '123',
+      sender: '628999',
+      message: 'Hi',
+      id: 'msg-id',
+    };
 
     mockRedisService.setNx.mockResolvedValue(true);
     mockRedisService.get.mockImplementation(async (key: string) => {
-      if (key === 'wa-session:device:123') return JSON.stringify({ tenantId: 'tenant-1' });
+      if (key === 'wa-session:device:123')
+        return JSON.stringify({ tenantId: 'tenant-1' });
       if (key === 'tenant:tenant-1:customerPhone:628999:takeover') return '1';
       return null;
     });
 
-    const result = await webhookService.handleFonnteIncomingMessage(payload, 'sig');
+    const result = await webhookService.handleFonnteIncomingMessage(
+      payload,
+      'sig',
+    );
 
     expect(result.success).toBe(true);
     expect(mockQueue.add).toHaveBeenCalledWith(

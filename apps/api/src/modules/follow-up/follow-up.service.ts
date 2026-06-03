@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { GetFollowUpsDto } from './dto/get-follow-ups.dto';
@@ -5,12 +6,27 @@ import { CreateFollowUpDto } from './dto/create-follow-up.dto';
 import { SnoozeFollowUpDto } from './dto/snooze-follow-up.dto';
 import { FollowUpStatus, FollowUpUrgency, Prisma } from '@prisma/client';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { RedisService } from '../../common/redis/redis.service';
 
 @Injectable()
 export class FollowUpService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+  ) {}
 
   async getFollowUps(tenantId: string, query: GetFollowUpsDto) {
+    const paramsHash = crypto
+      .createHash('md5')
+      .update(JSON.stringify(query))
+      .digest('hex');
+    const cacheKey = `followups:${tenantId}:${paramsHash}`;
+
+    const cachedData = await this.redisService.get(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+
     const { status, cursor, limit = 20 } = query;
 
     const where: Prisma.FollowUpWhereInput = { tenantId };
@@ -54,13 +70,16 @@ export class FollowUpService {
       snoozedUntil: f.snoozedUntil?.toISOString() || null,
     }));
 
-    return {
+    const result = {
       data,
       meta: {
         nextCursor,
         hasNext,
       },
     };
+
+    await this.redisService.set(cacheKey, JSON.stringify(result), 30);
+    return result;
   }
 
   async createFollowUp(
@@ -79,6 +98,9 @@ export class FollowUpService {
         createdBy: userId,
       },
     });
+
+    // Invalidate cache
+    await this.redisService.delPattern(`followups:${tenantId}:*`);
 
     return followUp;
   }
@@ -103,6 +125,9 @@ export class FollowUpService {
       },
     });
 
+    // Invalidate cache
+    await this.redisService.delPattern(`followups:${tenantId}:*`);
+
     return { success: true };
   }
 
@@ -126,6 +151,9 @@ export class FollowUpService {
       },
     });
 
+    // Invalidate cache
+    await this.redisService.delPattern(`followups:${tenantId}:*`);
+
     return {
       status: updated.status,
       snoozedUntil: updated.snoozedUntil,
@@ -147,6 +175,9 @@ export class FollowUpService {
     await this.prisma.followUp.delete({
       where: { id },
     });
+
+    // Invalidate cache
+    await this.redisService.delPattern(`followups:${tenantId}:*`);
 
     return { success: true };
   }

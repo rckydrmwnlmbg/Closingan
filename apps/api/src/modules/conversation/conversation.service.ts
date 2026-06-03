@@ -1,3 +1,4 @@
+import * as crypto from 'crypto';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConversationRepository } from './conversation.repository';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
@@ -18,12 +19,19 @@ import { RedisService } from '../../common/redis/redis.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 
-type ConversationWithRelations = Conversation & {
-  lead: Lead | null;
-  labelAssignments: (ConversationLabelAssignment & {
-    label: ConversationLabel;
-  })[];
-  followUps: FollowUp[];
+type ConversationWithRelations = Partial<Conversation> & {
+  id: string;
+  customerPhone: string;
+  customerName: string | null;
+  state: any;
+  aiMode: any;
+  aiModePausedUntil: Date | null;
+  unreadCount: number;
+  lastMessageAt: Date | null;
+  lastMessagePreview: string | null;
+  lastSenderType: any;
+  lead?: { heatTier: any; heatReasons: string[] } | null;
+  _count?: { followUps: number };
 };
 
 @Injectable()
@@ -46,17 +54,23 @@ export class ConversationService {
     }
 
     // Determine Human Takeover Cooldown
-    const cooldownMinutes = this.configService.get<number>('HUMAN_TAKEOVER_COOLDOWN_MINUTES') || 15;
+    const cooldownMinutes =
+      this.configService.get<number>('HUMAN_TAKEOVER_COOLDOWN_MINUTES') || 15;
     const pausedUntil = new Date(Date.now() + cooldownMinutes * 60000);
 
-    const isAiActive = conversation.aiMode === 'AI_ASSIST' || conversation.aiMode === 'SMART_HYBRID' || conversation.aiMode === 'AUTO_REPLY';
+    const isAiActive =
+      conversation.aiMode === 'AI_ASSIST' ||
+      conversation.aiMode === 'SMART_HYBRID' ||
+      conversation.aiMode === 'AUTO_REPLY';
 
     // 1. Set HUMAN_ACTIVE state and pause AI
     const updatedConversation = await this.prisma.conversation.update({
       where: { id: conversationId },
       data: {
         state: isAiActive ? 'HUMAN_ACTIVE' : conversation.state,
-        aiModePausedUntil: isAiActive ? pausedUntil : conversation.aiModePausedUntil,
+        aiModePausedUntil: isAiActive
+          ? pausedUntil
+          : conversation.aiModePausedUntil,
         lastMessageAt: new Date(),
         lastMessagePreview: content.substring(0, 100),
         lastSenderType: 'SELLER',
@@ -81,6 +95,9 @@ export class ConversationService {
         },
       });
     }
+
+    // Invalidate conversation cache
+    await this.redisService.delPattern(`conversations:${tenantId}:*`);
 
     // 3. Save Message to Database
     const message = await this.prisma.message.create({
@@ -128,12 +145,24 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly auditService: AuditService,
     @Inject('AI_PROVIDER') private readonly aiProvider: AiProviderInterface,
-    @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider: WhatsappProviderInterface,
+    @Inject(WHATSAPP_PROVIDER)
+    private readonly whatsappProvider: WhatsappProviderInterface,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
   ) {}
 
   async getConversations(tenantId: string, query: GetConversationsQueryDto) {
+    const paramsHash = crypto
+      .createHash('md5')
+      .update(JSON.stringify(query))
+      .digest('hex');
+    const cacheKey = `conversations:${tenantId}:${paramsHash}`;
+
+    const cachedData = await this.redisService.get(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+
     const { data, meta } = await this.conversationRepository.findConversations(
       tenantId,
       query,
@@ -154,11 +183,59 @@ export class ConversationService {
         lastSenderType: conv.lastSenderType,
         heatTier: conv.lead?.heatTier || null,
         heatReasons: conv.lead?.heatReasons || [],
-        hasOverdueFollowUp: conv.followUps?.length > 0,
+        hasOverdueFollowUp: (conv._count?.followUps || 0) > 0,
       };
     });
 
-    return { data: formattedData, meta };
+    const result = { data: formattedData, meta };
+    await this.redisService.set(cacheKey, JSON.stringify(result), 10);
+    return result;
+  }
+
+  async getMessages(
+    tenantId: string,
+    conversationId: string,
+    cursor?: string,
+    limit = 30,
+  ) {
+    const messages = await this.prisma.message.findMany({
+      where: { tenantId, conversationId },
+      take: limit + 1,
+      ...(cursor && {
+        skip: 1,
+        cursor: { id: cursor },
+      }),
+      orderBy: { createdAt: 'desc' }, // Usually want newest first, but based on docs might need asc. Docs show one result. Let's use desc for cursor pagination.
+      select: {
+        id: true,
+        senderType: true,
+        senderName: true,
+        content: true,
+        deliveryState: true,
+        isAiGenerated: true,
+        aiMode: true,
+        createdAt: true,
+      },
+    });
+
+    let hasNext = false;
+    let nextCursor: string | null = null;
+
+    if (messages.length > limit) {
+      hasNext = true;
+      const nextItem = messages.pop();
+      if (nextItem) {
+        nextCursor = messages[messages.length - 1].id;
+      }
+    }
+
+    return {
+      data: messages,
+      meta: {
+        nextCursor,
+        hasNext,
+      },
+    };
   }
 
   async generateAiSuggestion(tenantId: string, conversationId: string) {

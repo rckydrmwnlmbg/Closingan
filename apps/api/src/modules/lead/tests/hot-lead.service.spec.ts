@@ -1,3 +1,4 @@
+import { RedisService } from '../../../common/redis/redis.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { HotLeadService } from '../hot-lead.service';
 import { OpenAiService } from '../../../ai/openai.service';
@@ -37,6 +38,13 @@ describe('HotLeadService', () => {
       set: jest.fn(),
     } as any;
 
+    const mockRedisService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      delPattern: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         HotLeadService,
@@ -44,6 +52,7 @@ describe('HotLeadService', () => {
         { provide: PrismaService, useValue: prismaService },
         { provide: getQueueToken('hot-lead'), useValue: mockQueue },
         { provide: ClsService, useValue: clsService },
+        { provide: RedisService, useValue: mockRedisService },
       ],
     }).compile();
 
