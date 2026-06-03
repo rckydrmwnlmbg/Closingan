@@ -96,7 +96,7 @@ describe('WA QR Flow (e2e)', () => {
     });
     expect(session).toBeDefined();
     expect(session!.state).toBe('DISCONNECTED');
-    deviceId = session!.fonnteDeviceId;
+    deviceId = session!.fonnteDeviceId!;
   });
 
   it('2. qr-status is WAITING_SCAN', async () => {

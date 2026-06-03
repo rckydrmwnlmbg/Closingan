@@ -120,7 +120,7 @@ describe('Tenant Isolation Runtime Extension Test', () => {
     };
 
     // Re-initialize client with the mocked baseClient
-    tenantPrisma.client = (tenantPrisma as any).baseClient.$extends({
+    (tenantPrisma as any).client = (tenantPrisma as any).baseClient.$extends({
       query: {
         $allModels: {
           async $allOperations({ model, operation, args, query }: any) {
