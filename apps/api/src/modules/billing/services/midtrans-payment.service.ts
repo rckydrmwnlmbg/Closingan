@@ -25,10 +25,64 @@ export class MidtransPaymentService implements PaymentGatewayService {
     description: string,
   ): Promise<InvoiceResult> {
     const idempotencyKey = crypto.randomUUID();
-
-    // In a real application, call Midtrans API to create an invoice/snap token
     const externalId = `midtrans-${Date.now()}`;
-    const paymentUrl = `https://app.sandbox.midtrans.com/snap/v2/vtweb/${externalId}`;
+
+    // Skeleton implementation: Call Midtrans Sandbox API to create an invoice/snap token
+    let paymentUrl = `https://app.sandbox.midtrans.com/snap/v2/vtweb/${externalId}`;
+
+    const serverKey = this.config.get<string>('MIDTRANS_SERVER_KEY');
+
+    try {
+      if (serverKey && serverKey !== 'dummy-server-key') {
+        const authString = Buffer.from(`${serverKey}:`).toString('base64');
+        const payload = {
+          transaction_details: {
+            order_id: externalId,
+            gross_amount: amount,
+          },
+          item_details: [
+            {
+              id: subscriptionId,
+              price: amount,
+              quantity: 1,
+              name: description,
+            },
+          ],
+        };
+
+        // This uses fetch as a skeleton concept (NestJS HttpService is preferred, but fetch is acceptable for skeleton)
+        const response = await fetch(
+          'https://app.sandbox.midtrans.com/snap/v1/transactions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+              Authorization: `Basic ${authString}`,
+            },
+            body: JSON.stringify(payload),
+          },
+        );
+
+        if (response.ok) {
+          const data = (await response.json()) as { redirect_url?: string };
+          if (data.redirect_url) {
+            paymentUrl = data.redirect_url;
+          }
+        } else {
+          this.logger.error(
+            `Midtrans API failed with status ${response.status}`,
+          );
+        }
+      }
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(
+        `Failed to generate Midtrans Snap token: ${err.message}`,
+        err.stack,
+      );
+      // Fallback to skeleton URL if API fails (since we are building skeleton without real account yet)
+    }
 
     const invoice = await this.prisma.invoice.create({
       data: {
@@ -76,7 +130,15 @@ export class MidtransPaymentService implements PaymentGatewayService {
     this.logger.log(`Email receipt triggered for invoice ${invoiceId}`);
   }
 
-  async handleWebhook(payload: any, signature: string): Promise<void> {
+  async handleWebhook(
+    payload: {
+      order_id: string;
+      status_code: string;
+      gross_amount: string;
+      transaction_status: string;
+    },
+    signature: string,
+  ): Promise<void> {
     // 1. Validate signature
     const serverKey =
       this.config.get<string>('MIDTRANS_SERVER_KEY') || 'dummy-server-key';

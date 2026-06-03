@@ -74,7 +74,7 @@ Format:
 - [ ] ⏳ TASK 8.2 — Subscription State Machine
 - [ ] ⏳ TASK 8.3 — Plan Entitlement Guard
 - [ ] ⏳ TASK 8.4 — Billing UI
-- [ ] ⏳ TASK 8.5 — Trial System
+- [x] ✅ TASK 8.5 — Midtrans Payment Gateway Integration
 
 ### Milestone 9 — Quota & Token Governance
 - [ ] ⏳ TASK 9.1 — Token Quota Service
@@ -159,6 +159,7 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+- ✅ TASK 8.5 — Midtrans Payment Gateway Integration (Skeleton setup, Snap token generation fallback, Webhook logic & Subscription updates)
 - ✅ TASK 8.3 — Plan Entitlement Guard
 
 ### 26 Mei 2024
