@@ -109,7 +109,7 @@ describe('AiReplyWorker', () => {
         },
       } as any;
 
-      prisma.conversation.findFirst.mockResolvedValue({
+      (prisma.conversation.findFirst as jest.Mock).mockResolvedValue({
         id: 'conv-1',
         aiMode: 'AUTO_REPLY',
       } as any);
@@ -140,7 +140,7 @@ describe('AiReplyWorker', () => {
         },
       } as any;
 
-      prisma.conversation.findFirst.mockResolvedValue({
+      (prisma.conversation.findFirst as jest.Mock).mockResolvedValue({
         id: 'conv-2',
         aiMode: 'AUTO_REPLY',
       } as any);

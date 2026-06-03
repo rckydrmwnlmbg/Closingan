@@ -22,6 +22,7 @@ import { WebsocketModule } from './modules/websocket/websocket.module';
 import { LeadModule } from './modules/lead/lead.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FollowUpModule } from './modules/follow-up/follow-up.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -77,6 +78,7 @@ import { FollowUpModule } from './modules/follow-up/follow-up.module';
     LeadModule,
     DashboardModule,
     FollowUpModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [
