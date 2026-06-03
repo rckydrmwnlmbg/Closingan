@@ -159,6 +159,7 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+- ✅ TASK 8.3 — Plan Entitlement Guard
 
 ### 26 Mei 2024
 - ✅ TASK 1.1 — Setup Monorepo / Project Structure
