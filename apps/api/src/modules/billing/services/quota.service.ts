@@ -141,6 +141,19 @@ export class QuotaService {
     }
   }
 
+
+  async getTokenQuota(tenantId: string) {
+    return this.prisma.tokenQuota.findUnique({
+      where: { tenantId },
+    });
+  }
+
+  async getSubscription(tenantId: string) {
+    return this.prisma.subscription.findFirst({
+      where: { tenantId },
+    });
+  }
+
   private async checkThresholdsAndEmit(tokenQuota: any): Promise<void> {
     const { tenantId, usedQuota, totalQuota, warned85At, warned95At } =
       tokenQuota;
