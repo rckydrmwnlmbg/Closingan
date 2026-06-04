@@ -3,6 +3,7 @@ import { Job, DelayedError } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 
 interface IncomingMessageJobData {
   tenantId: string;
@@ -22,6 +23,7 @@ export class IncomingMessagesWorker extends WorkerHost {
   constructor(
     private readonly cls: ClsService,
     private readonly redisService: RedisService,
+    private readonly prisma: PrismaService,
   ) {
     super();
   }
@@ -30,7 +32,7 @@ export class IncomingMessagesWorker extends WorkerHost {
     job: Job<IncomingMessageJobData, unknown, string>,
   ): Promise<unknown> {
     this.logger.debug(`Processing incoming-messages job ${job.id}`);
-    const { tenantId, payload } = job.data;
+    const { tenantId } = job.data;
 
     // Queue Isolation / Noisy Neighbor prevention:
     // Limit max active concurrent jobs per tenant to prevent a single tenant from hogging the queue.
@@ -85,5 +87,26 @@ export class IncomingMessagesWorker extends WorkerHost {
       `Job ${job.id} of type ${job.name} failed with error: ${error.message}`,
       error.stack,
     );
+
+    if (job.attemptsMade >= (job.opts.attempts || 1)) {
+      this.logger.error(
+        `Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`,
+      );
+      try {
+        await this.prisma.deadLetterLog.create({
+          data: {
+            tenantId: job.data?.tenantId || null,
+            queueName: job.name,
+            payload: job.data || {},
+            errorReason: error.message,
+          },
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed to save DeadLetterLog for job ${job.id}`,
+          err,
+        );
+      }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { BlastJobData } from '../interfaces/job-data.interface';
@@ -50,5 +50,40 @@ export class BlastWorker extends WorkerHost {
       await new Promise((resolve) => setTimeout(resolve, 500));
       return { success: true };
     });
+  }
+
+  @OnWorkerEvent('failed')
+  async onFailed(job: Job, error: Error) {
+    if (
+      error.message.includes('moveToDelayed') ||
+      error.message.includes('DelayedError')
+    ) {
+      return;
+    }
+    this.logger.error(
+      `Job ${job.id} of type ${job.name} failed with error: ${error.message}`,
+      error.stack,
+    );
+
+    if (job.attemptsMade >= (job.opts.attempts || 1)) {
+      this.logger.error(
+        `Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`,
+      );
+      try {
+        await this.prisma.deadLetterLog.create({
+          data: {
+            tenantId: job.data?.tenantId || null,
+            queueName: job.name,
+            payload: job.data || {},
+            errorReason: error.message,
+          },
+        });
+      } catch (err) {
+        this.logger.error(
+          `Failed to save DeadLetterLog for job ${job.id}`,
+          err,
+        );
+      }
+    }
   }
 }

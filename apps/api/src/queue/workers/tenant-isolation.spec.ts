@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { IncomingMessagesWorker } from './incoming-messages.worker';
 import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
+import { PrismaService } from '../../common/prisma/prisma.service';
 import { Job, DelayedError } from 'bullmq';
 
 describe('Tenant Isolation (Noisy Neighbor)', () => {
@@ -26,6 +27,7 @@ describe('Tenant Isolation (Noisy Neighbor)', () => {
         IncomingMessagesWorker,
         { provide: RedisService, useValue: redisService },
         { provide: ClsService, useValue: clsService },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 

@@ -112,7 +112,7 @@ export class AiReplyWorker extends WorkerHost {
           }
 
           // Save incoming user message FIRST so it's always recorded and available for analysis
-          const incomingMessage = await this.prisma.message.create({
+          await this.prisma.message.create({
             data: {
               tenantId,
               conversationId: conversation.id,
@@ -362,7 +362,7 @@ export class AiReplyWorker extends WorkerHost {
                   to: salesPhone,
                   message: alertMessage,
                 });
-              } catch (waError) {}
+              } catch {}
             }
 
             return { success: false, reason: 'provider_error_escalated' };
@@ -435,7 +435,7 @@ export class AiReplyWorker extends WorkerHost {
                   to: waSession.phoneNumber,
                   message: alertMessage,
                 });
-              } catch (waError) {}
+              } catch {}
             }
 
             throw new AppException(
@@ -535,6 +535,19 @@ export class AiReplyWorker extends WorkerHost {
             attemptCount: job.attemptsMade,
           },
         });
+
+        try {
+          await this.prisma.deadLetterLog.create({
+            data: {
+              tenantId: job.data?.tenantId || null,
+              queueName: job.name,
+              payload: job.data || {},
+              errorReason: error.message,
+            },
+          });
+        } catch (e) {
+          this.logger.error(`DLQ Save Error: ${e.message}`);
+        }
 
         await this.auditService.log({
           action: 'WA_DISCONNECTED', // Nearest semantic log to a disconnected process
