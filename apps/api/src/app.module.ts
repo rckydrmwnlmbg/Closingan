@@ -17,6 +17,7 @@ import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { AuditModule } from './common/audit/audit.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ConversationModule } from './modules/conversation/conversation.module';
 import { WebsocketModule } from './modules/websocket/websocket.module';
 import { LeadModule } from './modules/lead/lead.module';
@@ -27,6 +28,7 @@ import { BillingModule } from './modules/billing/billing.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
