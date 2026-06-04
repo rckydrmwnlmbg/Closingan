@@ -78,8 +78,8 @@ Format:
 
 ### Milestone 9 — Quota & Token Governance
 - [x] ✅ TASK 9.1 — Token Quota Service
-- [ ] ⏳ TASK 9.2 — Warning Threshold System
-- [ ] ⏳ TASK 9.3 — Grace Buffer System
+- [x] ✅ TASK 9.2 — Warning Threshold System
+- [x] ✅ TASK 9.3 — Grace Buffer System
 - [ ] ⏳ TASK 9.4 — AI Credit Add-on
 - [ ] ⏳ TASK 9.5 — Soft Upsell Engine
 
@@ -159,6 +159,8 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+- ✅ TASK 9.2 — Warning Threshold System (Updated QuotaService to emit quota warnings at 80% and 95% threshold)
+- ✅ TASK 9.3 — Grace Buffer System (Grace buffer implemented previously inside checkQuota functionality)
 - ✅ TASK 9.1 — Token Quota Service (Created QuotaService to check and increment token quota usage)
 - ✅ TASK 8.5 — Midtrans Payment Gateway Integration (Skeleton setup, Snap token generation fallback, Webhook logic & Subscription updates)
 - ✅ TASK 8.3 — Plan Entitlement Guard
