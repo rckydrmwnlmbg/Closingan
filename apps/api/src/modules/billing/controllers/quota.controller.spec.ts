@@ -29,14 +29,19 @@ describe('QuotaController', () => {
       controllers: [QuotaController],
       providers: [
         { provide: QuotaService, useValue: mockQuotaService },
-        { provide: MidtransPaymentService, useValue: mockMidtransPaymentService },
+        {
+          provide: MidtransPaymentService,
+          useValue: mockMidtransPaymentService,
+        },
         { provide: ClsService, useValue: mockClsService },
       ],
     }).compile();
 
     controller = module.get<QuotaController>(QuotaController);
     quotaService = module.get<QuotaService>(QuotaService);
-    midtransPaymentService = module.get<MidtransPaymentService>(MidtransPaymentService);
+    midtransPaymentService = module.get<MidtransPaymentService>(
+      MidtransPaymentService,
+    );
     clsService = module.get<ClsService>(ClsService);
   });
 
@@ -114,7 +119,7 @@ describe('QuotaController', () => {
         'tenant-1',
         'sub-1',
         50000,
-        '1000 AI Credits Add-on'
+        '1000 AI Credits Add-on',
       );
       expect(result).toEqual({
         success: true,

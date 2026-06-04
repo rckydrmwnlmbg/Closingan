@@ -127,4 +127,37 @@ export class RedisService implements OnModuleDestroy {
       return 0;
     }
   }
+
+  async incr(key: string): Promise<number> {
+    try {
+      return await this.redisClient.incr(key);
+    } catch (error) {
+      this.logger.error(
+        `Redis incr failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return 0; // fallback to allow processing if redis fails
+    }
+  }
+
+  async decr(key: string): Promise<number> {
+    try {
+      return await this.redisClient.decr(key);
+    } catch (error) {
+      this.logger.error(
+        `Redis decr failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return 0;
+    }
+  }
+
+  async expire(key: string, ttlSeconds: number): Promise<number> {
+    try {
+      return await this.redisClient.expire(key, ttlSeconds);
+    } catch (error) {
+      this.logger.error(
+        `Redis expire failed for key ${key}: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return 0;
+    }
+  }
 }

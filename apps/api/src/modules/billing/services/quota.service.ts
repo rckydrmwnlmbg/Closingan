@@ -46,11 +46,14 @@ export class QuotaService {
       });
 
       if (!tokenQuota) {
-        throw new NotFoundException(`TokenQuota for tenant ${tenantId} not found`);
+        throw new NotFoundException(
+          `TokenQuota for tenant ${tenantId} not found`,
+        );
       }
 
       // First deduct from regular quota (totalQuota)
-      const availableRegularQuota = tokenQuota.totalQuota - tokenQuota.usedQuota;
+      const availableRegularQuota =
+        tokenQuota.totalQuota - tokenQuota.usedQuota;
 
       let usedQuotaIncrement = 0;
       let extraCreditsDecrement = 0;
@@ -140,7 +143,6 @@ export class QuotaService {
       throw error;
     }
   }
-
 
   async getTokenQuota(tenantId: string) {
     return this.prisma.tokenQuota.findUnique({
