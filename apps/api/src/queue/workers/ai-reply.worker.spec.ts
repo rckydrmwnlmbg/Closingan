@@ -76,6 +76,9 @@ describe('AiReplyWorker', () => {
 
     const mockRedisService = {
       delPattern: jest.fn(),
+      incr: jest.fn().mockResolvedValue(1),
+      decr: jest.fn().mockResolvedValue(0),
+      expire: jest.fn().mockResolvedValue(1),
     };
 
     const module: TestingModule = await Test.createTestingModule({

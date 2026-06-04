@@ -325,7 +325,9 @@ describe('QuotaService', () => {
 
   describe('addExtraCredits', () => {
     it('should add extra credits successfully', async () => {
-      const updateSpy = jest.spyOn(prismaService.tokenQuota, 'update').mockResolvedValue({} as any);
+      const updateSpy = jest
+        .spyOn(prismaService.tokenQuota, 'update')
+        .mockResolvedValue({} as any);
 
       await service.addExtraCredits('tenant-1', 100);
 
@@ -339,8 +341,12 @@ describe('QuotaService', () => {
     });
 
     it('should throw error if amount is less than or equal to 0', async () => {
-      await expect(service.addExtraCredits('tenant-1', 0)).rejects.toThrow('Amount must be positive to add extra credits');
-      await expect(service.addExtraCredits('tenant-1', -10)).rejects.toThrow('Amount must be positive to add extra credits');
+      await expect(service.addExtraCredits('tenant-1', 0)).rejects.toThrow(
+        'Amount must be positive to add extra credits',
+      );
+      await expect(service.addExtraCredits('tenant-1', -10)).rejects.toThrow(
+        'Amount must be positive to add extra credits',
+      );
     });
   });
 });

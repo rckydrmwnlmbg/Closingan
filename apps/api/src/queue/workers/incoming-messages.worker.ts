@@ -1,7 +1,8 @@
 import { Processor, WorkerHost, OnWorkerEvent } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, DelayedError } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
+import { RedisService } from '../../common/redis/redis.service';
 
 interface IncomingMessageJobData {
   tenantId: string;
@@ -18,7 +19,10 @@ interface IncomingMessageJobData {
 export class IncomingMessagesWorker extends WorkerHost {
   private readonly logger = new Logger(IncomingMessagesWorker.name);
 
-  constructor(private readonly cls: ClsService) {
+  constructor(
+    private readonly cls: ClsService,
+    private readonly redisService: RedisService,
+  ) {
     super();
   }
 
@@ -28,26 +32,55 @@ export class IncomingMessagesWorker extends WorkerHost {
     this.logger.debug(`Processing incoming-messages job ${job.id}`);
     const { tenantId, payload } = job.data;
 
-    return this.cls.run(async () => {
-      this.cls.set('tenantId', tenantId);
+    // Queue Isolation / Noisy Neighbor prevention:
+    // Limit max active concurrent jobs per tenant to prevent a single tenant from hogging the queue.
+    const MAX_CONCURRENT_PER_TENANT = 2; // Leave at least 3 workers for others
+    const activeJobsKey = `tenant:${tenantId}:incoming-active`;
+    const activeCount = await this.redisService.incr(activeJobsKey);
 
-      try {
-        // Placeholder for future consumption logic
-        this.logger.log(`Received message for tenant ${tenantId}`);
+    if (activeCount === 1) {
+      await this.redisService.expire(activeJobsKey, 60); // Safety expire
+    }
 
-        return { success: true };
-      } catch (error: any) {
-        this.logger.error(
-          { jobId: job.id, error: error.message },
-          `Failed incoming-messages job ${job.id}: ${error.message}`,
-        );
-        throw error;
-      }
-    });
+    if (activeCount > MAX_CONCURRENT_PER_TENANT) {
+      await this.redisService.decr(activeJobsKey);
+      this.logger.warn(
+        `Tenant ${tenantId} exceeded concurrency limit (${MAX_CONCURRENT_PER_TENANT}). Delaying job ${job.id}.`,
+      );
+      await job.moveToDelayed(Date.now() + 2000, job.token);
+      throw new DelayedError();
+    }
+
+    try {
+      return await this.cls.run(async () => {
+        this.cls.set('tenantId', tenantId);
+
+        try {
+          // Placeholder for future consumption logic
+          this.logger.log(`Received message for tenant ${tenantId}`);
+
+          return { success: true };
+        } catch (error: any) {
+          this.logger.error(
+            { jobId: job.id, error: error.message },
+            `Failed incoming-messages job ${job.id}: ${error.message}`,
+          );
+          throw error;
+        }
+      });
+    } finally {
+      await this.redisService.decr(activeJobsKey);
+    }
   }
 
   @OnWorkerEvent('failed')
   async onFailed(job: Job, error: Error) {
+    if (
+      error.message.includes('moveToDelayed') ||
+      error.message.includes('DelayedError')
+    ) {
+      return; // Ignore noisy DelayedError logs
+    }
     this.logger.error(
       `Job ${job.id} of type ${job.name} failed with error: ${error.message}`,
       error.stack,

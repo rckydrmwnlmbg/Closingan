@@ -51,7 +51,12 @@ import { WebsocketModule } from '../modules/websocket/websocket.module';
       { name: 'incoming-messages' },
     ),
   ],
-  providers: [AiReplyWorker, BlastWorker, IncomingMessagesWorker, MessageQueueService],
+  providers: [
+    AiReplyWorker,
+    BlastWorker,
+    IncomingMessagesWorker,
+    MessageQueueService,
+  ],
   exports: [BullModule, MessageQueueService],
 })
 export class QueueModule {}

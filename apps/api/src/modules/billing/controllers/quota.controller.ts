@@ -1,4 +1,11 @@
-import { Controller, Get, Post, UseGuards, Req, NotFoundException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  UseGuards,
+  Req,
+  NotFoundException,
+} from '@nestjs/common';
 import { QuotaService } from '../services/quota.service';
 import { MidtransPaymentService } from '../services/midtrans-payment.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -46,7 +53,7 @@ export class QuotaController {
     // We will get it from the tenant's current subscription.
     const subscription = await this.quotaService.getSubscription(tenantId);
     if (!subscription) {
-       throw new NotFoundException('Tenant has no active subscription');
+      throw new NotFoundException('Tenant has no active subscription');
     }
 
     const amount = 50000;
