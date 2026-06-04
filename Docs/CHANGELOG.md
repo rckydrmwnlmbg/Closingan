@@ -81,7 +81,7 @@ Format:
 - [x] ✅ TASK 9.2 — Warning Threshold System
 - [x] ✅ TASK 9.3 — Grace Buffer System
 - [x] ✅ TASK 9.4 — AI Credit Add-on
-- [ ] ⏳ TASK 9.5 — Soft Upsell Engine
+- [x] ✅ TASK 9.5 — Soft Upsell Engine
 
 ### Milestone 10 — Graceful Degradation
 - [ ] ⏳ TASK 10.1 — Policy-Driven Queue Governor
@@ -159,6 +159,7 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+- ✅ TASK 9.5 — Soft Upsell Engine (Created QuotaController with status checking and upsell recommendation, and Midtrans add-on generation endpoint)
 - ✅ TASK 9.4 — AI Credit Add-on (Updated Prisma schema with extraCredits, implemented fallback logic in QuotaService to smoothly deduct from extraCredits, and added addExtraCredits method)
 - ✅ TASK 9.2 — Warning Threshold System (Updated QuotaService to emit quota warnings at 80% and 95% threshold)
 - ✅ TASK 9.3 — Grace Buffer System (Grace buffer implemented previously inside checkQuota functionality)
