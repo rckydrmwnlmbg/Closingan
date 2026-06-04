@@ -642,9 +642,10 @@ model Invoice {
 model TokenQuota {
   id          String    @id @default(cuid())
   tenantId    String    @unique
-  totalQuota  Int
-  usedQuota   Int       @default(0)
-  graceBuffer Int // 5% of totalQuota
+  totalQuota   Int
+  usedQuota    Int      @default(0)
+  extraCredits Int      @default(0)
+  graceBuffer  Int // 5% of totalQuota
   periodStart DateTime
   periodEnd   DateTime
   warned70At  DateTime?
