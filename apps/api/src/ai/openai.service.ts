@@ -5,15 +5,18 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import CircuitBreaker from 'opossum';
 import { AiProviderInterface } from './interfaces/ai-provider.interface';
 import { ObservabilityMetricsService } from '../observability/observability-metrics.service';
 import { AiSafetyService } from './ai-safety.service';
 import { AiSafetyException } from './exceptions/ai-safety.exception';
+import { ProviderDegradationException } from '../common/exceptions/provider-degradation.exception';
 
 @Injectable()
 export class OpenAiService implements AiProviderInterface {
   private readonly openai: OpenAI;
   private readonly logger = new Logger(OpenAiService.name);
+  private readonly chatBreaker: CircuitBreaker<any, any>;
 
   constructor(
     private readonly configService: ConfigService,
@@ -30,6 +33,35 @@ export class OpenAiService implements AiProviderInterface {
 
     this.openai = new OpenAI({
       apiKey: apiKey,
+    });
+
+    const breakerOptions = {
+      timeout: 25000, // If openai takes longer than 25s, trigger a failure
+      errorThresholdPercentage: 50, // When 50% of requests fail
+      resetTimeout: 30000, // After 30 seconds, try again.
+    };
+
+    this.chatBreaker = new CircuitBreaker(
+      (options: any) => this.openai.chat.completions.create(options),
+      breakerOptions,
+    );
+
+    this.chatBreaker.on('open', () => {
+      this.logger.warn(
+        'OpenAI Circuit Breaker is now OPEN. External provider is degraded.',
+      );
+    });
+
+    this.chatBreaker.on('halfOpen', () => {
+      this.logger.log(
+        'OpenAI Circuit Breaker is now HALF_OPEN. Testing recovery...',
+      );
+    });
+
+    this.chatBreaker.on('close', () => {
+      this.logger.log(
+        'OpenAI Circuit Breaker is now CLOSED. External provider is recovered.',
+      );
     });
   }
 
@@ -61,7 +93,7 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
       const sanitizedPrompt = this.sanitizeForSandbox(prompt);
       const safePrompt = `---USER_MESSAGE---\n${sanitizedPrompt}\n---USER_MESSAGE---`;
 
-      const response = await this.openai.chat.completions.create({
+      const response = await this.chatBreaker.fire({
         model: 'gpt-4o-mini', // Configurable or standard model
         messages: [
           { role: 'system', content: systemPrompt },
@@ -98,6 +130,11 @@ IMPORTANT: The user message will be enclosed within ---USER_MESSAGE--- delimiter
       }
 
       await this.metricsService.incrementAiErrorCount();
+
+      if (error instanceof Error && error.message.includes('Breaker is open')) {
+        throw new ProviderDegradationException('OpenAI');
+      }
+
       // HARD CONSTRAINT: Zero-Logging. Do not log the prompt or response content here.
       this.logger.error(
         `Failed to generate reply from OpenAI for Tenant: ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -130,7 +167,7 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
       const sanitizedConversation = this.sanitizeForSandbox(conversation);
       const safeConversation = `---USER_MESSAGE---\n${sanitizedConversation}\n---USER_MESSAGE---`;
 
-      const response = await this.openai.chat.completions.create({
+      const response = await this.chatBreaker.fire({
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemInstruction },
@@ -164,6 +201,11 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
       }
 
       await this.metricsService.incrementAiErrorCount();
+
+      if (error instanceof Error && error.message.includes('Breaker is open')) {
+        throw new ProviderDegradationException('OpenAI');
+      }
+
       // HARD CONSTRAINT: Zero-Logging. Do not log the conversation content.
       this.logger.error(
         `Failed to analyze lead from OpenAI for Tenant: ${tenantId}`,

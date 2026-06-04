@@ -17,6 +17,7 @@ import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 import { AiReplyJobData } from '../interfaces/job-data.interface';
 import { ConversationGateway } from '../../modules/websocket/conversation.gateway';
 import { AppException } from '../../common/exceptions/app.exception';
+import { ProviderDegradationException } from '../../common/exceptions/provider-degradation.exception';
 
 @Processor('ai-reply', {
   concurrency: 5,
@@ -327,6 +328,14 @@ export class AiReplyWorker extends WorkerHost {
               return { success: false, reason: 'escalated_to_human' };
             }
 
+            if (error instanceof ProviderDegradationException) {
+              this.logger.warn(
+                `Provider Degradation: AI Circuit Breaker Open. Delaying job ${job.id}.`,
+              );
+              await job.moveToDelayed(Date.now() + 30000, job.token);
+              throw new DelayedError();
+            }
+
             // Fallback for API Errors / Timeouts to prevent infinite BullMQ loops
             this.logger.error(
               `AI Provider Error for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`,
@@ -394,6 +403,14 @@ export class AiReplyWorker extends WorkerHost {
               );
             }
           } catch (error) {
+            if (error instanceof ProviderDegradationException) {
+              this.logger.warn(
+                `Provider Degradation: WhatsApp Circuit Breaker Open. Delaying job ${job.id}.`,
+              );
+              await job.moveToDelayed(Date.now() + 30000, job.token);
+              throw new DelayedError();
+            }
+
             // Graceful Degradation for Fonnte down
             this.logger.error(
               {

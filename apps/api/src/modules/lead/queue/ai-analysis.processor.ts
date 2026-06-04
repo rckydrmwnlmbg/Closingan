@@ -6,6 +6,7 @@ import { ClsService } from 'nestjs-cls';
 import { AiAnalysisJobData } from '../../../queue/interfaces/job-data.interface';
 import { AppException } from '../../../common/exceptions/app.exception';
 import { RedisService } from '../../../common/redis/redis.service';
+import { ProviderDegradationException } from '../../../common/exceptions/provider-degradation.exception';
 
 @Processor('ai-analysis', {
   concurrency: 5,
@@ -81,6 +82,14 @@ export class AiAnalysisProcessor extends WorkerHost {
             clearTimeout(timeoutId!);
           }
         } catch (error) {
+          if (error instanceof ProviderDegradationException) {
+            this.logger.warn(
+              `Provider Degradation: AI Circuit Breaker Open. Delaying ai-analysis job ${job.id}.`,
+            );
+            await job.moveToDelayed(Date.now() + 30000, job.token);
+            throw new DelayedError();
+          }
+
           this.logger.error(
             `Error during AI analysis for ${conversationId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
