@@ -854,3 +854,12 @@ model UserBadge {
 
   @@unique([userId, badge])
 }
+
+model DeadLetterLog {
+  id          String   @id @default(cuid())
+  tenantId    String?
+  queueName   String
+  payload     Json
+  errorReason String   @db.Text
+  createdAt   DateTime @default(now())
+}

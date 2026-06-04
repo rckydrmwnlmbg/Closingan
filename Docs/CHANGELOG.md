@@ -89,8 +89,8 @@ Format:
 - [x] ✅ TASK 10.3 — Provider Degradation Handling
 
 ### Milestone 11 — Retry & Dead Letter
-- [ ] ⏳ TASK 11.1 — Retry Policy per Queue
-- [ ] ⏳ TASK 11.2 — Dead Letter Queue Handler
+- [x] ✅ TASK 11.1 — Retry Policy per Queue
+- [x] ✅ TASK 11.2 — Dead Letter Queue Handler
 
 ### Milestone 12 — Smart Outreach
 - [ ] ⏳ TASK 12.1 — Campaign Data Model & API
@@ -159,6 +159,8 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+- ✅ TASK 11.2 — Dead Letter Queue Handler (Implemented DeadLetterLog in Prisma, added DLQ handler on failed events in BullMQ workers)
+- ✅ TASK 11.1 — Retry Policy per Queue (Standardized MessageQueueService retry policy to 3 attempts with exponential backoff)
 - ✅ TASK 10.3 — Provider Degradation Handling (Implemented Circuit Breaker pattern using `opossum` for OpenAI and Fonnte services. Integrated graceful queue delaying in BullMQ workers via `DelayedError` when circuit is open.)
 - ✅ TASK 10.2 — Queue Isolation Enforcement (Implemented Redis-based tenant-level concurrency limits in incoming, ai-reply, and ai-analysis queues to prevent Noisy Neighbor issues and ensure fair-share scheduling using BullMQ DelayedError.)
 - ✅ TASK 10.1 — Policy-Driven Queue Governor (Integrated robust queueing system for incoming WhatsApp messages with strict rate-limiting and backoff policies)

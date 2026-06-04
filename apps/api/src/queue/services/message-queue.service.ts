@@ -21,7 +21,7 @@ export class MessageQueueService {
       'process-incoming-message',
       { tenantId, payload },
       {
-        attempts: 5,
+        attempts: 3,
         backoff: {
           type: 'exponential',
           delay: 2000,
