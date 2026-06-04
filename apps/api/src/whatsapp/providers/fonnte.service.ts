@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import CircuitBreaker from 'opossum';
 import {
   firstValueFrom,
   timeout as rxTimeout,
@@ -19,6 +20,7 @@ import {
   WhatsappProviderInterface,
 } from '../interfaces/whatsapp-provider.interface';
 import { FonnteWebhookPayload } from '../interfaces/fonnte-webhook.interface';
+import { ProviderDegradationException } from '../../common/exceptions/provider-degradation.exception';
 
 interface FonnteSendResponse {
   status: boolean;
@@ -37,6 +39,7 @@ interface FonnteDeviceResponse {
 export class FonnteService implements WhatsappProviderInterface {
   private readonly baseUrl: string;
   private readonly logger = new Logger(FonnteService.name);
+  private readonly sendMessageBreaker: CircuitBreaker<any, any>;
 
   constructor(
     private readonly httpService: HttpService,
@@ -49,6 +52,61 @@ export class FonnteService implements WhatsappProviderInterface {
       );
     }
     this.baseUrl = url;
+
+    const breakerOptions = {
+      timeout: 15000,
+      errorThresholdPercentage: 50,
+      resetTimeout: 30000,
+    };
+
+    this.sendMessageBreaker = new CircuitBreaker(
+      async (options: SendMessageOptions) => {
+        const { to, message } = options;
+        return firstValueFrom(
+          this.httpService
+            .post<FonnteSendResponse>(
+              `${this.baseUrl}/send`,
+              {
+                target: to,
+                message: message,
+              },
+              {
+                headers: {
+                  Authorization: this.getMasterToken(),
+                },
+              },
+            )
+            .pipe(
+              rxTimeout(5000),
+              catchError((err) => {
+                if (err instanceof TimeoutError) {
+                  return throwError(() => new Error('Fonnte API timeout'));
+                }
+                return throwError(() => err);
+              }),
+            ),
+        );
+      },
+      breakerOptions,
+    );
+
+    this.sendMessageBreaker.on('open', () => {
+      this.logger.warn(
+        'Fonnte Circuit Breaker is now OPEN. WhatsApp provider is degraded.',
+      );
+    });
+
+    this.sendMessageBreaker.on('halfOpen', () => {
+      this.logger.log(
+        'Fonnte Circuit Breaker is now HALF_OPEN. Testing recovery...',
+      );
+    });
+
+    this.sendMessageBreaker.on('close', () => {
+      this.logger.log(
+        'Fonnte Circuit Breaker is now CLOSED. WhatsApp provider is recovered.',
+      );
+    });
   }
 
   private getMasterToken(): string {
@@ -126,32 +184,9 @@ export class FonnteService implements WhatsappProviderInterface {
   }
 
   async sendMessage(options: SendMessageOptions): Promise<SendMessageResult> {
-    const { tenantId, to, message } = options;
+    const { tenantId } = options;
     try {
-      const response = await firstValueFrom(
-        this.httpService
-          .post<FonnteSendResponse>(
-            `${this.baseUrl}/send`,
-            {
-              target: to,
-              message: message,
-            },
-            {
-              headers: {
-                Authorization: this.getMasterToken(),
-              },
-            },
-          )
-          .pipe(
-            rxTimeout(5000),
-            catchError((err) => {
-              if (err instanceof TimeoutError) {
-                return throwError(() => new Error('Fonnte API timeout'));
-              }
-              return throwError(() => err);
-            }),
-          ),
-      );
+      const response = await this.sendMessageBreaker.fire(options);
 
       const data = response.data;
       if (data && data.status) {
@@ -172,6 +207,10 @@ export class FonnteService implements WhatsappProviderInterface {
         error: data?.reason || 'Unknown Fonnte Error',
       };
     } catch (error: unknown) {
+      if (error instanceof Error && error.message.includes('Breaker is open')) {
+        throw new ProviderDegradationException('Fonnte');
+      }
+
       let errorMessage = 'Failed to send message via Fonnte';
       if (error instanceof Error) {
         errorMessage = error.message;
