@@ -27,10 +27,10 @@ export class QuotaService {
       return false;
     }
 
-    const { usedQuota, totalQuota, graceBuffer } = tokenQuota;
+    const { usedQuota, totalQuota, graceBuffer, extraCredits } = tokenQuota;
 
-    // Check if used quota is less than total + grace buffer
-    return usedQuota < totalQuota + graceBuffer;
+    // Check if used quota is less than total + grace buffer + extraCredits
+    return usedQuota < totalQuota + graceBuffer + extraCredits;
   }
 
   /**
@@ -41,18 +41,59 @@ export class QuotaService {
     messagesUsed: number = 1,
   ): Promise<void> {
     try {
+      const tokenQuota = await this.prisma.tokenQuota.findUnique({
+        where: { tenantId },
+      });
+
+      if (!tokenQuota) {
+        throw new NotFoundException(`TokenQuota for tenant ${tenantId} not found`);
+      }
+
+      // First deduct from regular quota (totalQuota)
+      const availableRegularQuota = tokenQuota.totalQuota - tokenQuota.usedQuota;
+
+      let usedQuotaIncrement = 0;
+      let extraCreditsDecrement = 0;
+
+      if (availableRegularQuota >= messagesUsed) {
+        // Still within regular quota
+        usedQuotaIncrement = messagesUsed;
+      } else {
+        // Regular quota exhausted, calculate how much overflows
+        if (availableRegularQuota > 0) {
+          usedQuotaIncrement = availableRegularQuota;
+        }
+
+        const remainingMessages = messagesUsed - usedQuotaIncrement;
+
+        if (tokenQuota.extraCredits >= remainingMessages) {
+          // Extra credits can cover the rest
+          extraCreditsDecrement = remainingMessages;
+        } else {
+          // Extra credits exhausted, the rest goes to graceBuffer/overage
+          extraCreditsDecrement = tokenQuota.extraCredits;
+          usedQuotaIncrement += remainingMessages - tokenQuota.extraCredits;
+        }
+      }
+
       const updatedQuota = await this.prisma.tokenQuota.update({
         where: { tenantId },
         data: {
           usedQuota: {
-            increment: messagesUsed,
+            increment: usedQuotaIncrement,
+          },
+          extraCredits: {
+            decrement: extraCreditsDecrement,
           },
           lastSyncAt: new Date(),
         },
       });
+
       this.logger.log({
         tenantId,
         messagesUsed,
+        usedQuotaIncrement,
+        extraCreditsDecrement,
         msg: `Incremented token quota usage`,
       });
 
@@ -60,6 +101,40 @@ export class QuotaService {
     } catch (error) {
       this.logger.error(
         `Failed to increment quota for tenant ${tenantId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Add extra credits to a tenant's quota.
+   * Can be hooked to one-time purchases (e.g. Midtrans webhook).
+   */
+  async addExtraCredits(tenantId: string, amount: number): Promise<void> {
+    if (amount <= 0) {
+      throw new Error('Amount must be positive to add extra credits');
+    }
+
+    try {
+      await this.prisma.tokenQuota.update({
+        where: { tenantId },
+        data: {
+          extraCredits: {
+            increment: amount,
+          },
+          lastSyncAt: new Date(),
+        },
+      });
+
+      this.logger.log({
+        tenantId,
+        amount,
+        msg: `Added extra credits to tenant`,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Failed to add extra credits for tenant ${tenantId}: ${error.message}`,
         error.stack,
       );
       throw error;
