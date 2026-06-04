@@ -3,6 +3,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AiReplyWorker } from './workers/ai-reply.worker';
 import { BlastWorker } from './workers/blast.worker';
+import { IncomingMessagesWorker } from './workers/incoming-messages.worker';
+import { MessageQueueService } from './services/message-queue.service';
 
 import { AiModule } from '../ai/ai.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
@@ -46,9 +48,10 @@ import { WebsocketModule } from '../modules/websocket/websocket.module';
       { name: 'summary' },
       { name: 'analytics' },
       { name: 'blast-campaign' },
+      { name: 'incoming-messages' },
     ),
   ],
-  providers: [AiReplyWorker, BlastWorker],
-  exports: [BullModule],
+  providers: [AiReplyWorker, BlastWorker, IncomingMessagesWorker, MessageQueueService],
+  exports: [BullModule, MessageQueueService],
 })
 export class QueueModule {}
