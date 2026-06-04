@@ -71,13 +71,13 @@ Format:
 
 ### Milestone 8 — Billing & Subscription
 - [ ] ⏳ TASK 8.1 — Integrasi Payment Gateway
-- [ ] ⏳ TASK 8.2 — Subscription State Machine
-- [ ] ⏳ TASK 8.3 — Plan Entitlement Guard
+- [x] ✅ TASK 8.2 — Subscription State Machine
+- [x] ✅ TASK 8.3 — Plan Entitlement Guard
 - [ ] ⏳ TASK 8.4 — Billing UI
 - [x] ✅ TASK 8.5 — Midtrans Payment Gateway Integration
 
 ### Milestone 9 — Quota & Token Governance
-- [ ] ⏳ TASK 9.1 — Token Quota Service
+- [x] ✅ TASK 9.1 — Token Quota Service
 - [ ] ⏳ TASK 9.2 — Warning Threshold System
 - [ ] ⏳ TASK 9.3 — Grace Buffer System
 - [ ] ⏳ TASK 9.4 — AI Credit Add-on
@@ -159,8 +159,10 @@ Format:
 ---
 
 ## LOG PERUBAHAN
+- ✅ TASK 9.1 — Token Quota Service (Created QuotaService to check and increment token quota usage)
 - ✅ TASK 8.5 — Midtrans Payment Gateway Integration (Skeleton setup, Snap token generation fallback, Webhook logic & Subscription updates)
 - ✅ TASK 8.3 — Plan Entitlement Guard
+- ✅ TASK 8.2 — Subscription State Machine
 
 ### 26 Mei 2024
 - ✅ TASK 1.1 — Setup Monorepo / Project Structure
