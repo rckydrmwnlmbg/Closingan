@@ -46,23 +46,25 @@ export class DisconnectDetectionService {
       },
     });
 
-    for (const session of sessions) {
-      await this.cls.run(async () => {
-        this.cls.set('tenantId', session.tenantId);
+    await Promise.all(
+      sessions.map((session) =>
+        this.cls.run(async () => {
+          this.cls.set('tenantId', session.tenantId);
 
-        try {
-          if (session.state === 'CONNECTED') {
-            await this.checkConnectedSession(session);
-          } else if (session.state === 'RECONNECTING') {
-            await this.checkReconnectingSession(session);
+          try {
+            if (session.state === 'CONNECTED') {
+              await this.checkConnectedSession(session);
+            } else if (session.state === 'RECONNECTING') {
+              await this.checkReconnectingSession(session);
+            }
+          } catch (error: any) {
+            this.logger.error(
+              `Error processing session for tenant ${session.tenantId}: ${error.message}`,
+            );
           }
-        } catch (error: any) {
-          this.logger.error(
-            `Error processing session for tenant ${session.tenantId}: ${error.message}`,
-          );
-        }
-      });
-    }
+        }),
+      ),
+    );
   }
 
   private async checkConnectedSession(session: any) {
@@ -186,12 +188,14 @@ export class DisconnectDetectionService {
       (u: any) => u.waPersonalNumber && u.waPersonalVerified,
     );
 
-    for (const user of salesUsers) {
-      await this.whatsappProvider.sendMessage({
-        to: user.waPersonalNumber,
-        message,
-        tenantId: session.tenantId,
-      });
-    }
+    await Promise.all(
+      salesUsers.map((user: any) =>
+        this.whatsappProvider.sendMessage({
+          to: user.waPersonalNumber,
+          message,
+          tenantId: session.tenantId,
+        }),
+      ),
+    );
   }
 }
