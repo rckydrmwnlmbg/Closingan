@@ -28,6 +28,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { AntiAbuseModule } from './common/guards/anti-abuse/anti-abuse.module';
+import { AntiAbuseControllerModule } from './modules/anti-abuse/anti-abuse.module';
 import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
 
 @Module({
@@ -100,6 +101,7 @@ import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
     CampaignModule,
     KnowledgeModule,
     AntiAbuseModule,
+    AntiAbuseControllerModule,
   ],
   controllers: [AppController],
   providers: [

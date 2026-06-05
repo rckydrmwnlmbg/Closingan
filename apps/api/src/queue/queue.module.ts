@@ -9,12 +9,14 @@ import { MessageQueueService } from './services/message-queue.service';
 import { AiModule } from '../ai/ai.module';
 import { WhatsappModule } from '../whatsapp/whatsapp.module';
 import { WebsocketModule } from '../modules/websocket/websocket.module';
+import { KnowledgeModule } from '../modules/knowledge/knowledge.module';
 
 @Module({
   imports: [
     AiModule,
     WhatsappModule,
     WebsocketModule,
+    KnowledgeModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
