@@ -23,7 +23,7 @@ export class AuthService {
     return disposableDomains.includes(domain);
   }
 
-  async register(dto: RegisterDto) {
+  async register(dto: RegisterDto, tenantId?: string) {
     if (this.isDisposableEmail(dto.email)) {
       throw new AppException(
         'EMAIL_DISPOSABLE',
@@ -32,8 +32,10 @@ export class AuthService {
       );
     }
 
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    const whereClause: Record<string, string> = { email: dto.email };
+    if (tenantId) whereClause.tenantId = tenantId;
+    const existingUser = await this.prisma.user.findFirst({
+      where: whereClause,
     });
 
     if (existingUser) {
@@ -84,9 +86,11 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto, ipAddress?: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+  async login(dto: LoginDto, ipAddress?: string, tenantId?: string) {
+    const whereClause: Record<string, string> = { email: dto.email };
+    if (tenantId) whereClause.tenantId = tenantId;
+    const user = await this.prisma.user.findFirst({
+      where: whereClause,
     });
 
     if (!user) {

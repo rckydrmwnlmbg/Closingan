@@ -22,6 +22,7 @@ describe('HotLeadService', () => {
     prismaService = {
       lead: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn(),
       },
       message: {
@@ -86,7 +87,7 @@ describe('HotLeadService', () => {
   describe('analyzeLead', () => {
     it('should analyze lead and handle Zod validation successfully', async () => {
       // Mock data
-      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
+      (prismaService.lead.findFirst as jest.Mock).mockResolvedValue({
         id: 'lead-1',
         tenantId: 'tenant-1',
         conversationId: 'conv-1',
@@ -131,7 +132,7 @@ describe('HotLeadService', () => {
     });
 
     it('should abort if JSON validation fails', async () => {
-      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
+      (prismaService.lead.findFirst as jest.Mock).mockResolvedValue({
         id: 'lead-1',
         tenantId: 'tenant-1',
         conversationId: 'conv-1',
@@ -159,7 +160,7 @@ describe('HotLeadService', () => {
     it('should strictly observe idempotency/anti-spam rules', async () => {
       // Current lead is already HOT and sent alert 5 minutes ago
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
-      (prismaService.lead.findUnique as jest.Mock).mockResolvedValue({
+      (prismaService.lead.findFirst as jest.Mock).mockResolvedValue({
         id: 'lead-1',
         tenantId: 'tenant-1',
         conversationId: 'conv-1',

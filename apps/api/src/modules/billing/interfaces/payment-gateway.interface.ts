@@ -10,6 +10,6 @@ export interface PaymentGatewayService {
     amount: number,
     description: string,
   ): Promise<InvoiceResult>;
-  processPayment(invoiceId: string): Promise<void>;
+  processPayment(invoiceId: string, tenantId?: string): Promise<void>;
   handleWebhook(payload: any, signature: string): Promise<void>;
 }

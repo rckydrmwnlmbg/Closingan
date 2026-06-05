@@ -15,8 +15,10 @@ export class AuthPasswordService {
     private readonly auditService: AuditService,
   ) {}
 
-  async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+  async forgotPassword(email: string, tenantId?: string) {
+    const whereClause: Record<string, string> = { email };
+    if (tenantId) whereClause.tenantId = tenantId;
+    const user = await this.prisma.user.findFirst({ where: whereClause });
 
     // Always return same response to prevent email enumeration
     if (user) {
@@ -53,7 +55,7 @@ export class AuthPasswordService {
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
-    const user = await this.prisma.user.findUnique({
+    const user = await this.prisma.user.findFirst({
       where: { id: otpRecord.userId },
     });
 

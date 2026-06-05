@@ -3,6 +3,7 @@ import {
   Post,
   Body,
   UseGuards,
+  Headers,
   Ip,
   HttpCode,
 } from '@nestjs/common';
@@ -35,8 +36,11 @@ export class AuthController {
 
   @Post('register')
   @Audit(AuditAction.USER_REGISTER)
-  async register(@Body() dto: RegisterDto) {
-    const result = await this.authService.register(dto);
+  async register(
+    @Body() dto: RegisterDto,
+    @Headers('x-tenant-id') tenantId?: string,
+  ) {
+    const result = await this.authService.register(dto, tenantId);
     return ResponseBuilder.success(result);
   }
 
@@ -49,16 +53,23 @@ export class AuthController {
 
   @Post('resend-otp')
   @HttpCode(200)
-  async resendOtp(@Body() dto: ResendOtpDto) {
-    const result = await this.authOtpService.resendOtp(dto.userId);
+  async resendOtp(
+    @Body() dto: ResendOtpDto,
+    @Headers('x-tenant-id') tenantId?: string,
+  ) {
+    const result = await this.authOtpService.resendOtp(dto.userId, tenantId);
     return ResponseBuilder.success(result);
   }
 
   @Post('login')
   @HttpCode(200)
   @Audit(AuditAction.USER_LOGIN)
-  async login(@Body() dto: LoginDto, @Ip() ip: string) {
-    const result = await this.authService.login(dto, ip);
+  async login(
+    @Body() dto: LoginDto,
+    @Ip() ip: string,
+    @Headers('x-tenant-id') tenantId?: string,
+  ) {
+    const result = await this.authService.login(dto, ip, tenantId);
     return ResponseBuilder.success(result);
   }
 
@@ -80,8 +91,14 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(200)
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    const result = await this.authPasswordService.forgotPassword(dto.email);
+  async forgotPassword(
+    @Body() dto: ForgotPasswordDto,
+    @Headers('x-tenant-id') tenantId?: string,
+  ) {
+    const result = await this.authPasswordService.forgotPassword(
+      dto.email,
+      tenantId,
+    );
     return ResponseBuilder.success(result);
   }
 
