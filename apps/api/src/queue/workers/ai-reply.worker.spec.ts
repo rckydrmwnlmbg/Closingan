@@ -9,7 +9,8 @@ import { ConversationGateway } from '../../modules/websocket/conversation.gatewa
 import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { getQueueToken } from '@nestjs/bullmq';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
-import { AppException } from '../../common/exceptions/app.exception';
+
+import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
 
 describe('AiReplyWorker', () => {
   let worker: AiReplyWorker;
@@ -20,6 +21,7 @@ describe('AiReplyWorker', () => {
   let whatsappProvider: any;
   let aiAnalysisQueue: any;
   let conversationGateway: any;
+  let knowledgeService: any;
 
   beforeEach(async () => {
     cls = {
@@ -74,6 +76,10 @@ describe('AiReplyWorker', () => {
       broadcastAiSuggestion: jest.fn(),
     };
 
+    knowledgeService = {
+      searchRelevantKnowledge: jest.fn().mockResolvedValue([]),
+    };
+
     const mockRedisService = {
       delPattern: jest.fn(),
       incr: jest.fn().mockResolvedValue(1),
@@ -92,6 +98,7 @@ describe('AiReplyWorker', () => {
         { provide: getQueueToken('ai-analysis'), useValue: aiAnalysisQueue },
         { provide: ConversationGateway, useValue: conversationGateway },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: KnowledgeService, useValue: knowledgeService },
       ],
     }).compile();
 

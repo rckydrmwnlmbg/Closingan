@@ -18,6 +18,7 @@ import { AiReplyJobData } from '../interfaces/job-data.interface';
 import { ConversationGateway } from '../../modules/websocket/conversation.gateway';
 import { AppException } from '../../common/exceptions/app.exception';
 import { ProviderDegradationException } from '../../common/exceptions/provider-degradation.exception';
+import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
 
 @Processor('ai-reply', {
   concurrency: 5,
@@ -39,6 +40,7 @@ export class AiReplyWorker extends WorkerHost {
     private readonly whatsappProvider: WhatsappProviderInterface,
     @InjectQueue('ai-analysis') private readonly aiAnalysisQueue: Queue,
     private readonly conversationGateway: ConversationGateway,
+    private readonly knowledgeService: KnowledgeService,
   ) {
     super();
   }
@@ -203,9 +205,14 @@ export class AiReplyWorker extends WorkerHost {
                 .map((m) => `${m.senderType}: ${m.content}`)
                 .join('\n');
 
+              // 4a. Retrieve relevant knowledge context for augmentation
+              const relevantKnowledge = await this.knowledgeService.searchRelevantKnowledge(tenantId, userMessage);
+              const systemContext = relevantKnowledge.length > 0 ? relevantKnowledge.join('\n\n') : undefined;
+
               const response = await this.aiProvider.generateReply(
                 tenantId,
                 historyText,
+                systemContext
               );
               const suggestion = response.reply;
               const tokensUsed = response.tokensUsed;
@@ -275,8 +282,12 @@ export class AiReplyWorker extends WorkerHost {
               );
             });
 
+            // 5a. Retrieve relevant knowledge context for augmentation
+            const relevantKnowledge = await this.knowledgeService.searchRelevantKnowledge(tenantId, userMessage);
+            const systemContext = relevantKnowledge.length > 0 ? relevantKnowledge.join('\n\n') : undefined;
+
             const raceResult = await Promise.race([
-              this.aiProvider.generateReply(tenantId, historyText),
+              this.aiProvider.generateReply(tenantId, historyText, systemContext),
               timeout,
             ]);
             clearTimeout(timeoutId!);

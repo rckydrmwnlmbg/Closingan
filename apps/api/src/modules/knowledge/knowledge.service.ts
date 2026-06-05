@@ -101,4 +101,37 @@ export class KnowledgeService {
       where: { id },
     });
   }
+
+  async searchRelevantKnowledge(tenantId: string, query: string, limit: number = 3) {
+    try {
+      const { embedding } = await this.aiProvider.generateEmbedding(
+        tenantId,
+        query,
+      );
+
+      const queryEmbedding = `[${embedding.join(',')}]`;
+
+      const results = await this.prisma.$queryRawUnsafe<
+        Array<{ id: string; title: string; content: string; similarity: number }>
+      >(
+        `
+        SELECT id, title, content, 1 - (embedding <=> $1::vector) as similarity
+        FROM "KnowledgeAsset"
+        WHERE "tenantId" = $2
+        ORDER BY embedding <=> $1::vector
+        LIMIT $3;
+        `,
+        queryEmbedding,
+        tenantId,
+        limit
+      );
+
+      return results.map(r => r.content);
+    } catch (error) {
+      this.logger.error(
+        `Failed to search relevant knowledge for tenant ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      return [];
+    }
+  }
 }
