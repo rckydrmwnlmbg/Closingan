@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { getQueueToken } from '@nestjs/bullmq';
 import { RedisService } from '../common/redis/redis.service';
+import { AuditService } from '../common/audit/audit.service';
 
 describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () => {
   let webhookService: WebhookService;
@@ -62,7 +63,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
         { provide: ClsService, useValue: mockClsService },
         { provide: getQueueToken('ai-reply'), useValue: mockQueue },
         {
-          provide: require('../common/audit/audit.service').AuditService,
+          provide: AuditService,
           useValue: mockAuditService,
         },
         { provide: ConfigService, useValue: mockConfigService },

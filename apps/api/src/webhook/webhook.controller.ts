@@ -3,16 +3,16 @@ import {
   Post,
   Body,
   Headers,
-  Req,
   HttpCode,
   HttpStatus,
-  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
-import type { Request } from 'express';
 import { FonnteWebhookPayloadDto } from '../whatsapp/interfaces/fonnte-webhook.dto';
+import { MetaSignatureGuard } from '../common/guards/meta-signature.guard';
 
 @Controller('webhook')
+@UseGuards(MetaSignatureGuard)
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
@@ -21,7 +21,6 @@ export class WebhookController {
   async handleFonnteWebhook(
     @Body() payload: FonnteWebhookPayloadDto,
     @Headers('authorization') signature: string,
-    @Req() request: Request,
   ) {
     return this.webhookService.handleFonnteIncomingMessage(payload, signature);
   }
