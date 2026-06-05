@@ -16,7 +16,7 @@ export interface HotLeadJobData {
 export interface BlastJobData {
   tenantId: string;
   campaignId: string;
-  // Expand based on future needs
+  recipientId: string;
 }
 
 export interface AiAnalysisJobData {

@@ -562,6 +562,7 @@ model CampaignRecipient {
   deliveredAt     DateTime?
   failureReason   String?
   externalMsgId   String?
+  variables       Json?
 
   createdAt DateTime @default(now())
 

@@ -1,0 +1,70 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+
+@Injectable()
+export class CampaignService {
+  private readonly logger = new Logger(CampaignService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue('blast-campaign') private readonly blastQueue: Queue,
+  ) {}
+
+  async executeCampaign(tenantId: string, campaignId: string) {
+    this.logger.log(`Executing campaign ${campaignId} for tenant ${tenantId}`);
+
+    // Fetch the campaign and its recipients
+    const campaign = await this.prisma.campaign.findFirst({
+      where: { id: campaignId, tenantId },
+    });
+
+    if (!campaign) {
+      throw new Error('Campaign not found or does not belong to tenant');
+    }
+
+    // Update status to IN_PROGRESS
+    await this.prisma.campaign.update({
+      where: { id: campaignId },
+      data: { status: 'RUNNING', startedAt: new Date() },
+    });
+
+    const recipients = await this.prisma.campaignRecipient.findMany({
+      where: { campaignId, tenantId, status: 'QUEUED' },
+    });
+
+    // Enqueue jobs with pacing (delay)
+    // 1000ms base delay + additional delay per job
+    const baseDelayMs = 2000;
+
+    for (let i = 0; i < recipients.length; i++) {
+      const recipient = recipients[i];
+      const delay = i * baseDelayMs; // Pace: 1 message every 2 seconds
+
+      await this.blastQueue.add(
+        'send-blast',
+        {
+          tenantId,
+          campaignId,
+          recipientId: recipient.id,
+        },
+        {
+          delay,
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 5000,
+          },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      );
+    }
+
+    this.logger.log(
+      `Enqueued ${recipients.length} messages for campaign ${campaignId}`,
+    );
+    return { success: true, enqueuedCount: recipients.length };
+  }
+}
