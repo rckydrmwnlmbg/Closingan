@@ -102,12 +102,15 @@ export class MidtransPaymentService implements PaymentGatewayService {
     };
   }
 
-  async processPayment(invoiceId: string): Promise<void> {
+  async processPayment(invoiceId: string, tenantId?: string): Promise<void> {
     // Usually triggered manually or used internally by webhooks
     this.logger.log(`Processing payment for invoice ${invoiceId}`);
 
-    const invoice = await this.prisma.invoice.findUnique({
-      where: { id: invoiceId },
+    const whereClause: Record<string, string> = { id: invoiceId };
+    if (tenantId) whereClause.tenantId = tenantId;
+
+    const invoice = await this.prisma.invoice.findFirst({
+      where: whereClause,
     });
 
     if (!invoice) throw new BadRequestException('Invoice not found');

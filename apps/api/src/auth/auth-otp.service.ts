@@ -83,8 +83,10 @@ export class AuthOtpService {
     return { verified: true };
   }
 
-  async resendOtp(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  async resendOtp(userId: string, tenantId?: string) {
+    const whereClause: Record<string, string> = { id: userId };
+    if (tenantId) whereClause.tenantId = tenantId;
+    const user = await this.prisma.user.findFirst({ where: whereClause });
     if (!user) {
       throw new AppException('USER_NOT_FOUND', 'User tidak ditemukan.', 404);
     }

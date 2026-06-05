@@ -151,11 +151,11 @@ export class HotLeadService {
     }
 
     // Ambil data lead saat ini
-    const lead = await this.prisma.lead.findUnique({
-      where: { conversationId },
+    const lead = await this.prisma.lead.findFirst({
+      where: { conversationId, tenantId },
     });
 
-    if (!lead || lead.tenantId !== tenantId) {
+    if (!lead) {
       this.logger.warn(
         `Lead not found or tenant mismatch for conversation: ${conversationId}`,
       );
