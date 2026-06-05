@@ -29,22 +29,40 @@ describe('BillingController', () => {
 
   describe('handlePaymentWebhook', () => {
     it('should throw BadRequestException if signature is missing', async () => {
-      await expect(controller.handlePaymentWebhook({}, '')).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        controller.handlePaymentWebhook(
+          {
+            order_id: '123',
+            status_code: '200',
+            gross_amount: '1000',
+            transaction_status: 'settlement',
+          },
+          '',
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should call midtransService.handleWebhook if signature is present', async () => {
       mockMidtransService.handleWebhook.mockResolvedValue(undefined);
 
       const result = await controller.handlePaymentWebhook(
-        { order_id: '123' },
+        {
+          order_id: '123',
+          status_code: '200',
+          gross_amount: '1000',
+          transaction_status: 'settlement',
+        },
         'valid-signature',
       );
 
       expect(result).toEqual({ success: true });
       expect(midtransService.handleWebhook).toHaveBeenCalledWith(
-        { order_id: '123' },
+        {
+          order_id: '123',
+          status_code: '200',
+          gross_amount: '1000',
+          transaction_status: 'settlement',
+        },
         'valid-signature',
       );
     });
