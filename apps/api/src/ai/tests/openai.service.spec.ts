@@ -18,7 +18,7 @@ jest.mock('openai', () => {
 describe('OpenAiService', () => {
   let service: OpenAiService;
   let aiSafetyService: jest.Mocked<AiSafetyService>;
-  let configService: jest.Mocked<ConfigService>;
+  // let configService: jest.Mocked<ConfigService>;
   let openaiClient: any;
 
   beforeEach(async () => {
@@ -48,7 +48,7 @@ describe('OpenAiService', () => {
 
     service = module.get<OpenAiService>(OpenAiService);
     aiSafetyService = module.get(AiSafetyService);
-    configService = module.get(ConfigService);
+    // configService = module.get(ConfigService);
     openaiClient = (service as any).openai;
   });
 
@@ -102,6 +102,29 @@ describe('OpenAiService', () => {
 
       await expect(service.generateReply('tenant-1', 'hello')).rejects.toThrow(
         AiSafetyException,
+      );
+    });
+  });
+
+  describe('generateReply with context', () => {
+    it('should augment system prompt when systemContext is provided', async () => {
+      (service as any).chatBreaker.fire = jest.fn().mockResolvedValue({
+        choices: [{ message: { content: 'Augmented Reply' } }],
+        usage: { total_tokens: 15 },
+      });
+
+      const result = await service.generateReply('t1', 'test prompt', 'Company info: We sell cars.');
+
+      expect(result.reply).toBe('Augmented Reply');
+      expect((service as any).chatBreaker.fire).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              role: 'system',
+              content: expect.stringContaining('Use the following company context to answer the user\'s question accurately:\nCompany info: We sell cars.'),
+            }),
+          ]),
+        })
       );
     });
   });

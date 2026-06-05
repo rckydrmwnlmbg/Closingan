@@ -8,6 +8,7 @@ describe('KnowledgeService', () => {
 
   const mockPrismaService = {
     $executeRawUnsafe: jest.fn().mockResolvedValue(1),
+    $queryRawUnsafe: jest.fn(),
     knowledgeAsset: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -165,6 +166,26 @@ describe('KnowledgeService', () => {
       await expect(service.remove('t1', '1')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('searchRelevantKnowledge', () => {
+    it('should return relevant knowledge context', async () => {
+      mockPrismaService.$queryRawUnsafe.mockResolvedValue([
+        { id: '1', title: 'Asset 1', content: 'Content 1', similarity: 0.9 },
+        { id: '2', title: 'Asset 2', content: 'Content 2', similarity: 0.8 },
+      ]);
+
+      const result = await service.searchRelevantKnowledge('t1', 'test query');
+      expect(result).toEqual(['Content 1', 'Content 2']);
+      expect(mockPrismaService.$queryRawUnsafe).toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully and return empty array', async () => {
+      mockPrismaService.$queryRawUnsafe.mockRejectedValue(new Error('DB Error'));
+
+      const result = await service.searchRelevantKnowledge('t1', 'test query');
+      expect(result).toEqual([]);
     });
   });
 });
