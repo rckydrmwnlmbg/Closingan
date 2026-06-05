@@ -96,7 +96,7 @@ Format:
 - [x] ✅ TASK 12.1 — Campaign Data Model & API
 - [x] ✅ TASK 12.2 — Recipient Management & Validation
 - [x] ✅ TASK 12.3 — Outreach Pacing & Anti-Spam
-- [ ] ⏳ TASK 12.4 — Campaign UI
+- [x] ✅ TASK 12.4 — Campaign UI
 - [x] ✅ TASK 12.5 — Suppression List Management
 
 ### Milestone 13 — Anti-Abuse
