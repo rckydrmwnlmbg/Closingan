@@ -23,6 +23,13 @@ Format:
 
 ## PHASE 1 — MVP Core
 
+### [2026-06-05]
+- ✅ TASK 2.3 — RAG Embedding Generation (Phase 2) selesai
+  - Implemented generateEmbedding in OpenAiService using text-embedding-3-small
+  - Integrated OpenAiService into KnowledgeService to generate embeddings on asset creation/update
+  - Handled embedding errors gracefully (logs error, but returns asset)
+  - Updated Prisma direct SQL raw execution to save embeddings mathematically
+
 ### Milestone 1 — Fondasi Proyek
 - [x] ✅ TASK 1.1 — Setup Monorepo / Project Structure
 - [x] ✅ TASK 1.2 — Database Schema (Core Tables)

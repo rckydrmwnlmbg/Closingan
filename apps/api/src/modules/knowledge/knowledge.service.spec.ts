@@ -7,6 +7,7 @@ describe('KnowledgeService', () => {
   let service: KnowledgeService;
 
   const mockPrismaService = {
+    $executeRawUnsafe: jest.fn().mockResolvedValue(1),
     knowledgeAsset: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -20,6 +21,14 @@ describe('KnowledgeService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         KnowledgeService,
+        {
+          provide: 'AI_PROVIDER',
+          useValue: {
+            generateEmbedding: jest
+              .fn()
+              .mockResolvedValue({ embedding: [0.1, 0.2, 0.3] }),
+          },
+        },
         {
           provide: PrismaService,
           useValue: mockPrismaService,
