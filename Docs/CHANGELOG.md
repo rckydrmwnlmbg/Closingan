@@ -97,7 +97,7 @@ Format:
 - [x] ✅ TASK 12.2 — Recipient Management & Validation
 - [x] ✅ TASK 12.3 — Outreach Pacing & Anti-Spam
 - [ ] ⏳ TASK 12.4 — Campaign UI
-- [ ] ⏳ TASK 12.5 — Suppression List Management
+- [x] ✅ TASK 12.5 — Suppression List Management
 
 ### Milestone 13 — Anti-Abuse
 - [ ] ⏳ TASK 13.1 — Device Fingerprinting
@@ -284,6 +284,7 @@ Format:
 - Fixed unhandled exception response mapping to avoid leaking stack traces directly as strings without proper log categorization.
 
 ## [LOG PERUBAHAN]
+- ✅ TASK 12.5 — Suppression List Management (Added Webhook Interception for opt-outs, internal events, and Campaign override logic)
 - Implemented Campaign Data Model & API (Task 12.1)
 - Implemented Recipient Management & Validation with `variables` support (Task 12.2)
 - Added Outreach Pacing & Anti-Spam through `blast-campaign` queue and `CampaignService` (Task 12.3)

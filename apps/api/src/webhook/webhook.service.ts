@@ -1,11 +1,12 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { AuditService } from '../common/audit/audit.service';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
-import { Inject, OnModuleDestroy } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
@@ -24,6 +25,7 @@ export class WebhookService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async handleFonnteIncomingMessage(
@@ -103,6 +105,62 @@ export class WebhookService {
       { tenantId, webhookId: payload.id },
       `Webhook received and verified for Tenant: ${tenantId}`,
     );
+
+    // Suppression List / Opt-Out Interception
+    const messageText = (payload.message || payload.text || '')
+      .trim()
+      .toUpperCase();
+    const optOutKeywords = ['STOP', 'BERHENTI'];
+    const senderNumber = payload.sender || payload.from;
+
+    if (senderNumber && optOutKeywords.includes(messageText)) {
+      // Normalize sender phone number (assuming Fonnte sender format)
+      // Here we might just use sender directly if we don't have a normalizer handy, or just strip special chars.
+      const phoneNormalized = senderNumber.replace(/\D/g, '');
+
+      // Upsert to suppression list
+      let suppression = await this.prisma.suppressionList.findFirst({
+        where: { tenantId, phoneNormalized },
+      });
+
+      if (suppression) {
+        suppression = await this.prisma.suppressionList.update({
+          where: { id: suppression.id },
+          data: {
+            isActive: true,
+            reason: 'OPTED_OUT',
+            removedAt: null,
+            removedBy: null,
+            removalReason: null,
+          },
+        });
+      } else {
+        suppression = await this.prisma.suppressionList.create({
+          data: {
+            tenantId,
+            phoneNumber: senderNumber,
+            phoneNormalized,
+            reason: 'OPTED_OUT',
+            addedBy: 'SYSTEM',
+          },
+        });
+      }
+
+      this.logger.log(
+        `Added ${senderNumber} to suppression list for tenant ${tenantId} due to opt-out keyword.`,
+      );
+
+      // Emit event for notification
+      this.eventEmitter.emit('suppression.opt_out', {
+        tenantId,
+        phoneNumber: senderNumber,
+        suppressionId: suppression.id,
+      });
+
+      // We can stop processing here or still queue it for the conversation history?
+      // Business logic implies we probably shouldn't queue to AI.
+      return { success: true, message: 'Opted out' };
+    }
 
     // Anti-Looping: Check Redis for Human Takeover Status
     const sender = payload.sender || payload.from;

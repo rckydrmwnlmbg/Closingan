@@ -12,7 +12,35 @@ export class CampaignService {
     @InjectQueue('blast-campaign') private readonly blastQueue: Queue,
   ) {}
 
-  async executeCampaign(tenantId: string, campaignId: string) {
+  async validateCampaignAudience(tenantId: string, campaignId: string) {
+    const recipients = await this.prisma.campaignRecipient.findMany({
+      where: { campaignId, tenantId, status: 'QUEUED' },
+      select: { phoneNormalized: true },
+    });
+
+    const phoneNumbers = recipients.map((r) => r.phoneNormalized);
+
+    const blacklisted = await this.prisma.suppressionList.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+        phoneNormalized: { in: phoneNumbers },
+      },
+      select: { phoneNormalized: true, reason: true },
+    });
+
+    return {
+      totalRecipients: phoneNumbers.length,
+      blacklistedCount: blacklisted.length,
+      blacklistedNumbers: blacklisted.map((b) => b.phoneNormalized),
+    };
+  }
+
+  async executeCampaign(
+    tenantId: string,
+    campaignId: string,
+    forceSend: string[] = [],
+  ) {
     this.logger.log(`Executing campaign ${campaignId} for tenant ${tenantId}`);
 
     // Fetch the campaign and its recipients
@@ -30,9 +58,43 @@ export class CampaignService {
       data: { status: 'RUNNING', startedAt: new Date() },
     });
 
-    const recipients = await this.prisma.campaignRecipient.findMany({
+    let recipients = await this.prisma.campaignRecipient.findMany({
       where: { campaignId, tenantId, status: 'QUEUED' },
     });
+
+    // Handle forceSend override
+    if (forceSend && forceSend.length > 0) {
+      await this.prisma.suppressionList.updateMany({
+        where: {
+          tenantId,
+          phoneNormalized: { in: forceSend },
+          isActive: true,
+        },
+        data: {
+          isActive: false,
+          removedAt: new Date(),
+          removalReason: 'TENANT_OVERRIDE',
+          removedBy: 'TENANT',
+        },
+      });
+      this.logger.log(
+        `Overridden suppression list for ${forceSend.length} numbers in tenant ${tenantId}`,
+      );
+    }
+
+    // Filter out blacklisted numbers that are NOT in forceSend
+    const activeSuppression = await this.prisma.suppressionList.findMany({
+      where: {
+        tenantId,
+        isActive: true,
+      },
+      select: { phoneNormalized: true },
+    });
+    const blacklistedNumbers = activeSuppression.map((s) => s.phoneNormalized);
+
+    recipients = recipients.filter(
+      (r) => !blacklistedNumbers.includes(r.phoneNormalized),
+    );
 
     // Enqueue jobs with pacing (delay)
     // 1000ms base delay + additional delay per job
