@@ -7,4 +7,8 @@ export interface AiProviderInterface {
     tenantId: string,
     conversation: string,
   ): Promise<{ result: any; tokensUsed: number }>;
+  generateEmbedding(
+    tenantId: string,
+    text: string,
+  ): Promise<{ embedding: number[]; tokensUsed: number }>;
 }

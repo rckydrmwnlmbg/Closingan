@@ -213,4 +213,52 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
       throw new InternalServerErrorException('Failed to analyze lead');
     }
   }
+
+  async generateEmbedding(
+    tenantId: string,
+    text: string,
+  ): Promise<{ embedding: number[]; tokensUsed: number }> {
+    await this.metricsService.incrementAiRequestCount();
+    try {
+      // 1. Input Validation
+      const inputValidation = this.aiSafetyService.validateInput(text);
+      if (!inputValidation.isSafe) {
+        throw new AiSafetyException(
+          inputValidation.reason!,
+          'Embedding input failed safety validation',
+          inputValidation.blockedContent,
+        );
+      }
+
+      const response = await this.openai.embeddings.create({
+        model: 'text-embedding-3-small',
+        input: text,
+      });
+
+      const embedding = response.data[0]?.embedding;
+      const tokensUsed = response.usage?.total_tokens || 0;
+
+      if (!embedding) {
+        throw new Error('No embedding returned from OpenAI');
+      }
+
+      this.logger.log(
+        { tenantId, tokensUsed },
+        `Embedding generated for Tenant: ${tenantId}`,
+      );
+
+      return { embedding, tokensUsed };
+    } catch (error) {
+      if (error instanceof AiSafetyException) {
+        throw error;
+      }
+
+      await this.metricsService.incrementAiErrorCount();
+
+      this.logger.error(
+        `Failed to generate embedding from OpenAI for Tenant: ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw new InternalServerErrorException('Failed to generate embedding');
+    }
+  }
 }
