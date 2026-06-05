@@ -1,3 +1,4 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhookService } from './webhook.service';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -54,6 +55,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: EventEmitter2, useValue: { emit: jest.fn() } },
         WebhookService,
         { provide: WHATSAPP_PROVIDER, useValue: mockWhatsappProvider },
         { provide: PrismaService, useValue: mockPrismaService },

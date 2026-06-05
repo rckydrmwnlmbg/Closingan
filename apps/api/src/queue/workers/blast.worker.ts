@@ -5,10 +5,8 @@ import { BlastJobData } from '../interfaces/job-data.interface';
 import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AppException } from '../../common/exceptions/app.exception';
-import {
-  WHATSAPP_PROVIDER,
-  WhatsappProviderInterface,
-} from '../../whatsapp/interfaces/whatsapp-provider.interface';
+import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
+import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { Inject } from '@nestjs/common';
 
 @Processor('blast-campaign', {
