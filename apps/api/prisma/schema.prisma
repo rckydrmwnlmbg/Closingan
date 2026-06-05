@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 enum UserRole {
@@ -206,6 +208,7 @@ model Tenant {
   exitSurveys                  ExitSurvey[]
   conversationLabelAssignments ConversationLabelAssignment[]
   referrals                    Referral[]                    @relation("ReferralTenant")
+  knowledgeAssets              KnowledgeAsset[]
 }
 
 model User {
@@ -641,18 +644,18 @@ model Invoice {
 }
 
 model TokenQuota {
-  id          String    @id @default(cuid())
-  tenantId    String    @unique
+  id           String    @id @default(cuid())
+  tenantId     String    @unique
   totalQuota   Int
-  usedQuota    Int      @default(0)
-  extraCredits Int      @default(0)
+  usedQuota    Int       @default(0)
+  extraCredits Int       @default(0)
   graceBuffer  Int // 5% of totalQuota
-  periodStart DateTime
-  periodEnd   DateTime
-  warned70At  DateTime?
-  warned85At  DateTime?
-  warned95At  DateTime?
-  lastSyncAt  DateTime  @default(now())
+  periodStart  DateTime
+  periodEnd    DateTime
+  warned70At   DateTime?
+  warned85At   DateTime?
+  warned95At   DateTime?
+  lastSyncAt   DateTime  @default(now())
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -863,4 +866,21 @@ model DeadLetterLog {
   payload     Json
   errorReason String   @db.Text
   createdAt   DateTime @default(now())
+}
+
+// ─── KNOWLEDGE BASE (RAG) ────────────────────────────────────
+
+model KnowledgeAsset {
+  id        String                       @id @default(cuid())
+  tenantId  String
+  title     String
+  content   String                       @db.Text
+  embedding Unsupported("vector(1536)")?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
 }

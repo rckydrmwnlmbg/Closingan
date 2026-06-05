@@ -25,6 +25,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FollowUpModule } from './modules/follow-up/follow-up.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
+import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { CampaignModule } from './modules/campaign/campaign.module';
     FollowUpModule,
     BillingModule,
     CampaignModule,
+    KnowledgeModule,
   ],
   controllers: [AppController],
   providers: [
