@@ -29,6 +29,7 @@ import { CampaignModule } from './modules/campaign/campaign.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { AntiAbuseModule } from './common/guards/anti-abuse/anti-abuse.module';
 import { AntiAbuseControllerModule } from './modules/anti-abuse/anti-abuse.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
 
 @Module({
@@ -102,6 +103,7 @@ import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
     KnowledgeModule,
     AntiAbuseModule,
     AntiAbuseControllerModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
