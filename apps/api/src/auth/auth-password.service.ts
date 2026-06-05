@@ -3,6 +3,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcryptjs';
 import { AppException } from '../common/exceptions/app.exception';
+import * as crypto from 'crypto';
 import { AuditService } from '../common/audit/audit.service';
 import { AuditAction } from '@prisma/client';
 
@@ -19,9 +20,7 @@ export class AuthPasswordService {
 
     // Always return same response to prevent email enumeration
     if (user) {
-      const token =
-        Math.random().toString(36).substring(2, 15) +
-        Math.random().toString(36).substring(2, 15);
+      const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
 
       await this.prisma.otpCode.create({
