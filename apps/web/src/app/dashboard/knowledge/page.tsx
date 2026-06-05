@@ -1,0 +1,264 @@
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher, fetchApi } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2, Pencil, Loader2 } from "lucide-react";
+
+interface KnowledgeAsset {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+export default function KnowledgePage() {
+  const { data, error, mutate } = useSWR<{ data: KnowledgeAsset[] }>("/v1/knowledge", fetcher);
+
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  const [selectedAsset, setSelectedAsset] = useState<KnowledgeAsset | null>(null);
+  const [formData, setFormData] = useState({ title: "", content: "" });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const knowledgeAssets = data?.data || [];
+  const isLoadingData = !data && !error;
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      await fetchApi("/v1/knowledge", {
+        method: "POST",
+        body: JSON.stringify(formData),
+      });
+      mutate();
+      setIsCreateOpen(false);
+      setFormData({ title: "", content: "" });
+    } catch (err) {
+      console.error("Failed to create knowledge asset", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAsset) return;
+
+    setIsLoading(true);
+    try {
+      await fetchApi(`/v1/knowledge/${selectedAsset.id}`, {
+        method: "PATCH",
+        body: JSON.stringify(formData),
+      });
+      mutate();
+      setIsEditOpen(false);
+    } catch (err) {
+      console.error("Failed to update knowledge asset", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedAsset) return;
+
+    setIsLoading(true);
+    try {
+      await fetchApi(`/v1/knowledge/${selectedAsset.id}`, {
+        method: "DELETE",
+      });
+      mutate();
+      setIsDeleteOpen(false);
+    } catch (err) {
+      console.error("Failed to delete knowledge asset", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const openEdit = (asset: KnowledgeAsset) => {
+    setSelectedAsset(asset);
+    setFormData({ title: asset.title, content: asset.content });
+    setIsEditOpen(true);
+  };
+
+  const openDelete = (asset: KnowledgeAsset) => {
+    setSelectedAsset(asset);
+    setIsDeleteOpen(true);
+  };
+
+  return (
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto min-w-[375px] pb-24">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold tracking-tight">Knowledge Base</h1>
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" /> Add Knowledge
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>Add New Knowledge</DialogTitle>
+              <DialogDescription>
+                Add FAQs, company information, or product details to help your AI assistant answer better.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <label htmlFor="title" className="text-sm font-medium leading-none">Title</label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    placeholder="e.g. Return Policy"
+                    required
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="content" className="text-sm font-medium leading-none">Content</label>
+                  <Textarea
+                    id="content"
+                    value={formData.content}
+                    onChange={(e) => setFormData({...formData, content: e.target.value})}
+                    placeholder="Enter the detailed information here..."
+                    className="min-h-[200px]"
+                    required
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Knowledge
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-600 p-4 rounded-md border border-red-200 mb-6">
+          Failed to load knowledge base. Please try again.
+        </div>
+      )}
+
+      {isLoadingData ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
+      ) : knowledgeAssets.length === 0 ? (
+        <div className="text-center p-12 border rounded-lg bg-slate-50">
+          <h3 className="text-lg font-medium mb-2">No Knowledge Assets Found</h3>
+          <p className="text-muted-foreground mb-4">Add some knowledge to help your AI assist customers better.</p>
+          <Button onClick={() => setIsCreateOpen(true)} variant="outline">
+            <Plus className="mr-2 h-4 w-4" /> Create First Asset
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {knowledgeAssets.map((asset) => (
+            <Card key={asset.id} className="flex flex-col">
+              <CardHeader>
+                <CardTitle className="line-clamp-1 text-lg">{asset.title}</CardTitle>
+                <CardDescription className="text-xs">
+                  Added on {new Date(asset.createdAt).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow">
+                <p className="text-sm text-muted-foreground line-clamp-4">
+                  {asset.content}
+                </p>
+              </CardContent>
+              <CardFooter className="flex justify-end space-x-2 pt-4 border-t">
+                <Button variant="outline" size="sm" onClick={() => openEdit(asset)}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => openDelete(asset)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Edit Knowledge</DialogTitle>
+            <DialogDescription>
+              Update the details of this knowledge asset.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit}>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <label htmlFor="edit-title" className="text-sm font-medium leading-none">Title</label>
+                <Input
+                  id="edit-title"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <label htmlFor="edit-content" className="text-sm font-medium leading-none">Content</label>
+                <Textarea
+                  id="edit-content"
+                  value={formData.content}
+                  onChange={(e) => setFormData({...formData, content: e.target.value})}
+                  className="min-h-[200px]"
+                  required
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>Cancel</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Delete Knowledge</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{selectedAsset?.title}&quot;? This action cannot be undone and the AI will no longer have access to this information.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isLoading}>
+              Cancel
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDelete} disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
