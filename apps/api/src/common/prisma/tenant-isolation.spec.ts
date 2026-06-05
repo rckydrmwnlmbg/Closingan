@@ -8,6 +8,7 @@ describe('Tenant Isolation Architecture Test', () => {
     'UserBadge',
     'FailedJob',
     'DeadLetterLog',
+    'AbusiveClient',
     'User',
   ];
 

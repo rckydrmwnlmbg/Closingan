@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { RedisThrottlerStorage } from '@nestjs-redis/throttler-storage';
 import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { ClsModule } from 'nestjs-cls';
@@ -26,6 +27,8 @@ import { FollowUpModule } from './modules/follow-up/follow-up.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { CampaignModule } from './modules/campaign/campaign.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
+import { AntiAbuseModule } from './common/guards/anti-abuse/anti-abuse.module';
+import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
 
 @Module({
   imports: [
@@ -61,12 +64,23 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
         };
       },
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000,
-        limit: 10,
-      },
-    ]),
+    ThrottlerModule.forRootAsync({
+      imports: [RedisModule, ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: 60000,
+            limit: 10,
+          },
+        ],
+        storage: new RedisThrottlerStorage({
+          host: config.get('REDIS_HOST', 'localhost'),
+          port: config.get('REDIS_PORT', 6379),
+          password: config.get('REDIS_PASSWORD', ''),
+        }),
+      }),
+    }),
     PrismaModule,
     RedisModule,
     AuditModule,
@@ -85,6 +99,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
     BillingModule,
     CampaignModule,
     KnowledgeModule,
+    AntiAbuseModule,
   ],
   controllers: [AppController],
   providers: [
@@ -92,6 +107,10 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AntiAbuseGuard,
     },
   ],
 })

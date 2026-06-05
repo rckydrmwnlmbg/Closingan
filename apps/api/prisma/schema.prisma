@@ -884,3 +884,15 @@ model KnowledgeAsset {
 
   @@index([tenantId])
 }
+
+// ─── ANTI-ABUSE ───────────────────────────────────────────────
+
+model AbusiveClient {
+  id              String   @id @default(cuid())
+  fingerprintHash String   @unique
+  ipAddress       String?
+  reason          String?
+  blockedAt       DateTime @default(now())
+
+  @@index([fingerprintHash])
+}

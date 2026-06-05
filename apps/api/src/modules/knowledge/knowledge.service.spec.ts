@@ -182,7 +182,9 @@ describe('KnowledgeService', () => {
     });
 
     it('should handle errors gracefully and return empty array', async () => {
-      mockPrismaService.$queryRawUnsafe.mockRejectedValue(new Error('DB Error'));
+      mockPrismaService.$queryRawUnsafe.mockRejectedValue(
+        new Error('DB Error'),
+      );
 
       const result = await service.searchRelevantKnowledge('t1', 'test query');
       expect(result).toEqual([]);

@@ -206,13 +206,20 @@ export class AiReplyWorker extends WorkerHost {
                 .join('\n');
 
               // 4a. Retrieve relevant knowledge context for augmentation
-              const relevantKnowledge = await this.knowledgeService.searchRelevantKnowledge(tenantId, userMessage);
-              const systemContext = relevantKnowledge.length > 0 ? relevantKnowledge.join('\n\n') : undefined;
+              const relevantKnowledge =
+                await this.knowledgeService.searchRelevantKnowledge(
+                  tenantId,
+                  userMessage,
+                );
+              const systemContext =
+                relevantKnowledge.length > 0
+                  ? relevantKnowledge.join('\n\n')
+                  : undefined;
 
               const response = await this.aiProvider.generateReply(
                 tenantId,
                 historyText,
-                systemContext
+                systemContext,
               );
               const suggestion = response.reply;
               const tokensUsed = response.tokensUsed;
@@ -283,11 +290,22 @@ export class AiReplyWorker extends WorkerHost {
             });
 
             // 5a. Retrieve relevant knowledge context for augmentation
-            const relevantKnowledge = await this.knowledgeService.searchRelevantKnowledge(tenantId, userMessage);
-            const systemContext = relevantKnowledge.length > 0 ? relevantKnowledge.join('\n\n') : undefined;
+            const relevantKnowledge =
+              await this.knowledgeService.searchRelevantKnowledge(
+                tenantId,
+                userMessage,
+              );
+            const systemContext =
+              relevantKnowledge.length > 0
+                ? relevantKnowledge.join('\n\n')
+                : undefined;
 
             const raceResult = await Promise.race([
-              this.aiProvider.generateReply(tenantId, historyText, systemContext),
+              this.aiProvider.generateReply(
+                tenantId,
+                historyText,
+                systemContext,
+              ),
               timeout,
             ]);
             clearTimeout(timeoutId!);

@@ -113,7 +113,11 @@ describe('OpenAiService', () => {
         usage: { total_tokens: 15 },
       });
 
-      const result = await service.generateReply('t1', 'test prompt', 'Company info: We sell cars.');
+      const result = await service.generateReply(
+        't1',
+        'test prompt',
+        'Company info: We sell cars.',
+      );
 
       expect(result.reply).toBe('Augmented Reply');
       expect((service as any).chatBreaker.fire).toHaveBeenCalledWith(
@@ -121,10 +125,12 @@ describe('OpenAiService', () => {
           messages: expect.arrayContaining([
             expect.objectContaining({
               role: 'system',
-              content: expect.stringContaining('Use the following company context to answer the user\'s question accurately:\nCompany info: We sell cars.'),
+              content: expect.stringContaining(
+                "Use the following company context to answer the user's question accurately:\nCompany info: We sell cars.",
+              ),
             }),
           ]),
-        })
+        }),
       );
     });
   });
