@@ -102,7 +102,11 @@ export class KnowledgeService {
     });
   }
 
-  async searchRelevantKnowledge(tenantId: string, query: string, limit: number = 3) {
+  async searchRelevantKnowledge(
+    tenantId: string,
+    query: string,
+    limit: number = 3,
+  ) {
     try {
       const { embedding } = await this.aiProvider.generateEmbedding(
         tenantId,
@@ -112,7 +116,12 @@ export class KnowledgeService {
       const queryEmbedding = `[${embedding.join(',')}]`;
 
       const results = await this.prisma.$queryRawUnsafe<
-        Array<{ id: string; title: string; content: string; similarity: number }>
+        Array<{
+          id: string;
+          title: string;
+          content: string;
+          similarity: number;
+        }>
       >(
         `
         SELECT id, title, content, 1 - (embedding <=> $1::vector) as similarity
@@ -123,10 +132,10 @@ export class KnowledgeService {
         `,
         queryEmbedding,
         tenantId,
-        limit
+        limit,
       );
 
-      return results.map(r => r.content);
+      return results.map((r) => r.content);
     } catch (error) {
       this.logger.error(
         `Failed to search relevant knowledge for tenant ${tenantId}: ${error instanceof Error ? error.message : 'Unknown error'}`,
