@@ -5,7 +5,6 @@ import useSWR from "swr";
 import { fetcher } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { AlertCircle } from "lucide-react";
 
 export default function AnalyticsDashboard() {
   const { data, error, isLoading } = useSWR("/v1/analytics/summary", fetcher);
@@ -17,15 +16,6 @@ export default function AnalyticsDashboard() {
 
   if (!mounted) return null;
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[50vh] text-zinc-400">
-        <AlertCircle className="w-8 h-8 mb-4 text-red-500/50" />
-        <p className="text-sm font-medium">Failed to load analytics data</p>
-      </div>
-    );
-  }
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
@@ -34,22 +24,24 @@ export default function AnalyticsDashboard() {
     );
   }
 
-  // Defensive rendering - handle empty states gracefully
-  const hasData = data && (
-    (data.messageTrend && data.messageTrend.length > 0) ||
-    (data.totalConversations > 0) ||
-    (Object.keys(data.campaignSummary || {}).length > 0)
+  // Defensive rendering - handle empty states gracefully (even on error)
+  const safeData = error ? null : data;
+
+  const hasData = safeData && (
+    (safeData.messageTrend && safeData.messageTrend.length > 0) ||
+    (safeData.totalConversations > 0) ||
+    (Object.keys(safeData.campaignSummary || {}).length > 0)
   );
 
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-[70vh] border border-white/10 rounded-2xl bg-black/50">
+      <div className="flex flex-col items-center justify-center h-[70vh] border border-white/5 bg-black">
         <div className="text-center max-w-md px-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Belum ada data masuk.</h3>
+          <h3 className="text-lg font-semibold text-white mb-2 tracking-tight">Belum ada data masuk.</h3>
           <p className="text-sm text-zinc-400 font-light mb-6">
             Hubungkan WhatsApp Anda untuk memulai melacak percakapan dan metrik AI.
           </p>
-          <button className="px-6 py-2.5 bg-white text-black text-sm font-medium rounded-lg hover:bg-zinc-200 transition-colors">
+          <button className="px-6 py-2.5 bg-white text-black text-sm font-medium rounded-none hover:bg-zinc-200 transition-colors">
             Hubungkan WhatsApp
           </button>
         </div>
@@ -57,7 +49,7 @@ export default function AnalyticsDashboard() {
     );
   }
 
-  const { messageTrend = [], tokenUsage = {}, totalConversations = 0, campaignSummary = {} } = data || {};
+  const { messageTrend = [], tokenUsage = {}, totalConversations = 0, campaignSummary = {} } = safeData || {};
   const estimatedCost = ((tokenUsage.promptTokens || 0) / 1000 * 0.00015) + ((tokenUsage.completionTokens || 0) / 1000 * 0.0006);
 
   // Bento-style grid structure with subtle borders and deep blacks
@@ -74,7 +66,7 @@ export default function AnalyticsDashboard() {
           { title: "Estimated Cost", value: `$${estimatedCost.toFixed(4)}`, desc: "Based on GPT-4o-Mini" },
           { title: "Active Campaigns", value: campaignSummary['ACTIVE'] || 0, desc: "Currently running" }
         ].map((item, i) => (
-          <Card key={i} className="bg-black border-white/10 shadow-none rounded-xl">
+          <Card key={i} className="bg-black border border-white/5 shadow-none rounded-none">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xs font-medium text-zinc-400">{item.title}</CardTitle>
             </CardHeader>
@@ -87,7 +79,7 @@ export default function AnalyticsDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4 bg-black border-white/10 shadow-none rounded-xl">
+        <Card className="col-span-4 bg-black border border-white/5 shadow-none rounded-none">
           <CardHeader>
             <CardTitle className="text-sm font-medium text-white">Message Volume Trend</CardTitle>
             <CardDescription className="text-xs text-zinc-500">Last 7 Days (AI vs Customer)</CardDescription>
@@ -100,19 +92,19 @@ export default function AnalyticsDashboard() {
                   <XAxis dataKey="date" tickLine={false} axisLine={false} className="text-[10px]" tick={{ fill: '#71717a' }} />
                   <YAxis tickLine={false} axisLine={false} className="text-[10px]" tick={{ fill: '#71717a' }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '0' }}
                     itemStyle={{ color: '#fff', fontSize: '12px' }}
                     labelStyle={{ color: '#a1a1aa', fontSize: '10px', marginBottom: '4px' }}
                   />
-                  <Line type="monotone" dataKey="sent" name="Sent (AI)" stroke="#ffffff" strokeWidth={1.5} dot={false} activeDot={{ r: 4, fill: '#fff' }} />
-                  <Line type="monotone" dataKey="received" name="Received" stroke="#52525b" strokeWidth={1.5} dot={false} />
+                  <Line type="monotone" dataKey="sent" name="Sent (AI)" stroke="#ffffff" strokeWidth={1} dot={false} activeDot={{ r: 4, fill: '#fff' }} />
+                  <Line type="monotone" dataKey="received" name="Received" stroke="#52525b" strokeWidth={1} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="col-span-3 bg-black border-white/10 shadow-none rounded-xl">
+        <Card className="col-span-3 bg-black border border-white/5 shadow-none rounded-none">
           <CardHeader>
             <CardTitle className="text-sm font-medium text-white">Campaign Status</CardTitle>
             <CardDescription className="text-xs text-zinc-500">Breakdown of all campaigns</CardDescription>
@@ -126,10 +118,10 @@ export default function AnalyticsDashboard() {
                   <YAxis tickLine={false} axisLine={false} className="text-[10px]" tick={{ fill: '#71717a' }} />
                   <Tooltip
                     cursor={{ fill: 'rgba(255,255,255,0.05)' }}
-                    contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: '#000', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '0' }}
                     itemStyle={{ color: '#fff', fontSize: '12px' }}
                   />
-                  <Bar dataKey="count" fill="#ffffff" radius={[2, 2, 0, 0]} maxBarSize={40} />
+                  <Bar dataKey="count" fill="#ffffff" maxBarSize={40} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

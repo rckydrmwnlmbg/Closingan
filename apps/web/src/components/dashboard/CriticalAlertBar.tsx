@@ -1,10 +1,9 @@
 "use client";
 
-import { AlertTriangle, X } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface CriticalAlertProps {
+interface CriticalAlertBarProps {
   id: string;
   title: string;
   message: string;
@@ -12,25 +11,30 @@ interface CriticalAlertProps {
   onClick: (id: string) => void;
 }
 
-export function CriticalAlertBar({ id, title, message, onDismiss, onClick }: CriticalAlertProps) {
+export function CriticalAlertBar({ id, title, message, onDismiss, onClick }: CriticalAlertBarProps) {
   return (
-    <Alert variant="destructive" className="mb-4 cursor-pointer relative" onClick={() => onClick(id)}>
-      <AlertTriangle className="h-4 w-4" />
-      <div className="flex-1 pr-6">
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{message}</AlertDescription>
+    <div
+      className="mb-8 border border-red-500/30 bg-red-500/5 text-white p-4 flex items-center justify-between cursor-pointer hover:bg-red-500/10 transition-colors"
+      onClick={() => onClick(id)}
+    >
+      <div className="flex items-center gap-4">
+        <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+        <div>
+          <h4 className="font-medium text-sm tracking-wide uppercase text-red-400">{title}</h4>
+          <p className="text-sm text-zinc-400 font-light mt-1">{message}</p>
+        </div>
       </div>
       <Button
         variant="ghost"
         size="icon"
-        className="absolute right-2 top-2 h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-100"
+        className="text-zinc-500 hover:text-white hover:bg-white/5 rounded-none shrink-0"
         onClick={(e) => {
           e.stopPropagation();
           onDismiss(id);
         }}
       >
-        <X className="h-4 w-4" />
+        <X className="w-4 h-4" />
       </Button>
-    </Alert>
+    </div>
   );
 }
