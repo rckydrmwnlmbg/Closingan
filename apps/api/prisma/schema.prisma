@@ -364,6 +364,9 @@ model Message {
   @@index([conversationId, createdAt])
   @@index([tenantId])
   @@index([externalId])
+  @@index([tenantId, createdAt])
+  @@index([tenantId, deliveryState])
+  @@index([tenantId, isAiGenerated])
 }
 
 // ─── LEADS ───────────────────────────────────────────────────
@@ -551,6 +554,8 @@ model Campaign {
   recipients CampaignRecipient[]
 
   @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, scheduledAt])
 }
 
 model CampaignRecipient {
@@ -883,6 +888,7 @@ model KnowledgeAsset {
   tenant Tenant @relation(fields: [tenantId], references: [id])
 
   @@index([tenantId])
+  @@index([tenantId, createdAt])
 }
 
 // ─── ANTI-ABUSE ───────────────────────────────────────────────
@@ -895,4 +901,6 @@ model AbusiveClient {
   blockedAt       DateTime @default(now())
 
   @@index([fingerprintHash])
+  @@index([blockedAt])
+  @@index([ipAddress])
 }

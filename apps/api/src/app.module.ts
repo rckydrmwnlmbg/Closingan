@@ -30,6 +30,7 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 import { AntiAbuseModule } from './common/guards/anti-abuse/anti-abuse.module';
 import { AntiAbuseControllerModule } from './modules/anti-abuse/anti-abuse.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { BackupModule } from './modules/backup/backup.module';
 import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
 
 @Module({
@@ -104,6 +105,7 @@ import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
     AntiAbuseModule,
     AntiAbuseControllerModule,
     AnalyticsModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [
