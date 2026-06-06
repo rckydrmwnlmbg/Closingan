@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "bash scripts/deploy.sh"
+    "deploy": "bash scripts/deploy.sh",
+    "db:fix-prod": "bash scripts/fix-prod-db.sh"
   },
   "repository": {
     "type": "git",
