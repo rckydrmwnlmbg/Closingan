@@ -19,9 +19,9 @@ export function DashboardHeader() {
   }, []);
 
   return (
-    <div className="mb-6">
-      <h1 className="text-2xl font-bold text-slate-800">{greeting}, Seller!</h1>
-      <p className="text-sm text-slate-500 mt-1">{dateStr}</p>
+    <div className="mb-10">
+      <h1 className="text-3xl font-semibold tracking-tight text-white">{greeting}, Seller.</h1>
+      <p className="text-sm font-light text-zinc-500 mt-2 tracking-wide uppercase">{dateStr}</p>
     </div>
   );
 }
