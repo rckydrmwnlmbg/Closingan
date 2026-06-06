@@ -8,7 +8,8 @@
     "libs/*"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "deploy": "bash scripts/deploy.sh"
   },
   "repository": {
     "type": "git",
