@@ -2,7 +2,21 @@
 
 import { motion } from "framer-motion";
 
+import React from "react";
+
 export const FloatingBubbles = () => {
+
+  const [mounted, setMounted] = React.useState(false);
+  const [windowSize, setWindowSize] = React.useState({ width: 1000, height: 1000 });
+
+  React.useEffect(() => {
+    setMounted(true);
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (!mounted) return null;
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] mix-blend-screen" />
@@ -14,8 +28,8 @@ export const FloatingBubbles = () => {
           className="absolute w-24 h-12 rounded-full border border-emerald-500/20 bg-black/50 backdrop-blur-md flex items-center px-4"
           initial={{
             opacity: 0,
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
+            x: Math.random() * windowSize.width,
+            y: Math.random() * windowSize.height,
           }}
           animate={{
             opacity: [0, 1, 0],

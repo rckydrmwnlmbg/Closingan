@@ -4,7 +4,10 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import React from "react";
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+import { HTMLMotionProps } from "framer-motion";
+
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref"> {
+
   variant?: "primary" | "secondary" | "ghost";
   size?: "sm" | "md" | "lg";
 }
