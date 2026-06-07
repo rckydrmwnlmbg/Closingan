@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { siteConfig } from "@/config/site";
 
 interface RegisterFormProps {
   onSwitch: () => void;
@@ -35,7 +36,7 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
       }
 
       document.cookie = "session_token=mock-token; path=/; max-age=86400"; // 1 day
-      router.push("/dashboard/analytics");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError((err as Error).message || "An error occurred");
       setIsLoading(false);
@@ -45,77 +46,77 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
   return (
     <div className="w-full">
       <div className="mb-8">
-        <h2 className="text-2xl font-semibold tracking-tight text-white mb-2">Create Account</h2>
-        <p className="text-zinc-400 text-sm font-light">Set up your workspace.</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-white mb-2">Buat Akun</h2>
+        <p className="text-zinc-400 text-sm font-light">Set up workspace Anda.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
 
         {error && (
-          <div className="p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg">
+          <div className="p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-none">
             {error}
           </div>
         )}
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label htmlFor="name" className="text-xs font-medium text-zinc-400">Full Name</label>
+            <label htmlFor="name" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Nama Lengkap</label>
             <input
               id="name"
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm"
+              className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
             />
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="company" className="text-xs font-medium text-zinc-400">Company (Optional)</label>
+            <label htmlFor="company" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Dealer</label>
             <input
               id="company"
               type="text"
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm"
+              className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
             />
           </div>
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="reg-email" className="text-xs font-medium text-zinc-400">Work Email</label>
+          <label htmlFor="reg-email" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Email Kerja</label>
           <input
             id="reg-email"
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm"
+            className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
           />
         </div>
 
         <div className="space-y-1">
-          <label htmlFor="reg-password" className="text-xs font-medium text-zinc-400">Password</label>
+          <label htmlFor="reg-password" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Password</label>
           <input
             id="reg-password"
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm"
+            className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
           />
         </div>
 
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full mt-6 bg-white hover:bg-zinc-200 text-black font-medium py-2.5 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+          className="w-full mt-6 bg-white hover:bg-zinc-200 text-black font-medium py-2.5 px-4 rounded-none transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <span className="flex items-center gap-2">
-              Create Account
+              Buat Akun
               <ArrowRight className="w-4 h-4" />
             </span>
           )}
@@ -124,9 +125,9 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
       </form>
 
       <div className="mt-6 text-center text-xs text-zinc-500">
-        Already have an account?{" "}
+        Sudah punya akun?{" "}
         <button onClick={onSwitch} className="text-white hover:text-zinc-300 font-medium transition-colors focus:outline-none">
-          Sign in
+          Masuk
         </button>
       </div>
     </div>

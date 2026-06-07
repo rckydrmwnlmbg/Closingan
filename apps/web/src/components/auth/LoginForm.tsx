@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-
 import { Loader2, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { siteConfig } from "@/config/site";
 
 interface LoginFormProps {
   onSwitch: () => void;
@@ -34,7 +34,7 @@ export default function LoginForm({ onSwitch }: LoginFormProps) {
       }
 
       document.cookie = "session_token=mock-token; path=/; max-age=86400"; // 1 day
-      router.push("/dashboard/analytics");
+      router.push("/dashboard");
     } catch (err: unknown) {
       setError((err as Error).message || "An error occurred");
       setIsLoading(false);
@@ -45,40 +45,40 @@ export default function LoginForm({ onSwitch }: LoginFormProps) {
     <div className="w-full">
       <div className="mb-8">
         <h2 className="text-2xl font-semibold tracking-tight text-white mb-2">Sign In</h2>
-        <p className="text-zinc-400 text-sm font-light">Access your workspace.</p>
+        <p className="text-zinc-400 text-sm font-light">Masuk ke workspace Anda.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {error && (
-          <div className="p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg">
+          <div className="p-3 text-sm text-red-400 bg-red-950/30 border border-red-900/50 rounded-none">
             {error}
           </div>
         )}
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <label htmlFor="email" className="text-xs font-medium text-zinc-400">Email</label>
+            <label htmlFor="email" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Email</label>
             <input
               id="email"
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm"
+              className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
               placeholder="name@company.com"
             />
           </div>
 
           <div className="space-y-1">
-            <label htmlFor="password" className="text-xs font-medium text-zinc-400">Password</label>
+            <label htmlFor="password" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Password</label>
             <input
               id="password"
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-transparent border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm"
+              className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
               placeholder="••••••••"
             />
           </div>
@@ -87,13 +87,13 @@ export default function LoginForm({ onSwitch }: LoginFormProps) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full mt-6 bg-white hover:bg-zinc-200 text-black font-medium py-2.5 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
+          className="w-full mt-6 bg-white hover:bg-zinc-200 text-black font-medium py-2.5 px-4 rounded-none transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm"
         >
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <span className="flex items-center gap-2">
-              Continue
+              Lanjutkan
               <ArrowRight className="w-4 h-4" />
             </span>
           )}
@@ -102,9 +102,9 @@ export default function LoginForm({ onSwitch }: LoginFormProps) {
       </form>
 
       <div className="mt-6 text-center text-xs text-zinc-500">
-        Don&apos;t have an account?{" "}
+        Belum punya akun?{" "}
         <button onClick={onSwitch} className="text-white hover:text-zinc-300 font-medium transition-colors focus:outline-none">
-          Sign up
+          Daftar
         </button>
       </div>
     </div>
