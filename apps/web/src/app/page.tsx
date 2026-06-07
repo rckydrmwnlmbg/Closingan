@@ -1,13 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/Button";
+import { motion, Variants } from "framer-motion";
+import { Button } from "@/components/ui/HeroButton";
 import { FloatingBubbles } from "@/components/ui/HeroAnimation";
 import { BentoGrid, BentoCard } from "@/components/ui/BentoGrid";
 import { Brain, Lock, Zap } from "lucide-react";
 import Link from "next/link";
 
-const staggerContainer = {
+const staggerContainer: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
@@ -17,7 +17,7 @@ const staggerContainer = {
   },
 };
 
-const item = {
+const item: Variants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
 };
