@@ -29,9 +29,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
       set: jest.fn(),
     };
 
-    mockWhatsappProvider = {
-      validateWebhookSignature: jest.fn().mockReturnValue(true),
-    };
+    mockWhatsappProvider = {};
 
     mockQueue = {
       add: jest.fn(),
@@ -88,10 +86,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
 
     mockRedisService.setNx.mockResolvedValue(true);
 
-    const res = await webhookService.handleFonnteIncomingMessage(
-      payload,
-      'secret',
-    );
+    const res = await webhookService.handleFonnteIncomingMessage(payload);
     expect(res.success).toBe(true);
     expect(res).not.toHaveProperty('duplicated');
   });
@@ -106,10 +101,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
 
     mockRedisService.setNx.mockResolvedValue(false);
 
-    const result = await webhookService.handleFonnteIncomingMessage(
-      payload,
-      'sig',
-    );
+    const result = await webhookService.handleFonnteIncomingMessage(payload);
 
     expect(result.success).toBe(true);
     expect((result as any).duplicated).toBe(true);
@@ -132,10 +124,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
       return null;
     });
 
-    const result = await webhookService.handleFonnteIncomingMessage(
-      payload,
-      'sig',
-    );
+    const result = await webhookService.handleFonnteIncomingMessage(payload);
 
     expect(result.success).toBe(true);
     expect(mockQueue.add).toHaveBeenCalledWith(
