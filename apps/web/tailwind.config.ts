@@ -11,6 +11,12 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        border: "var(--border)",
+      },
+      fontFamily: {
+        serif: ["Libre Caslon Text", "serif"],
+        sans: ["var(--font-geist-sans)", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "monospace"],
       },
     },
   },
