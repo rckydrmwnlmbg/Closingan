@@ -28,24 +28,7 @@ export class WebhookService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  async handleFonnteIncomingMessage(
-    payload: FonnteWebhookPayload,
-    signature: string,
-  ) {
-    // Validate Signature first
-    const isValid = this.whatsappProvider.validateWebhookSignature(
-      payload,
-      signature,
-    );
-
-    if (!isValid) {
-      this.logger.error(
-        { webhookId: payload.id, sender: payload.sender || payload.from },
-        `Invalid webhook signature.`,
-      );
-      throw new UnauthorizedException('Invalid webhook signature');
-    }
-
+  async handleFonnteIncomingMessage(payload: FonnteWebhookPayload) {
     // Fetch the WhatsappSession using payload.device
     if (!payload.device) {
       this.logger.error('Missing device id in payload');

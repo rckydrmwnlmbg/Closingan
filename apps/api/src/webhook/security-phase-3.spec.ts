@@ -27,9 +27,7 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
       set: jest.fn(),
     };
 
-    const mockWhatsappProvider = {
-      validateWebhookSignature: jest.fn().mockReturnValue(true),
-    };
+    const mockWhatsappProvider = {};
 
     const mockQueue = {
       add: jest.fn(),
@@ -79,7 +77,7 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
       };
 
       await expect(
-        webhookService.handleFonnteIncomingMessage(payload as any, 'secret'),
+        webhookService.handleFonnteIncomingMessage(payload as any),
       ).rejects.toThrow(UnauthorizedException);
     });
   });

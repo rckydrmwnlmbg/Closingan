@@ -16,18 +16,12 @@ export interface ConnectionStatusResult {
   name?: string;
 }
 
-import { FonnteWebhookPayload } from './fonnte-webhook.interface';
-
 export interface WhatsappProviderInterface {
   generateQrCode(
     tenantId: string,
   ): Promise<{ qrData: string; expiresAt: Date }>;
   sendMessage(options: SendMessageOptions): Promise<SendMessageResult>;
   checkConnectionStatus(tenantId?: string): Promise<ConnectionStatusResult>;
-  validateWebhookSignature(
-    payload: FonnteWebhookPayload,
-    signature: string,
-  ): boolean;
 }
 
 export const WHATSAPP_PROVIDER = Symbol('WHATSAPP_PROVIDER');
