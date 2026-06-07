@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { RedisThrottlerStorage } from '@nestjs-redis/throttler-storage';
 import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { ClsModule } from 'nestjs-cls';
@@ -77,11 +76,6 @@ import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
             limit: 10,
           },
         ],
-        storage: new RedisThrottlerStorage({
-          host: config.get('REDIS_HOST', 'localhost'),
-          port: config.get('REDIS_PORT', 6379),
-          password: config.get('REDIS_PASSWORD', ''),
-        }),
       }),
     }),
     PrismaModule,
