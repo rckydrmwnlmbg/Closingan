@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Automasi Enterprise - AI Sales OS",
+  title: "CLOSINGAN - AI Sales OS",
   description: "Ultra-premium AI Sales OS",
 };
 

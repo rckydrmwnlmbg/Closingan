@@ -40,7 +40,7 @@ export default function Home() {
       >
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="font-serif font-bold text-xl tracking-tighter">
-            AUTOMASI<span className="text-emerald-500">.</span>
+            CLOSINGAN<span className="text-emerald-500">.</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/login" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
@@ -70,9 +70,9 @@ export default function Home() {
             variants={item}
             className="text-5xl md:text-7xl font-serif font-medium tracking-tight text-white mb-6 leading-[1.1]"
           >
-            Automasi WhatsApp <br />
+            Senjata Rahasia <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              Enterprise.
+              Sales Mobil Elite.
             </span>
           </motion.h1>
 
@@ -80,7 +80,7 @@ export default function Home() {
             variants={item}
             className="text-lg md:text-xl text-zinc-400 mb-10 max-w-2xl mx-auto leading-relaxed font-light"
           >
-            Sistem RAG (Retrieval-Augmented Generation) AI tingkat lanjut yang mengunci prospek 24/7 dengan konteks bisnis yang akurat dan personal.
+            Sistem AI Auto-Admin WhatsApp yang mengunci prospek 24/7. Jangan biarkan hot leads lepas hanya karena Anda sedang sibuk atau tidur.
           </motion.p>
 
           <motion.div variants={item} className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -106,22 +106,22 @@ export default function Home() {
         >
           <BentoGrid>
             <BentoCard
-              title="Intelijen RAG"
-              description="Sistem membaca basis pengetahuan Anda secara real-time untuk memberikan jawaban yang 100% akurat tanpa halusinasi."
+              title="Capek Balas Chat Jam 2 Pagi?"
+              description="Prospek sering chat di luar jam kerja. Telat balas = pindah ke sales lain."
               header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/5" />}
               icon={<Brain className="h-5 w-5 text-emerald-500" />}
               className="md:col-span-2"
             />
             <BentoCard
-              title="Keamanan Tingkat Lanjut"
-              description="Enkripsi end-to-end dan isolasi data per tenant menjamin kerahasiaan prospek Anda."
+              title="Leads Numpuk Lupa Follow-up?"
+              description="Terlalu banyak chat masuk sampai bingung mana prioritas untuk di-follow up."
               header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/5" />}
               icon={<Lock className="h-5 w-5 text-emerald-500" />}
               className="md:col-span-1"
             />
             <BentoCard
-              title="Latensi Minimal"
-              description="Dibangun di atas arsitektur edge untuk merespon dalam hitungan milidetik."
+              title="Kirim Hitungan Tanpa Typo"
+              description="Anda hitung DP & Angsuran manual sekali, AI akan menyajikan data statis tersebut ke prospek tanpa risiko halusinasi harga."
               header={<div className="flex flex-1 w-full h-full min-h-[6rem] rounded-lg bg-gradient-to-br from-neutral-900 to-neutral-800 border border-white/5" />}
               icon={<Zap className="h-5 w-5 text-emerald-500" />}
               className="md:col-span-3"
