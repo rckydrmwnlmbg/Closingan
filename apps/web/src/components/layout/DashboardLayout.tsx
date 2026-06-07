@@ -13,6 +13,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -47,8 +48,7 @@ const SidebarItem = ({
               initial={{ opacity: 0, width: 0 }}
               animate={{ opacity: 1, width: "auto" }}
               exit={{ opacity: 0, width: 0 }}
-              className="text-sm font-medium whitespace-nowrap overflow-hidden"
-              style={{ fontFamily: "Geist, sans-serif" }}
+              className="text-sm font-medium whitespace-nowrap overflow-hidden font-sans"
             >
               {label}
             </motion.span>
@@ -72,24 +72,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="flex h-screen bg-[#000000] text-white overflow-hidden selection:bg-white/20">
+    <div className={`flex h-screen ${siteConfig.theme.bgClass} text-white overflow-hidden selection:bg-white/20`}>
       {/* Sidebar */}
       <motion.aside
         initial={false}
         animate={{ width: isCollapsed ? "64px" : "240px" }}
-        className="flex flex-col h-full border-r border-white/5 bg-[#000000] shrink-0 z-20"
+        className={`flex flex-col h-full border-r ${siteConfig.theme.borderClass} ${siteConfig.theme.bgClass} shrink-0 z-20`}
       >
-        <div className="flex items-center justify-between p-4 border-b border-white/5 h-[72px]">
+        <div className={`flex items-center justify-between p-4 border-b ${siteConfig.theme.borderClass} h-[72px]`}>
           <AnimatePresence initial={false}>
             {!isCollapsed && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="font-serif text-lg tracking-wider"
-                style={{ fontFamily: "'Libre Caslon Text', serif" }}
+                className="font-sans text-sm font-semibold tracking-[0.2em] uppercase text-zinc-300"
               >
-                AUTOMASI
+                {siteConfig.name}
               </motion.div>
             )}
           </AnimatePresence>
@@ -118,7 +117,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </motion.aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-full overflow-y-auto overflow-x-hidden bg-[#000000]">
+      <main className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${siteConfig.theme.bgClass}`}>
         {children}
       </main>
     </div>

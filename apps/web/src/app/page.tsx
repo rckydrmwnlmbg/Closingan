@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { siteConfig } from "@/config/site";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen bg-[#0A0A0A] text-white overflow-hidden flex flex-col justify-center items-center font-sans">
+    <div className={`relative min-h-screen ${siteConfig.theme.bgClass} text-white overflow-hidden flex flex-col justify-center items-center font-sans`}>
       {/* Subtle noise/grain texture overlay */}
       <div
         className="pointer-events-none absolute inset-0 z-50 opacity-[0.03]"
@@ -25,21 +26,22 @@ export default function Home() {
       />
 
       <main className="relative z-10 flex flex-col items-center text-center px-6 max-w-5xl mx-auto space-y-10">
-        <h1 className="text-6xl sm:text-7xl md:text-8xl font-bold tracking-tighter leading-[1.1] text-white text-balance antialiased">
-          Automasi WhatsApp Enterprise.
+        <h2 className="text-zinc-500 tracking-[0.2em] uppercase text-sm font-semibold">{siteConfig.name}</h2>
+        <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tighter leading-[1.1] text-white text-balance antialiased">
+          {siteConfig.description}
         </h1>
 
-        <p className="text-xl md:text-2xl text-zinc-400 font-light tracking-wide max-w-3xl mx-auto">
-          Sistem RAG AI yang mengunci prospek 24/7.
+        <p className="text-lg md:text-xl text-zinc-400 font-light tracking-wide max-w-2xl mx-auto">
+          {siteConfig.slogan}
         </p>
 
         <div className="pt-10">
           <Link
             href="/register"
-            className="group relative inline-flex items-center justify-center gap-3 px-10 py-5 bg-white text-black text-base font-semibold rounded-none overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-black text-sm font-semibold rounded-none overflow-hidden transition-transform hover:scale-[1.02] active:scale-[0.98]"
           >
             <span>Mulai Coba Gratis</span>
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </main>
