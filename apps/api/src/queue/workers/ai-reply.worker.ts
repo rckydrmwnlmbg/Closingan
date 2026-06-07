@@ -391,7 +391,16 @@ export class AiReplyWorker extends WorkerHost {
                   to: salesPhone,
                   message: alertMessage,
                 });
-              } catch {}
+              } catch (waError) {
+                this.logger.warn(
+                  {
+                    tenantId,
+                    error:
+                      waError instanceof Error ? waError.message : 'Unknown',
+                  },
+                  'Failed to send alert message to sales phone',
+                );
+              }
             }
 
             return { success: false, reason: 'provider_error_escalated' };
@@ -464,7 +473,16 @@ export class AiReplyWorker extends WorkerHost {
                   to: waSession.phoneNumber,
                   message: alertMessage,
                 });
-              } catch {}
+              } catch (waError) {
+                this.logger.warn(
+                  {
+                    tenantId,
+                    error:
+                      waError instanceof Error ? waError.message : 'Unknown',
+                  },
+                  'Failed to send alert message to customer',
+                );
+              }
             }
 
             throw new AppException(
