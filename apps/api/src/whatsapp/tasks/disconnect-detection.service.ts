@@ -7,6 +7,25 @@ import { WHATSAPP_PROVIDER } from '../interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../interfaces/whatsapp-provider.interface';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { WhatsappSession, Tenant, User } from '@prisma/client';
+
+type SessionActionType =
+  | 'TO_RECONNECT'
+  | 'TO_DISCONNECT'
+  | 'TO_CONNECT'
+  | 'TO_INCREMENT'
+  | 'NONE';
+
+type SessionWithTenant = WhatsappSession & {
+  tenant: Tenant & {
+    users: User[];
+  };
+};
+
+interface SessionAction {
+  session: SessionWithTenant;
+  action: SessionActionType;
+}
 
 @Injectable()
 export class DisconnectDetectionService {
@@ -27,7 +46,7 @@ export class DisconnectDetectionService {
     this.logger.debug('Running disconnect detection task');
 
     // We fetch all active sessions that are CONNECTED or RECONNECTING
-    const sessions = await this.prisma.whatsappSession.findMany({
+    const sessions = (await this.prisma.whatsappSession.findMany({
       where: {
         state: {
           in: ['CONNECTED', 'RECONNECTING'],
@@ -44,154 +63,204 @@ export class DisconnectDetectionService {
           },
         },
       },
-    });
+    })) as SessionWithTenant[];
 
-    await Promise.all(
+    if (sessions.length === 0) {
+      return;
+    }
+
+    const actionResults: SessionAction[] = await Promise.all(
       sessions.map((session) =>
         this.cls.run(async () => {
           this.cls.set('tenantId', session.tenantId);
 
           try {
             if (session.state === 'CONNECTED') {
-              await this.checkConnectedSession(session);
+              const status = await this.whatsappProvider.checkConnectionStatus(
+                session.tenantId,
+              );
+              if (!status.isConnected) {
+                return { session, action: 'TO_RECONNECT' };
+              }
             } else if (session.state === 'RECONNECTING') {
-              await this.checkReconnectingSession(session);
+              const lastDisconnect = session.lastDisconnectedAt || new Date();
+              const minutesSinceDisconnect =
+                (new Date().getTime() - lastDisconnect.getTime()) / 60000;
+
+              // Retry every 5 minutes
+              if (
+                minutesSinceDisconnect >=
+                5 * (session.reconnectAttempts + 1)
+              ) {
+                if (session.reconnectAttempts >= 3) {
+                  return { session, action: 'TO_DISCONNECT' };
+                }
+
+                const status =
+                  await this.whatsappProvider.checkConnectionStatus(
+                    session.tenantId,
+                  );
+                if (status.isConnected) {
+                  return { session, action: 'TO_CONNECT' };
+                } else {
+                  return { session, action: 'TO_INCREMENT' };
+                }
+              }
             }
+            return { session, action: 'NONE' };
           } catch (error: any) {
             this.logger.error(
-              `Error processing session for tenant ${session.tenantId}: ${error.message}`,
+              `Error processing session for tenant ${session.tenantId}: ${error instanceof Error ? error.message : String(error)}`,
             );
+            return { session, action: 'NONE' };
           }
         }),
       ),
     );
-  }
 
-  private async checkConnectedSession(session: any) {
-    const status = await this.whatsappProvider.checkConnectionStatus(
-      session.tenantId,
+    const toReconnect = actionResults.filter(
+      (r) => r.action === 'TO_RECONNECT',
+    );
+    const toDisconnect = actionResults.filter(
+      (r) => r.action === 'TO_DISCONNECT',
+    );
+    const toConnect = actionResults.filter((r) => r.action === 'TO_CONNECT');
+    const toIncrement = actionResults.filter(
+      (r) => r.action === 'TO_INCREMENT',
     );
 
-    if (!status.isConnected) {
-      this.logger.warn(
-        `WhatsApp disconnected detected for tenant ${session.tenantId}`,
-      );
+    // 1. Batched Database Updates
+    const updatePromises: Promise<any>[] = [];
 
-      // Update state
-      await this.prisma.whatsappSession.update({
-        where: { id: session.id, tenantId: session.tenantId },
-        data: {
-          state: 'RECONNECTING',
-          lastDisconnectedAt: new Date(),
-          reconnectAttempts: 0,
-        },
-      });
-
-      // Audit log
-      await this.auditService.log({
-        action: 'WA_DISCONNECTED',
-        tenantId: session.tenantId,
-        entityType: 'WHATSAPP_SESSION',
-        entityId: session.id,
-      });
-
-      // Send alert to sales
-      await this.sendAlert(
-        session,
-        `[URGENT] WhatsApp Disconnected!\n\nSystem detected connection loss. Attempting auto-reconnect. Outgoing messages are paused.`,
+    if (toReconnect.length > 0) {
+      updatePromises.push(
+        this.prisma.whatsappSession.updateMany({
+          where: { id: { in: toReconnect.map((r) => r.session.id) } },
+          data: {
+            state: 'RECONNECTING',
+            lastDisconnectedAt: new Date(),
+            reconnectAttempts: 0,
+          },
+        }),
       );
     }
-  }
 
-  private async checkReconnectingSession(session: any) {
-    const lastDisconnect = session.lastDisconnectedAt || new Date();
-    const minutesSinceDisconnect =
-      (new Date().getTime() - lastDisconnect.getTime()) / 60000;
-
-    // Retry every 5 minutes
-    if (minutesSinceDisconnect >= 5 * (session.reconnectAttempts + 1)) {
-      if (session.reconnectAttempts >= 3) {
-        // Stop retrying
-        await this.prisma.whatsappSession.update({
-          where: { id: session.id, tenantId: session.tenantId },
+    if (toDisconnect.length > 0) {
+      updatePromises.push(
+        this.prisma.whatsappSession.updateMany({
+          where: { id: { in: toDisconnect.map((r) => r.session.id) } },
           data: { state: 'DISCONNECTED' },
-        });
-
-        // Audit log for final disconnect
-        await this.auditService.log({
-          action: 'WA_DISCONNECTED',
-          tenantId: session.tenantId,
-          entityType: 'WHATSAPP_SESSION',
-          entityId: session.id,
-          metadata: { reason: 'max_retries_exceeded' },
-        });
-
-        await this.sendAlert(
-          session,
-          `[CRITICAL] WhatsApp Auto-Reconnect Failed 3x. Manual intervention required!`,
-        );
-        return;
-      }
-
-      this.logger.log(
-        `Attempting reconnect for tenant ${session.tenantId} (Attempt ${session.reconnectAttempts + 1})`,
+        }),
       );
+    }
 
-      const status = await this.whatsappProvider.checkConnectionStatus(
-        session.tenantId,
-      );
-
-      if (status.isConnected) {
-        this.logger.log(
-          `Successfully reconnected WhatsApp for tenant ${session.tenantId}`,
-        );
-
-        await this.prisma.whatsappSession.update({
-          where: { id: session.id, tenantId: session.tenantId },
+    if (toConnect.length > 0) {
+      updatePromises.push(
+        this.prisma.whatsappSession.updateMany({
+          where: { id: { in: toConnect.map((r) => r.session.id) } },
           data: {
             state: 'CONNECTED',
             lastConnectedAt: new Date(),
             reconnectAttempts: 0,
           },
-        });
+        }),
+      );
+    }
 
-        await this.auditService.log({
+    if (toIncrement.length > 0) {
+      updatePromises.push(
+        this.prisma.whatsappSession.updateMany({
+          where: { id: { in: toIncrement.map((r) => r.session.id) } },
+          data: { reconnectAttempts: { increment: 1 } },
+        }),
+      );
+    }
+
+    await Promise.all(updatePromises);
+
+    // 2. Perform side effects (Logging, Alerts, Audit) using Promise.all to minimize latency
+    const sideEffectPromises: Promise<any>[] = [];
+
+    toReconnect.forEach(({ session }) => {
+      this.logger.warn(
+        `WhatsApp disconnected detected for tenant ${session.tenantId}`,
+      );
+      sideEffectPromises.push(
+        this.auditService.log({
+          action: 'WA_DISCONNECTED',
+          tenantId: session.tenantId,
+          entityType: 'WHATSAPP_SESSION',
+          entityId: session.id,
+        }),
+      );
+      sideEffectPromises.push(
+        this.sendAlert(
+          session,
+          `[URGENT] WhatsApp Disconnected!\n\nSystem detected connection loss. Attempting auto-reconnect. Outgoing messages are paused.`,
+        ),
+      );
+    });
+
+    toDisconnect.forEach(({ session }) => {
+      sideEffectPromises.push(
+        this.auditService.log({
+          action: 'WA_DISCONNECTED',
+          tenantId: session.tenantId,
+          entityType: 'WHATSAPP_SESSION',
+          entityId: session.id,
+          metadata: { reason: 'max_retries_exceeded' },
+        }),
+      );
+      sideEffectPromises.push(
+        this.sendAlert(
+          session,
+          `[CRITICAL] WhatsApp Auto-Reconnect Failed 3x. Manual intervention required!`,
+        ),
+      );
+    });
+
+    toConnect.forEach(({ session }) => {
+      this.logger.log(
+        `Successfully reconnected WhatsApp for tenant ${session.tenantId}`,
+      );
+      sideEffectPromises.push(
+        this.auditService.log({
           action: 'WA_CONNECTED',
           tenantId: session.tenantId,
           entityType: 'WHATSAPP_SESSION',
           entityId: session.id,
-        });
-
-        await this.sendAlert(
+        }),
+      );
+      sideEffectPromises.push(
+        this.sendAlert(
           session,
           `[INFO] WhatsApp successfully reconnected. System is back to normal.`,
-        );
-      } else {
-        await this.prisma.whatsappSession.update({
-          where: { id: session.id, tenantId: session.tenantId },
-          data: {
-            reconnectAttempts: { increment: 1 },
-          },
-        });
+        ),
+      );
+    });
 
-        // Log attempt
-        this.logger.warn(
-          `Reconnect failed for tenant ${session.tenantId} (Attempt ${session.reconnectAttempts + 1})`,
-        );
-      }
-    }
+    toIncrement.forEach(({ session }) => {
+      this.logger.warn(
+        `Reconnect failed for tenant ${session.tenantId} (Attempt ${session.reconnectAttempts + 1})`,
+      );
+    });
+
+    await Promise.all(sideEffectPromises);
   }
 
-  private async sendAlert(session: any, message: string) {
+  private async sendAlert(session: SessionWithTenant, message: string) {
     // Find users with verified personal numbers
-    const salesUsers = session.tenant.users.filter(
-      (u: any) => u.waPersonalNumber && u.waPersonalVerified,
-    );
+    const salesUsers =
+      session.tenant?.users?.filter(
+        (u: User) => u.waPersonalNumber && u.waPersonalVerified,
+      ) || [];
+
+    if (salesUsers.length === 0) return;
 
     await Promise.all(
-      salesUsers.map((user: any) =>
+      salesUsers.map((user: User) =>
         this.whatsappProvider.sendMessage({
-          to: user.waPersonalNumber,
+          to: String(user.waPersonalNumber),
           message,
           tenantId: session.tenantId,
         }),
