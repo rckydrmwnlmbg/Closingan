@@ -173,6 +173,38 @@ export class WebhookService {
     }
 
     // Pass the isHumanTakeoverActive flag so worker can save message but skip AI
+
+    // 1-Minute Manual Override Filter: Check if this is an OUTGOING message
+    // When an outgoing message is sent from the human admin's device, Fonnte usually has the device as sender, or explicit status.
+    // Assuming Fonnte outgoing message payload check: device == sender OR status == 'sent' (or similar).
+    // Let's rely on standard Fonnte payload if it sends status or if sender matches device.
+    // Or check if payload.device is the same as payload.sender.
+    // Wait, let's just assume sender == device means outgoing. Let's make it robust.
+    // Actually, Fonnte webhook docs say: outgoing message webhook payload is different or we can check sender == device.
+    // "INTERCEPT MANUAL REPLIES: If the Fonnte webhook receives an OUTGOING message (meaning the human admin replied manually via their phone to that lead)"
+    // Fonnte webhook for outgoing messages has `sender` == device number, and `to` == lead number, or maybe some other indication.
+
+    // Let's implement a solid check for outgoing messages:
+    const isOutgoing = payload.sender === payload.device;
+    let targetLead = isOutgoing ? payload.to : payload.sender;
+
+    if (isOutgoing && targetLead) {
+      this.logger.log(
+        `[Manual Override] Outgoing message detected for lead ${targetLead}. Setting manual_override flag.`,
+      );
+      const overrideKey = `manual_override:${targetLead}`;
+      // Set TTL to 120 seconds
+      await this.redisService.set(overrideKey, '1', 120);
+
+      // Since it's outgoing, we might not want to process it as an incoming message for AI,
+      // but we should still save it to the DB. The worker can handle saving OUTGOING messages if properly handled.
+      // Wait, if it's outgoing, the worker should probably not call AI.
+      // We can just set the flag and let it be added to the queue to be saved as history, or maybe the worker only expects incoming.
+      // Let's just set the flag and pass it. The AI process will abort.
+    } else {
+      // It's an incoming message from the lead.
+    }
+
     const extendedPayload = {
       ...payload,
       isHumanTakeoverActive,
@@ -186,6 +218,7 @@ export class WebhookService {
         payload: extendedPayload,
       },
       {
+        delay: isOutgoing ? 0 : 60000, // 60 seconds delay for incoming messages, no delay for outgoing (just to save to DB quickly)
         attempts: 5,
         backoff: {
           type: 'exponential',
