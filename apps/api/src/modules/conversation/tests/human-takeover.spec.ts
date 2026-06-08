@@ -6,14 +6,13 @@ import { AuditService } from '../../../common/audit/audit.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../../../common/redis/redis.service';
 import { WHATSAPP_PROVIDER } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
-import { AppException } from '../../../common/exceptions/app.exception';
 
 describe('Human Takeover Rule', () => {
   let service: ConversationService;
   let prisma: PrismaService;
   let audit: AuditService;
   let whatsappProvider: any;
-  let configService: ConfigService;
+
   let redis: RedisService;
 
   beforeEach(async () => {
@@ -77,7 +76,7 @@ describe('Human Takeover Rule', () => {
     prisma = module.get<PrismaService>(PrismaService);
     audit = module.get<AuditService>(AuditService);
     whatsappProvider = module.get(WHATSAPP_PROVIDER);
-    configService = module.get<ConfigService>(ConfigService);
+
     redis = module.get<RedisService>(RedisService);
   });
 

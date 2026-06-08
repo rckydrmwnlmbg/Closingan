@@ -17,7 +17,23 @@ import { ResponseBuilder } from '../../common/helpers/response.builder';
 @Controller('conversations')
 @UseGuards(JwtAuthGuard)
 export class ConversationController {
-  @Post(':id/messages')
+
+  @Get('phone/:customerPhone/messages')
+  async getMessagesByPhone(
+    @TenantId() tenantId: string,
+    @Param('customerPhone') customerPhone: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const limitNum = limit ? parseInt(limit, 10) : 30;
+    const { data, meta } = await this.conversationService.getMessagesByPhone(
+      tenantId,
+      customerPhone,
+      cursor,
+      limitNum,
+    );
+    return ResponseBuilder.list(data, meta);
+  }
   @Get(':id/messages')
   async getMessages(
     @TenantId() tenantId: string,
