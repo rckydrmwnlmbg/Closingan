@@ -29,7 +29,6 @@ export class WebhookService {
   ) {}
 
   async handleFonnteIncomingMessage(payload: FonnteWebhookPayload) {
-
     // Normalize payload to handle different Fonnte structures
     payload.sender = payload.sender || payload.from;
     payload.message = payload.message || payload.pesan || payload.text;
@@ -57,12 +56,22 @@ export class WebhookService {
       }
     }
 
+    const FALLBACK_DEVICE = '6287882134303';
+    let isFallback = false;
+
     if (!session) {
-      this.logger.error(`No tenant matches device: ${payload.device}`);
-      throw new UnauthorizedException('Unknown device');
+      if (payload.device === FALLBACK_DEVICE) {
+        this.logger.warn(
+          `Using fallback mechanism for device ${payload.device}`,
+        );
+        isFallback = true;
+      } else {
+        this.logger.error(`No tenant matches device: ${payload.device}`);
+        throw new UnauthorizedException('Unknown device');
+      }
     }
 
-    const tenantId = session.tenantId;
+    const tenantId = session?.tenantId || 'FALLBACK_TENANT';
 
     // Set Tenant Isolation Context
     this.cls.set('tenantId', tenantId);
