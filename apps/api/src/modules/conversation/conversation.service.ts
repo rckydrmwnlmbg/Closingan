@@ -2,13 +2,7 @@ import * as crypto from 'crypto';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConversationRepository } from './conversation.repository';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
-import {
-  Conversation,
-  Lead,
-  ConversationLabelAssignment,
-  ConversationLabel,
-  FollowUp,
-} from '@prisma/client';
+import { Conversation } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
@@ -64,7 +58,7 @@ export class ConversationService {
       conversation.aiMode === 'AUTO_REPLY';
 
     // 1. Set HUMAN_ACTIVE state and pause AI
-    const updatedConversation = await this.prisma.conversation.update({
+    await this.prisma.conversation.update({
       where: { id: conversationId },
       data: {
         state: isAiActive ? 'HUMAN_ACTIVE' : conversation.state,
@@ -190,6 +184,29 @@ export class ConversationService {
     const result = { data: formattedData, meta };
     await this.redisService.set(cacheKey, JSON.stringify(result), 10);
     return result;
+  }
+
+
+  async getMessagesByPhone(
+    tenantId: string,
+    customerPhone: string,
+    cursor?: string,
+    limit = 30,
+  ) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { tenantId, customerPhone },
+      select: { id: true },
+    });
+
+    if (!conversation) {
+      throw new AppException(
+        'CONVERSATION_NOT_FOUND',
+        'Percakapan tidak ditemukan.',
+        404,
+      );
+    }
+
+    return this.getMessages(tenantId, conversation.id, cursor, limit);
   }
 
   async getMessages(
