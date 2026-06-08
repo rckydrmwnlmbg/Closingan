@@ -33,6 +33,7 @@ import { BackupModule } from './modules/backup/backup.module';
 import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { DeviceModule } from './modules/device/device.module';
+import { BotConfigModule } from './modules/bot-config/bot-config.module';
 
 @Module({
   imports: [
@@ -104,6 +105,7 @@ import { DeviceModule } from './modules/device/device.module';
     BackupModule,
     TenantModule,
     DeviceModule,
+    BotConfigModule,
   ],
   controllers: [AppController],
   providers: [
