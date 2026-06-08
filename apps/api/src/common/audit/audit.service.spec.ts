@@ -107,6 +107,18 @@ describe('AuditService', () => {
     });
   });
 
+  it('should skip creating an audit log for FALLBACK_TENANT', async () => {
+    const payload = {
+      tenantId: 'FALLBACK_TENANT',
+      action: AuditAction.USER_LOGIN,
+    };
+
+    await service.log(payload);
+
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(prismaService.auditLog.create).not.toHaveBeenCalled();
+  });
+
   it('should not create an audit log and emit a warning if tenantId is missing', async () => {
     const payload = {
       action: AuditAction.USER_LOGIN,
