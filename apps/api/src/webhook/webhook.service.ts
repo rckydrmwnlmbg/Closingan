@@ -29,6 +29,11 @@ export class WebhookService {
   ) {}
 
   async handleFonnteIncomingMessage(payload: FonnteWebhookPayload) {
+
+    // Normalize payload to handle different Fonnte structures
+    payload.sender = payload.sender || payload.from;
+    payload.message = payload.message || payload.pesan || payload.text;
+
     // Fetch the WhatsappSession using payload.device
     if (!payload.device) {
       this.logger.error('Missing device id in payload');
@@ -90,9 +95,7 @@ export class WebhookService {
     );
 
     // Suppression List / Opt-Out Interception
-    const messageText = (payload.message || payload.text || '')
-      .trim()
-      .toUpperCase();
+    const messageText = (payload.message || '').trim().toUpperCase();
     const optOutKeywords = ['STOP', 'BERHENTI'];
     const senderNumber = payload.sender || payload.from;
 
