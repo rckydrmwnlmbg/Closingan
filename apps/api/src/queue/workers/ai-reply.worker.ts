@@ -80,6 +80,35 @@ export class AiReplyWorker extends WorkerHost {
             metadata: { step: 'STARTED' },
           });
 
+          // 0. Fallback Logic for MVP Fonnte Device
+          if (tenantId === 'FALLBACK_TENANT') {
+            this.logger.warn(`Using fallback AI flow for unassigned tenant`);
+            const userMessage = payload.message || payload.text || 'Hello';
+            const sender = payload.sender || payload.from || 'unknown';
+
+            // Just reply using OpenAI directly
+            const { reply } = await this.aiProvider.generateReply(
+              'FALLBACK_TENANT',
+              userMessage,
+              'Company context: Default MVP Company',
+            );
+
+            // Fonnte System Token Fallback Send via WhatsappProvider?
+            // The Fonnte provider in WhatsappProviderInterface likely uses standard config variables.
+            // Let's rely on WhatsappProvider or Fonnte direct call.
+            try {
+              await this.whatsappProvider.sendMessage({
+                tenantId: 'FALLBACK_TENANT',
+                to: sender,
+                message: reply,
+              });
+            } catch (error) {
+              this.logger.error(`Fallback Whatsapp Error: ${error.message}`);
+            }
+
+            return { success: true, fallbackMode: true };
+          }
+
           // Extract message from Fonnte payload format
           const userMessage = payload.message || payload.text || 'Hello';
           const sender = payload.sender || payload.from || 'unknown';
