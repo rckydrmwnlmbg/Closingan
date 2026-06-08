@@ -84,6 +84,7 @@ describe('AiReplyWorker', () => {
       delPattern: jest.fn(),
       incr: jest.fn().mockResolvedValue(1),
       decr: jest.fn().mockResolvedValue(0),
+      exists: jest.fn().mockResolvedValue(false),
       expire: jest.fn().mockResolvedValue(1),
     };
 

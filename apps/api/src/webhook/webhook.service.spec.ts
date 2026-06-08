@@ -137,4 +137,32 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
       expect.any(Object),
     );
   });
+
+  it('should detect outgoing message, set manual_override flag, and set 0 delay', async () => {
+    const payload = {
+      device: '628999',
+      sender: '628999',
+      to: '123456',
+      message: 'Outgoing reply',
+      id: 'msg-out',
+    };
+
+    mockRedisService.setNx.mockResolvedValue(true);
+
+    const result = await webhookService.handleFonnteIncomingMessage(payload);
+
+    expect(result.success).toBe(true);
+    // Should set manual_override:123456
+    expect(mockRedisService.set).toHaveBeenCalledWith(
+      'manual_override:123456',
+      '1',
+      120,
+    );
+    // Should add with 0 delay
+    expect(mockQueue.add).toHaveBeenCalledWith(
+      'process-message',
+      expect.any(Object),
+      expect.objectContaining({ delay: 0 }),
+    );
+  });
 });

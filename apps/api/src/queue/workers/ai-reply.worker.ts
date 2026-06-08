@@ -179,6 +179,25 @@ export class AiReplyWorker extends WorkerHost {
             );
           }
 
+          // 1.5 1-Minute Manual Override Filter using Redis
+          const isOutgoingMessage = payload.sender === payload.device;
+          if (isOutgoingMessage) {
+            this.logger.log(
+              `Skipping AI reply: Outgoing message being processed just to save history.`,
+            );
+            return { success: true, reason: 'outgoing_message_history' };
+          }
+
+          const overrideKey = `manual_override:${sender}`;
+          const hasManualOverride = await this.redisService.exists(overrideKey);
+
+          if (hasManualOverride) {
+            this.logger.log(
+              `Skipping AI reply for conversation ${conversation.id}: 1-Minute Manual Override active for ${sender}`,
+            );
+            return { success: true, reason: 'skipped_manual_override' };
+          }
+
           // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
           if (
             (payload as any).isHumanTakeoverActive ||
