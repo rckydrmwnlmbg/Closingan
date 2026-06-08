@@ -2,34 +2,39 @@
 
 import { motion } from "framer-motion";
 import {
-  MessageSquare,
-  Flame,
+  Users,
   Clock,
-  Coins,
+  Hand,
+  Bot,
+  Flame,
   ArrowUpRight,
-  QrCode,
-  Menu,
-  Inbox
+  ArrowDownRight,
+  Calendar,
+  Send,
+  MoreVertical,
+  CheckCircle2,
+  TrendingUp
 } from "lucide-react";
-import React from 'react';
+import React, { useState } from 'react';
 import { siteConfig } from "@/config/site";
 
 // Reusable Bento Box Component
 const BentoBox = ({
   children,
   className = "",
-  delay = 0
+  delay = 0,
+  noPadding = false
 }: {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  noPadding?: boolean;
 }) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5, delay, ease: [0.23, 1, 0.32, 1] }}
-    whileHover={{ backgroundColor: "rgba(10, 10, 10, 1)" }}
-    className={`border ${siteConfig.theme.borderClass} ${siteConfig.theme.bgClass} p-6 relative overflow-hidden group ${className}`}
+    className={`border ${siteConfig.theme.borderClass} ${siteConfig.theme.bgClass} rounded-xl relative overflow-hidden group flex flex-col ${noPadding ? '' : 'p-5'} ${className}`}
   >
     {children}
   </motion.div>
@@ -40,171 +45,309 @@ const MetricCard = ({
   title,
   value,
   icon: Icon,
+  trend,
+  trendValue,
   delay
 }: {
   title: string;
   value: string | number;
   icon: React.ElementType;
+  trend?: 'up' | 'down' | 'neutral';
+  trendValue?: string;
   delay: number;
 }) => (
-  <BentoBox delay={delay} className="flex flex-col justify-between min-h-[140px]">
+  <BentoBox delay={delay} className="min-h-[140px] justify-between">
     <div className="flex justify-between items-start">
-      <h3 className="text-white/50 text-xs font-medium tracking-[0.1em] uppercase font-mono">
-        {title}
-      </h3>
-      <Icon size={16} className="text-white/30 group-hover:text-white/70 transition-colors" />
+      <div className="flex items-center gap-2">
+        <div className="p-2 bg-white/5 rounded-lg border border-white/5">
+          <Icon size={16} className="text-white/70" />
+        </div>
+        <h3 className="text-white/50 text-xs font-medium tracking-wider">
+          {title}
+        </h3>
+      </div>
     </div>
-    <div className="mt-4">
-      <span className="font-sans font-bold text-4xl text-white tracking-tight">
+    <div className="mt-4 flex items-end justify-between">
+      <span className="font-sans font-bold text-3xl text-white tracking-tight">
         {value}
       </span>
+      {trendValue && (
+        <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${
+          trend === 'up' ? 'text-emerald-400 bg-emerald-400/10' :
+          trend === 'down' ? 'text-red-400 bg-red-400/10' :
+          'text-white/50 bg-white/5'
+        }`}>
+          {trend === 'up' && <ArrowUpRight size={14} />}
+          {trend === 'down' && <ArrowDownRight size={14} />}
+          {trendValue}
+        </div>
+      )}
     </div>
-
-    {/* Abstract Background Decoration (Micro-chart hint) */}
-    <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-white/[0.02] to-transparent pointer-events-none" />
-    <div className={`absolute -bottom-1 -right-1 w-16 h-16 border-r border-b ${siteConfig.theme.borderClass} rounded-br-full opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
   </BentoBox>
 );
 
 export default function DashboardPage() {
+  const [chatMessage, setChatMessage] = useState("");
+
+  const hotLeads = [
+    { name: "Ahmad Rizki", product: "Honda HR-V SE", time: "2m ago", score: 98 },
+    { name: "Budi Santoso", product: "Toyota Zenix", time: "15m ago", score: 95 },
+    { name: "Citra Dewi", product: "Mitsubishi Xpander", time: "1h ago", score: 88 },
+  ];
+
+  const followUps = [
+    { name: "Diana Putri", product: "Test Drive HR-V", time: "10:00 AM", status: "pending" },
+    { name: "Eko Prasetyo", product: "Kirim Brosur CR-V", time: "13:30 PM", status: "pending" },
+    { name: "Fajar Nugroho", product: "Follow Up Kredit", time: "16:00 PM", status: "pending" },
+  ];
+
+  const chatHistory = [
+    { type: 'human', text: "Halo siang mas, saya mau tanya harga OTR HR-V SE putih berapa ya?", time: "10:30 AM" },
+    { type: 'ai', text: "Halo Bapak/Ibu! Untuk Honda HR-V tipe SE warna Putih (Platinum White Pearl), harga OTR saat ini adalah Rp 424.600.000. Ada rencana pembelian secara cash atau kredit?", time: "10:31 AM" },
+    { type: 'human', text: "Kredit mas. Kalau DP 100jt angsurannya berapa?", time: "10:35 AM" },
+    { type: 'human_override', text: "Baik Pak. Untuk DP 100 Juta, angsuran HR-V SE selama 5 tahun (60x) sekitar Rp 7.500.000/bulan. Kebetulan bulan ini ada promo potongan tenor 1 bulan. Bapak ada waktu untuk test drive besok?", time: "10:37 AM" },
+    { type: 'human', text: "Boleh, besok jam 10 pagi ya.", time: "10:45 AM" },
+    { type: 'ai', text: "Siap Pak! Jadwal test drive Honda HR-V SE untuk besok jam 10 pagi sudah saya catat. Nanti saya siapkan unitnya. Ada pertanyaan lain sebelum besok kita bertemu?", time: "10:46 AM" }
+  ];
+
   return (
-    <div className={`min-h-screen ${siteConfig.theme.bgClass} text-white p-6 md:p-10 lg:p-12 pb-24 max-w-screen-2xl mx-auto`}>
+    <div className="max-w-[1600px] mx-auto space-y-6 pb-24">
+      {/* Metric Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Lead Aktif" value="124" icon={Users} trend="up" trendValue="+12%" delay={0.1} />
+        <MetricCard title="Jeda Autopilot (60s)" value="12" icon={Clock} trend="neutral" trendValue="Antri" delay={0.2} />
+        <MetricCard title="Intervensi Manual" value="8" icon={Hand} trend="down" trendValue="-2%" delay={0.3} />
+        <MetricCard title="Dibalas oleh AI" value="1,042" icon={Bot} trend="up" trendValue="+24%" delay={0.4} />
+      </div>
 
-      {/* Top Bar Area */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-        className={`mb-12 flex justify-between items-end border-b ${siteConfig.theme.borderClass} pb-6`}
-      >
-        <div>
-          <h1 className="font-sans font-bold text-4xl md:text-5xl tracking-tight">
-            Dashboard
-          </h1>
-          <p className="text-white/50 mt-2 font-mono text-sm tracking-wide uppercase">
-            {siteConfig.name} {"// LIVE"}
-          </p>
-        </div>
-      </motion.div>
+      {/* Three-Column Dashboard Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-280px)] min-h-[600px]">
 
-      {/* Main Asymmetrical Grid */}
-      <div className={`grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-[1px] bg-white/5 border ${siteConfig.theme.borderClass} p-[1px]`}>
-
-        {/* WhatsApp Integration Panel (Large span) */}
-        <BentoBox delay={0.1} className="md:col-span-4 lg:col-span-8 min-h-[300px] flex flex-col md:flex-row gap-8">
-          <div className="flex-1 flex flex-col justify-between">
-            <div>
-              <h2 className="text-white/50 text-xs font-medium tracking-[0.1em] uppercase font-mono mb-4">
-                Connection Status
-              </h2>
-              <div className="font-sans font-bold text-3xl tracking-tight flex items-center gap-3">
-                WhatsApp Bridge
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-20"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white/50"></span>
-                </span>
+        {/* Left Column: Leads & Follow-up (3 columns wide) */}
+        <div className="lg:col-span-3 flex flex-col gap-6 h-full">
+          {/* Hot Leads */}
+          <BentoBox delay={0.5} className="flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-white">
+                <Flame size={18} className="text-orange-500" />
+                <h2 className="font-semibold text-sm">Lead Panas</h2>
               </div>
-              <p className="text-white/40 mt-4 text-sm max-w-md leading-relaxed font-light">
-                Secure link required. Scan the encrypted matrix to establish a persistent connection with the AI core.
-              </p>
+              <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full">Lihat Semua</span>
             </div>
 
-            <button className={`flex items-center gap-2 text-sm font-medium w-max border-b ${siteConfig.theme.borderClass} pb-1 hover:border-white transition-colors mt-8`}>
-              Configure Pipeline <ArrowUpRight size={14} />
-            </button>
-          </div>
-
-          {/* QR Placeholder Area */}
-          <div className={`w-full md:w-48 h-48 ${siteConfig.theme.bgClass} border ${siteConfig.theme.borderClass} flex items-center justify-center relative overflow-hidden group-hover:border-white/10 transition-colors shrink-0`}>
-            <div className="absolute inset-0 backdrop-blur-md bg-black/40 z-10 flex items-center justify-center">
-              <span className="text-white/30 text-xs tracking-widest uppercase font-mono">Awaiting Sync</span>
+            <div className="flex-1 overflow-y-auto space-y-3 scrollbar-hide pr-1">
+              {hotLeads.map((lead, i) => (
+                <div key={i} className="p-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer group">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className="font-medium text-sm text-white group-hover:text-emerald-400 transition-colors">{lead.name}</h3>
+                    <div className="flex items-center gap-1 text-xs text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded">
+                      <Flame size={10} /> {lead.score}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-white/50">
+                    <span>{lead.product}</span>
+                    <span>{lead.time}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-            <QrCode size={64} className="text-white/10" />
+          </BentoBox>
 
-            {/* Scanning line effect */}
-            <motion.div
-              animate={{ y: ["0%", "100%", "0%"] }}
-              transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
-              className="absolute top-0 left-0 w-full h-[1px] bg-white/20 z-0 shadow-[0_0_8px_rgba(255,255,255,0.5)]"
-            />
-          </div>
-        </BentoBox>
-
-        {/* AI Engine Status */}
-        <BentoBox delay={0.2} className="md:col-span-2 lg:col-span-4 flex flex-col justify-between min-h-[300px]">
-          <div>
-            <h2 className="text-white/50 text-xs font-medium tracking-[0.1em] uppercase font-mono mb-4">
-              AI Engine
-            </h2>
-            <div className="font-sans font-bold text-3xl tracking-tight">
-              Standby Mode
+          {/* Follow-Ups */}
+          <BentoBox delay={0.6} className="flex-1 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2 text-white">
+                <Calendar size={18} className="text-emerald-400" />
+                <h2 className="font-semibold text-sm">Follow-Up Hari Ini</h2>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-white/40">Model</span>
-              <span className="font-mono text-white/70">GPT-4o</span>
+            <div className="flex-1 overflow-y-auto space-y-3 scrollbar-hide pr-1">
+              {followUps.map((task, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] transition-colors cursor-pointer">
+                  <div className="mt-0.5">
+                    <div className="w-4 h-4 rounded border border-white/20 flex items-center justify-center hover:border-emerald-400 hover:bg-emerald-400/10 transition-colors"></div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-sm text-white">{task.name}</h3>
+                    <div className="text-xs text-white/50 mt-1">{task.product}</div>
+                  </div>
+                  <div className="text-xs font-medium text-white/40">{task.time}</div>
+                </div>
+              ))}
             </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-white/40">Temperature</span>
-              <span className="font-mono text-white/70">0.7</span>
-            </div>
-            <div className="h-[1px] w-full bg-white/5" />
-            <div className="flex justify-between items-center text-sm pt-2">
-              <span className="text-white/40">System Status</span>
-              <span className="text-white/70 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-white/30" /> Idle
-              </span>
-            </div>
-          </div>
-        </BentoBox>
+          </BentoBox>
+        </div>
 
-        {/* Metric Row */}
-        <MetricCard title="Hot Leads" value="0" icon={Flame} delay={0.3} />
-        <MetricCard title="Follow-ups" value="0" icon={Clock} delay={0.4} />
-        <MetricCard title="Tokens Used" value="0" icon={Coins} delay={0.5} />
-        <MetricCard title="Messages" value="0" icon={MessageSquare} delay={0.6} />
-
-        {/* Activity Log / Table */}
-        <BentoBox delay={0.7} className="md:col-span-4 lg:col-span-12 min-h-[400px] flex flex-col">
-          <div className={`flex justify-between items-center mb-8 border-b ${siteConfig.theme.borderClass} pb-4`}>
-            <h2 className="font-sans font-bold text-xl tracking-tight">Recent Prospek</h2>
-            <button className="text-white/30 hover:text-white transition-colors">
-              <Menu size={20} />
-            </button>
-          </div>
-
-          {/* Table Header Structure */}
-          <div className="grid grid-cols-12 gap-4 text-white/30 text-xs tracking-widest uppercase font-mono mb-4 px-4">
-            <div className="col-span-3">Contact</div>
-            <div className="col-span-2">Status</div>
-            <div className="col-span-4">Last Message</div>
-            <div className="col-span-3 text-right">Time</div>
-          </div>
-          <div className={`h-[1px] w-full ${siteConfig.theme.bgClass} mb-8`} />
-
-          {/* Elegant Empty State */}
-          <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50 hover:opacity-100 transition-opacity duration-500">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 1, duration: 1 }}
-            >
-              <div className={`w-16 h-16 border ${siteConfig.theme.borderClass} flex items-center justify-center mb-6 mx-auto rotate-45`}>
-                <div className="-rotate-45">
-                  <Inbox size={24} className="text-white/40" />
+        {/* Middle Column: Live Chat (6 columns wide) */}
+        <BentoBox delay={0.7} noPadding className="lg:col-span-6 flex flex-col h-full bg-slate-950 border-white/10 shadow-2xl">
+          {/* Chat Header */}
+          <div className="p-4 border-b border-white/10 flex items-center justify-between bg-white/[0.02]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-lg font-bold">
+                A
+              </div>
+              <div>
+                <h2 className="font-semibold text-white">Ahmad Rizki</h2>
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-white/50">+62 812-3456-7890</span>
+                  <span className="w-1 h-1 rounded-full bg-white/20" />
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Online
+                  </span>
                 </div>
               </div>
-              <h3 className="font-sans font-bold text-2xl tracking-tight mb-2 text-white/80">
-                Belum ada prospek masuk
-              </h3>
-              <p className="text-white/40 text-sm font-light max-w-sm mx-auto">
-                The matrix is quiet. Awaiting incoming connections from your marketing channels.
-              </p>
-            </motion.div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs font-medium text-white hover:bg-white/10 transition-colors flex items-center gap-2">
+                <Hand size={14} /> Ambil Alih
+              </button>
+              <button className="p-2 rounded-lg hover:bg-white/5 text-white/50 transition-colors">
+                <MoreVertical size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Chat Messages Area */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed opacity-90" style={{ backgroundColor: '#020617' }}>
+            <div className="text-center my-4">
+              <span className="text-[10px] font-medium text-white/30 bg-white/5 px-3 py-1 rounded-full uppercase tracking-wider">
+                Hari ini
+              </span>
+            </div>
+
+            {chatHistory.map((msg, i) => {
+              const isOutbound = msg.type !== 'human';
+
+              return (
+                <div key={i} className={`flex flex-col ${isOutbound ? 'items-end' : 'items-start'}`}>
+                  {/* Indicator for AI or Manual override */}
+                  {isOutbound && (
+                    <div className="flex items-center gap-1.5 mb-1 mr-1">
+                      {msg.type === 'ai' ? (
+                        <>
+                          <Bot size={12} className="text-emerald-400" />
+                          <span className="text-[10px] font-medium text-emerald-400">AI Assistant</span>
+                        </>
+                      ) : (
+                        <>
+                          <Hand size={12} className="text-orange-400" />
+                          <span className="text-[10px] font-medium text-orange-400">Manual Override</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                    !isOutbound
+                      ? 'bg-slate-800 text-white rounded-tl-sm border border-white/5'
+                      : msg.type === 'ai'
+                        ? 'bg-emerald-900/40 border border-emerald-500/20 text-emerald-50 rounded-tr-sm'
+                        : 'bg-orange-900/40 border border-orange-500/20 text-orange-50 rounded-tr-sm'
+                  }`}>
+                    {msg.text}
+                  </div>
+                  <div className="flex items-center gap-1 mt-1 text-[10px] text-white/30">
+                    {msg.time}
+                    {isOutbound && <CheckCircle2 size={10} className={msg.type === 'ai' ? "text-emerald-500/50" : "text-orange-500/50"} />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Autopilot Status Indicator */}
+          <div className="px-4 py-2 bg-emerald-500/10 border-t border-emerald-500/20 flex items-center justify-between">
+             <div className="flex items-center gap-2 text-xs text-emerald-400">
+                <Bot size={14} />
+                <span className="font-medium">Autopilot Aktif</span>
+             </div>
+             <div className="text-[10px] text-emerald-400/70 font-mono flex items-center gap-1">
+                Next response in: <span className="font-bold text-emerald-400">45s</span> (Redis Delay)
+             </div>
+          </div>
+
+          {/* Chat Input */}
+          <div className="p-4 bg-slate-950 border-t border-white/10">
+            <div className="relative flex items-end gap-2">
+              <textarea
+                rows={1}
+                placeholder="Ketik balasan manual (mengambil alih dari AI)..."
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-emerald-500/50 focus:bg-white/10 transition-all resize-none max-h-32 min-h-[44px]"
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+              />
+              <button className="absolute right-2 bottom-2 p-2 rounded-lg bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors flex items-center justify-center">
+                <Send size={16} className="ml-0.5" />
+              </button>
+            </div>
           </div>
         </BentoBox>
+
+        {/* Right Column: Insights (3 columns wide) */}
+        <div className="lg:col-span-3 flex flex-col gap-6 h-full">
+          {/* Heat Score */}
+          <BentoBox delay={0.8} className="flex flex-col items-center justify-center py-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 blur-3xl rounded-full" />
+            <h2 className="text-white/50 text-xs font-medium tracking-wider mb-2 uppercase">Heat Score</h2>
+            <div className="text-5xl font-bold text-white flex items-center gap-2 tracking-tighter">
+              98 <Flame size={32} className="text-orange-500" />
+            </div>
+            <div className="mt-2 text-xs font-medium text-orange-400 bg-orange-400/10 px-3 py-1 rounded-full border border-orange-500/20">
+              Sangat Tertarik
+            </div>
+          </BentoBox>
+
+          {/* Lead Information */}
+          <BentoBox delay={0.9} className="flex-1">
+            <h2 className="font-semibold text-sm mb-4 text-white flex items-center gap-2">
+              <Users size={16} className="text-white/50" />
+              Informasi Lead
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Produk Diminati</div>
+                <div className="text-sm font-medium text-white bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+                  Honda HR-V SE Putih
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Sumber</div>
+                <div className="text-sm font-medium text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" /> Facebook Ads
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Metode Pembayaran</div>
+                <div className="text-sm font-medium text-white flex items-center gap-2">
+                  Kredit (DP 100jt)
+                </div>
+              </div>
+            </div>
+          </BentoBox>
+
+          {/* AI Insight & Next Action */}
+          <BentoBox delay={1.0} className="bg-gradient-to-br from-slate-900 to-slate-950 border-emerald-500/20 relative overflow-hidden">
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-300" />
+            <h2 className="font-semibold text-sm mb-3 text-white flex items-center gap-2">
+              <Bot size={16} className="text-emerald-400" />
+              AI Insight
+            </h2>
+            <p className="text-xs text-white/70 leading-relaxed mb-4">
+              Prospek menunjukkan minat kuat pada skema kredit. Promo potongan tenor 1 bulan berhasil menarik perhatian.
+            </p>
+
+            <div className="bg-slate-950 p-3 rounded-lg border border-white/5">
+              <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <TrendingUp size={12} /> Next Best Action
+              </div>
+              <p className="text-xs text-white font-medium">
+                Konfirmasi ulang jadwal test drive besok pagi (H-2 jam) dan siapkan simulasi kredit cetak.
+              </p>
+            </div>
+          </BentoBox>
+        </div>
 
       </div>
     </div>
