@@ -31,6 +31,8 @@ import { AntiAbuseControllerModule } from './modules/anti-abuse/anti-abuse.modul
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { BackupModule } from './modules/backup/backup.module';
 import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
+import { TenantModule } from './modules/tenant/tenant.module';
+import { DeviceModule } from './modules/device/device.module';
 
 @Module({
   imports: [
@@ -100,6 +102,8 @@ import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
     AntiAbuseControllerModule,
     AnalyticsModule,
     BackupModule,
+    TenantModule,
+    DeviceModule,
   ],
   controllers: [AppController],
   providers: [
