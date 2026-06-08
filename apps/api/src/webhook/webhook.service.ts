@@ -186,7 +186,7 @@ export class WebhookService {
 
     // Let's implement a solid check for outgoing messages:
     const isOutgoing = payload.sender === payload.device;
-    let targetLead = isOutgoing ? payload.to : payload.sender;
+    const targetLead = isOutgoing ? payload.to : payload.sender;
 
     if (isOutgoing && targetLead) {
       this.logger.log(

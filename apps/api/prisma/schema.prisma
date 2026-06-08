@@ -191,6 +191,7 @@ model Tenant {
   suppressionList     SuppressionList[]
   analyticsEvents     AnalyticsEvent[]
   knowledgeBase       KnowledgeBase[]
+  botConfig           BotConfig?
   subscription        Subscription?
   quickReplyTemplates QuickReplyTemplate[]
   conversationLabels  ConversationLabel[]
@@ -903,4 +904,16 @@ model AbusiveClient {
   @@index([fingerprintHash])
   @@index([blockedAt])
   @@index([ipAddress])
+}
+
+model BotConfig {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  systemPrompt    String   @db.Text
+  greetingMessage String   @db.Text
+  businessContext String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 }
