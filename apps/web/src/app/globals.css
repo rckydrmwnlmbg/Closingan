@@ -8,6 +8,12 @@
     --foreground: #ffffff;
     --border: rgba(255, 255, 255, 0.05);
   }
+
+  body {
+    @apply font-sans;
+    background-color: theme('colors.background');
+    color: theme('colors.text_main');
+  }
 }
 
 @layer utilities {
@@ -17,9 +23,48 @@
   .bg-grid-white {
     background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h40v40H0V0zm1 1h38v38H1V1z' fill='%23ffffff' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
   }
-}
 
-body {
-  color: var(--foreground);
-  background: var(--background);
+  /* Custom Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+  }
+
+  /* Sparkline Animations */
+  @keyframes drawSparkline {
+    0% {
+      stroke-dashoffset: 300;
+    }
+    100% {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .animate-sparkline {
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: drawSparkline 1.5s ease-out forwards;
+  }
+
+  @keyframes fadeArea {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 0.2;
+    }
+  }
+
+  .animate-area {
+    opacity: 0;
+    animation: fadeArea 1.5s ease-out forwards;
+    animation-delay: 0.3s;
+  }
 }

@@ -15,8 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "CLOSINGAN - AI Sales OS",
-  description: "Ultra-premium AI Sales OS",
+  title: "Closingan - AI Closing Assistant",
+  description: "AI Closing Assistant",
 };
 
 export default function RootLayout({
@@ -25,9 +25,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className="dark">
+    <html lang="id">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="https://unpkg.com/@phosphor-icons/web"></script>
+      </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#050505] text-white min-h-screen selection:bg-emerald-500/30`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh w-full overflow-x-hidden`}
       >
         <PageTransition>{children}</PageTransition>
       </body>
