@@ -72,8 +72,8 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         run: |
-        npx jest --config ./test/jest-e2e.json \
-        --runInBand \
-        --forceExit \
-        --detectOpenHandles \
-        --testTimeout=60000
+          npx jest --config ./test/jest-e2e.json \
+          --runInBand \
+          --forceExit \
+          --detectOpenHandles \
+          --testTimeout=60000
