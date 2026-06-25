@@ -1,1 +1,0 @@
-ALTER TABLE "TokenQuota" ADD COLUMN "extraCredits" INTEGER NOT NULL DEFAULT 0;
