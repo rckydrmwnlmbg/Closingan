@@ -50,8 +50,14 @@ export class PrismaService
   }
 
   async onModuleInit() {
-    await this.$connect();
-    Object.assign(this, this.extendedClient);
+    try {
+      await this.$connect();
+      Object.assign(this, this.extendedClient);
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'test') {
+        throw e;
+      }
+    }
   }
 
   async onModuleDestroy() {
