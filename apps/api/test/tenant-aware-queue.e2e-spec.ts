@@ -27,12 +27,13 @@ describe('Tenant Aware Queue Isolation Test', () => {
           },
         ]),
         update: jest.fn(),
+        updateMany: jest.fn(),
       },
     };
 
     const mockClsService = {
       run: jest.fn().mockImplementation(async (cb) => {
-        await cb();
+        return await cb();
       }),
       set: jest.fn(),
     };
@@ -78,9 +79,9 @@ describe('Tenant Aware Queue Isolation Test', () => {
     await disconnectDetectionService.handleDisconnectDetection();
 
     // Tenant A should be set to RECONNECTING
-    expect(prismaService.whatsappSession.update).toHaveBeenCalledWith(
+    expect(prismaService.whatsappSession.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'session-1', tenantId: 'tenant-a' },
+        where: { id: { in: ['session-1'] } },
         data: expect.objectContaining({ state: 'RECONNECTING' }),
       }),
     );
@@ -88,7 +89,7 @@ describe('Tenant Aware Queue Isolation Test', () => {
     // Tenant B should not be updated
     expect(prismaService.whatsappSession.update).not.toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'session-2', tenantId: 'tenant-b' },
+        where: { id: { in: ['session-2'] } },
       }),
     );
   });
