@@ -60,6 +60,13 @@ jobs:
           echo "FONNTE_WEBHOOK_SECRET=mock-webhook-secret" >> $GITHUB_ENV
           echo "OPENAI_API_KEY=mock-openai-key-for-ci" >> $GITHUB_ENV
 
+      - name: Wait for Postgres to be ready
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for postgres to become available..."
+            sleep 2
+          done
+
       - name: Generate Prisma Client
         run: npx prisma generate --schema=apps/api/prisma/schema.prisma
 
@@ -69,10 +76,10 @@ jobs:
       - name: Execute End-to-End Tests
         working-directory: apps/api
         env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
+          NODE_OPTIONS: "--max-old-space-size=4096 --expose-gc"
         run: |
           npx jest --config ./test/jest-e2e.json \
           --runInBand \
           --forceExit \
-          --detectOpenHandles \
+          --logHeapUsage \
           --testTimeout=60000

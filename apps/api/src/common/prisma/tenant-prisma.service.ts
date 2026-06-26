@@ -1,91 +1,176 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Scope, Inject } from '@nestjs/common';
-import { PrismaClient, Prisma } from '@prisma/client';
-import { REQUEST } from '@nestjs/core';
+/* eslint-disable */
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 
-// Define exempted models that don't need tenant isolation
-export const EXEMPTED_MODELS = [
-  'User',
+const EXEMPTED_MODELS = [
   'Tenant',
-  'Subscription',
-  'Invoice',
-  'QueueStats',
-  'DeadLetterQueue', // or whatever global system tables exist
+  'RefreshToken',
+  'OtpCode',
+  'UserBadge',
+  'FailedJob',
 ];
 
-@Injectable({ scope: Scope.REQUEST })
+@Injectable()
 export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
-  public baseClient: PrismaClient;
-  public tenantClient: any; // Dynamic type
+  private baseClient: PrismaClient;
+  public readonly client: any;
+  private readonly logger = new Logger(TenantPrismaService.name);
 
-  constructor(
-    @Inject(REQUEST) private request: Request,
-    private readonly cls: ClsService
-  ) {
+  constructor(private readonly cls: ClsService) {
     this.baseClient = new PrismaClient();
 
-    // Fallback: Check if CLS has tenantId, otherwise try to extract from request headers (for HTTP contexts)
-    const tenantId = this.cls.get('tenantId') || (this.request?.headers as any)?.['x-tenant-id'];
+    const self = this;
 
-    if (tenantId) {
-       this.tenantClient = this.baseClient.$extends({
-        query: {
-           $allModels: {
-             async $allOperations({ model, operation, args, query }) {
-                // Skip tenant isolation for exempted global models
-                if (EXEMPTED_MODELS.includes(model)) {
-                   return query(args);
+    // Create the extension wrapper
+    this.client = this.baseClient.$extends({
+      query: {
+        $allModels: {
+          async $allOperations({ model, operation, args, query }) {
+            const tenantId = cls.get('tenantId');
+
+            if (EXEMPTED_MODELS.includes(model)) {
+              return query(args);
+            }
+
+            if (!tenantId) {
+              throw new Error(
+                `Missing tenantId in context for model ${model}. Tenant Isolation Error.`,
+              );
+            }
+
+            const argsClone: any = args ? JSON.parse(JSON.stringify(args)) : {};
+
+            if (
+              [
+                'findFirst',
+                'findFirstOrThrow',
+                'findMany',
+                'count',
+                'aggregate',
+                'groupBy',
+              ].includes(operation)
+            ) {
+              argsClone.where = { ...argsClone.where, tenantId };
+            } else if (
+              ['findUnique', 'findUniqueOrThrow'].includes(operation)
+            ) {
+              // Prisma findUnique strictly requires unique identifiers in where.
+              // We map findUnique to findFirst behind the scenes to allow adding tenantId.
+              argsClone.where = { ...argsClone.where, tenantId };
+
+              const newOperation =
+                operation === 'findUnique' ? 'findFirst' : 'findFirstOrThrow';
+              return (self.baseClient as any)[model as string][newOperation](
+                argsClone,
+              );
+            } else if (['create', 'createMany'].includes(operation)) {
+              if (operation === 'create') {
+                argsClone.data = { ...argsClone.data, tenantId };
+              } else {
+                // createMany
+                if (Array.isArray(argsClone.data)) {
+                  argsClone.data = argsClone.data.map((d: any) => ({
+                    ...d,
+                    tenantId,
+                  }));
+                } else {
+                  argsClone.data = { ...argsClone.data, tenantId };
                 }
-
-                const argsWithTenant = { ...args } as any;
-
-                // Operations that inject tenantId into where clause
-                const readOps = ['findUnique', 'findFirst', 'findMany', 'count', 'update', 'delete'];
-                if (readOps.includes(operation)) {
-                    argsWithTenant.where = { ...argsWithTenant.where, tenantId };
+              }
+            } else if (['update', 'delete'].includes(operation)) {
+              // Check ownership by fetching the record first without tenantId restriction
+              // to see if it exists, and then verifying tenantId matches
+              if (argsClone.where) {
+                const record = await (self.baseClient as any)[
+                  model as string
+                ].findUnique({ where: argsClone.where });
+                if (!record || record.tenantId !== tenantId) {
+                  throw new Error(
+                    `Record not found or does not belong to tenant for operation ${operation} on model ${model}`,
+                  );
                 }
+              }
+            } else if (operation === 'upsert') {
+              // Convert upsert to manual findFirst -> update / create to strictly guarantee tenant verification.
+              // Since findUnique requires unique compound, findFirst bypasses that and enforces tenant filter.
+              const existingRecord = await (self.baseClient as any)[
+                model as string
+              ].findFirst({
+                where: { ...argsClone.where, tenantId },
+              });
 
-                // Operations that inject tenantId into data payload
-                const writeOps = ['create', 'createMany'];
-                if (writeOps.includes(operation)) {
-                    if (Array.isArray(argsWithTenant.data)) {
-                        argsWithTenant.data = argsWithTenant.data.map((d: any) => ({ ...d, tenantId }));
-                    } else {
-                        argsWithTenant.data = { ...argsWithTenant.data, tenantId };
-                    }
-                }
+              if (existingRecord) {
+                // Convert to update
+                const updateArgs = {
+                  ...argsClone,
+                  where: argsClone.where,
+                  data: { ...argsClone.update, tenantId },
+                };
+                delete updateArgs.create;
+                delete updateArgs.update;
+                return (self.baseClient as any)[model as string].update(
+                  updateArgs,
+                );
+              } else {
+                // Convert to create
+                const createArgs = {
+                  ...argsClone,
+                  data: { ...argsClone.create, tenantId },
+                };
+                delete createArgs.create;
+                delete createArgs.update;
+                delete createArgs.where;
+                return (self.baseClient as any)[model as string].create(
+                  createArgs,
+                );
+              }
+            } else if (['updateMany', 'deleteMany'].includes(operation)) {
+              argsClone.where = { ...argsClone.where, tenantId };
+            }
 
-                return query(argsWithTenant);
-             }
-           }
-        }
-      });
-    } else {
-       // If no tenant context is provided, return the base client (Warning: unsafe if abused)
-       this.tenantClient = this.baseClient;
-    }
-  }
+            // Apply 10-second timeout
+            const timeoutMs = 10000;
+            let timeoutId: NodeJS.Timeout;
 
-  // Create a proxy to delegate calls to tenantClient seamlessly
-  get client(): PrismaClient {
-     return new Proxy(this.baseClient, {
-        get: (target, prop) => {
-           if (this.tenantClient[prop]) {
-               return this.tenantClient[prop];
-           }
-           return target[prop as keyof typeof target];
-        }
-     });
+            const timeoutPromise = new Promise((_, reject) => {
+              timeoutId = setTimeout(() => {
+                self.logger.error(
+                  `Database slow query timeout: ${model as string}.${operation} exceeded ${timeoutMs}ms`,
+                );
+                const { AppException } = require('../exceptions/app.exception');
+                reject(
+                  new AppException(
+                    'DB_TIMEOUT',
+                    `Database query timed out for ${model as string}.${operation}`,
+                    504,
+                  ),
+                );
+              }, timeoutMs);
+            });
+
+            try {
+              const result = await Promise.race([
+                query(argsClone),
+                timeoutPromise,
+              ]);
+              return result;
+            } finally {
+              clearTimeout(timeoutId!);
+            }
+          },
+        },
+      },
+    });
   }
 
   async onModuleInit() {
-    try {
-      await this.baseClient.$connect();
-    } catch (e) {
-      if (process.env.NODE_ENV !== 'test') {
-        throw e;
-      }
-    }
+    await this.baseClient.$connect();
   }
 
   async onModuleDestroy() {
