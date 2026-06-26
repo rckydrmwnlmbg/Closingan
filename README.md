@@ -1,4 +1,4 @@
-# Closingan 🚗💬
+# Closingan 
 **The AI Sales Copilot for Automotive Dealerships**
 
 Closingan is NOT a standard CRM, a generic WhatsApp clone, or a passive reporting dashboard. 
