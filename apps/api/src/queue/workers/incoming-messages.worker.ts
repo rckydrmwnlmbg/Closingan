@@ -4,13 +4,15 @@ import { Logger } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AiService } from '../../ai/ai.service';
+
 
 interface IncomingMessageJobData {
   tenantId: string;
   payload: any;
 }
 
-@Processor('incoming-messages', {
+@Processor('incoming-messages-queue', {
   concurrency: 5,
   limiter: {
     max: 10,
@@ -24,6 +26,7 @@ export class IncomingMessagesWorker extends WorkerHost {
     private readonly cls: ClsService,
     private readonly redisService: RedisService,
     private readonly prisma: PrismaService,
+    private readonly aiService: AiService,
   ) {
     super();
   }
@@ -58,10 +61,32 @@ export class IncomingMessagesWorker extends WorkerHost {
         this.cls.set('tenantId', tenantId);
 
         try {
-          // Placeholder for future consumption logic
           this.logger.log(`Received message for tenant ${tenantId}`);
+          const { conversationId } = job.data.payload;
 
-          return { success: true };
+          if (!conversationId) {
+            this.logger.error(`Missing conversationId in job payload`);
+            return { success: false, reason: 'missing_conversation_id' };
+          }
+
+          // Generate suggested reply
+          const suggestedReply = await this.aiService.generateSuggestedReply(tenantId, conversationId);
+
+          // Save the suggested reply to the Message table
+          const message = await this.prisma.message.create({
+            data: {
+              tenantId, // Strict isolation
+              conversationId,
+              senderType: 'AI',
+              isAiGenerated: true,
+              content: suggestedReply,
+              deliveryState: 'QUEUED', // Not sending to Fonnte yet, just generating suggestion
+            },
+          });
+
+          this.logger.log(`Generated AI suggested reply for conversation ${conversationId} (Tenant: ${tenantId})`);
+
+          return { success: true, messageId: message.id };
         } catch (error: any) {
           this.logger.error(
             { jobId: job.id, error: error.message },

@@ -50,7 +50,7 @@ import { KnowledgeModule } from '../modules/knowledge/knowledge.module';
       { name: 'summary' },
       { name: 'analytics' },
       { name: 'blast-campaign' },
-      { name: 'incoming-messages' },
+      { name: 'incoming-messages-queue' },
     ),
   ],
   providers: [

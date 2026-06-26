@@ -2,11 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { MessageIngestionService } from './message-ingestion.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
+import { MessageQueueService } from '../../queue/services/message-queue.service';
+
 
 describe('MessageIngestionService', () => {
   let service: MessageIngestionService;
   let mockPrismaService: any;
   let mockClsService: any;
+  let mockMessageQueueService: any;
+
 
   beforeEach(async () => {
     mockPrismaService = {
@@ -24,6 +28,10 @@ describe('MessageIngestionService', () => {
       },
     };
 
+    mockMessageQueueService = {
+      enqueueMessage: jest.fn(),
+    };
+
     mockClsService = {
       set: jest.fn(),
     };
@@ -33,6 +41,7 @@ describe('MessageIngestionService', () => {
         MessageIngestionService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: ClsService, useValue: mockClsService },
+        { provide: MessageQueueService, useValue: mockMessageQueueService },
       ],
     }).compile();
 
