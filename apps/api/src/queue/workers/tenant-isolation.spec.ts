@@ -3,6 +3,8 @@ import { IncomingMessagesWorker } from './incoming-messages.worker';
 import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { AiService } from '../../ai/ai.service';
+
 import { Job, DelayedError } from 'bullmq';
 
 describe('Tenant Isolation (Noisy Neighbor)', () => {
@@ -22,12 +24,23 @@ describe('Tenant Isolation (Noisy Neighbor)', () => {
       set: jest.fn(),
     } as any;
 
+    const aiService = {
+      generateSuggestedReply: jest.fn().mockResolvedValue('Hello AI'),
+    };
+
+    const prismaService = {
+      message: {
+        create: jest.fn().mockResolvedValue({ id: 'msg-1' }),
+      }
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         IncomingMessagesWorker,
         { provide: RedisService, useValue: redisService },
         { provide: ClsService, useValue: clsService },
-        { provide: PrismaService, useValue: {} },
+        { provide: PrismaService, useValue: prismaService },
+        { provide: AiService, useValue: aiService },
       ],
     }).compile();
 

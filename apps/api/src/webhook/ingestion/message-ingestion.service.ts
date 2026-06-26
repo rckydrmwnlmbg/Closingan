@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { FonnteWebhookPayload } from '../../whatsapp/interfaces/fonnte-webhook.interface';
 import { ClsService } from 'nestjs-cls';
+import { MessageQueueService } from '../../queue/services/message-queue.service';
 
 @Injectable()
 export class MessageIngestionService {
@@ -10,6 +11,7 @@ export class MessageIngestionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
+    private readonly messageQueueService: MessageQueueService,
   ) {}
 
   async processIncomingMessage(tenantId: string, payload: FonnteWebhookPayload) {
@@ -103,6 +105,14 @@ export class MessageIngestionService {
     });
 
     this.logger.log({ tenantId, messageId: message.id }, 'Ingested new message successfully');
+
+    // Dispatch job to incoming-messages-queue
+    if (senderType === 'CUSTOMER') {
+      await this.messageQueueService.enqueueMessage(tenantId, {
+        conversationId: conversation.id,
+      });
+    }
+
     return message;
   }
 }
