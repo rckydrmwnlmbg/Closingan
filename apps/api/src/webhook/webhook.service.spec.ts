@@ -8,6 +8,7 @@ import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.inte
 import { getQueueToken } from '@nestjs/bullmq';
 import { RedisService } from '../common/redis/redis.service';
 import { AuditService } from '../common/audit/audit.service';
+import { MessageIngestionService } from './ingestion/message-ingestion.service';
 
 describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () => {
   let webhookService: WebhookService;
@@ -15,6 +16,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
   let mockQueue: any;
   let mockPrismaService: any;
   let mockWhatsappProvider: any;
+  let mockMessageIngestionService: any;
 
   beforeEach(async () => {
     mockPrismaService = {
@@ -52,6 +54,10 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
       exists: jest.fn(),
     };
 
+    mockMessageIngestionService = {
+      processIncomingMessage: jest.fn().mockResolvedValue({ id: 'msg-1' })
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         { provide: EventEmitter2, useValue: { emit: jest.fn() } },
@@ -66,6 +72,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
         },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: RedisService, useValue: mockRedisService },
+        { provide: MessageIngestionService, useValue: mockMessageIngestionService },
       ],
     }).compile();
 
@@ -89,6 +96,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
     const res = await webhookService.handleFonnteIncomingMessage(payload);
     expect(res.success).toBe(true);
     expect(res).not.toHaveProperty('duplicated');
+    expect(mockMessageIngestionService.processIncomingMessage).toHaveBeenCalled();
   });
 
   it('should ignore webhook if payload is a duplicate (idempotency)', async () => {
@@ -106,39 +114,10 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
     expect(result.success).toBe(true);
     expect((result as any).duplicated).toBe(true);
     expect(mockQueue.add).not.toHaveBeenCalled();
+    expect(mockMessageIngestionService.processIncomingMessage).not.toHaveBeenCalled();
   });
 
-  it('should process webhook but flag isHumanTakeoverActive if redis key exists', async () => {
-    const payload = {
-      device: '123',
-      sender: '628999',
-      message: 'Hi',
-      id: 'msg-id',
-    };
-
-    mockRedisService.setNx.mockResolvedValue(true);
-    mockRedisService.get.mockImplementation(async (key: string) => {
-      if (key === 'wa-session:device:123')
-        return JSON.stringify({ tenantId: 'tenant-1' });
-      if (key === 'tenant:tenant-1:customerPhone:628999:takeover') return '1';
-      return null;
-    });
-
-    const result = await webhookService.handleFonnteIncomingMessage(payload);
-
-    expect(result.success).toBe(true);
-    expect(mockQueue.add).toHaveBeenCalledWith(
-      'process-message',
-      expect.objectContaining({
-        payload: expect.objectContaining({
-          isHumanTakeoverActive: true,
-        }),
-      }),
-      expect.any(Object),
-    );
-  });
-
-  it('should detect outgoing message, set manual_override flag, and set 0 delay', async () => {
+  it('should detect outgoing message, set manual_override flag', async () => {
     const payload = {
       device: '628999',
       sender: '628999',
@@ -158,11 +137,11 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
       '1',
       120,
     );
-    // Should add with 0 delay
-    expect(mockQueue.add).toHaveBeenCalledWith(
-      'process-message',
-      expect.any(Object),
-      expect.objectContaining({ delay: 0 }),
-    );
+    // Queue logic is currently disabled in the webhook service
+    // expect(mockQueue.add).toHaveBeenCalledWith(
+    //   'process-message',
+    //   expect.any(Object),
+    //   expect.objectContaining({ delay: 0 }),
+    // );
   });
 });

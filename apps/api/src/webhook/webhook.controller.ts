@@ -5,7 +5,7 @@ import { WebhookService } from './webhook.service';
 export class WebhookController {
   constructor(private readonly webhookService: WebhookService) {}
 
-  @Post('whatsapp')
+  @Post('fonnte')
   @HttpCode(HttpStatus.OK)
   async handleFonnteWebhook(@Body() payload: any) {
     return this.webhookService.handleFonnteIncomingMessage(payload);
