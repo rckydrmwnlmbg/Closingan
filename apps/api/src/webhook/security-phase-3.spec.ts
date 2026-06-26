@@ -1,40 +1,60 @@
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhookService } from './webhook.service';
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
 import { ConfigService } from '@nestjs/config';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
-import { UnauthorizedException } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import { RedisService } from '../common/redis/redis.service';
+import { AuditService } from '../common/audit/audit.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UnauthorizedException } from '@nestjs/common';
+import { MessageIngestionService } from './ingestion/message-ingestion.service';
 
 describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
   let webhookService: WebhookService;
+  let mockRedisService: any;
+  let mockQueue: any;
+  let mockPrismaService: any;
+  let mockWhatsappProvider: any;
 
   beforeEach(async () => {
-    const mockPrismaService = {
+    // Reset mocks for each test
+    mockPrismaService = {
       whatsappSession: {
-        findFirst: jest.fn().mockResolvedValue(null), // Simulate forged payload
-      },
-      auditLog: {
-        create: jest.fn(),
+        findFirst: jest.fn(),
       },
     };
 
     const mockClsService = {
-      run: jest.fn().mockImplementation((cb) => cb()),
       set: jest.fn(),
     };
 
-    const mockWhatsappProvider = {};
+    mockWhatsappProvider = {};
 
-    const mockQueue = {
+    mockQueue = {
       add: jest.fn(),
     };
 
     const mockAuditService = {
       log: jest.fn(),
+    };
+
+    const mockConfigService = {
+      get: jest.fn().mockReturnValue('localhost'),
+    };
+
+    mockRedisService = {
+      get: jest.fn(),
+      set: jest.fn(),
+      setNx: jest.fn().mockResolvedValue(true),
+      delPattern: jest.fn(),
+      del: jest.fn(),
+      exists: jest.fn(),
+    };
+
+    const mockMessageIngestionService = {
+      processIncomingMessage: jest.fn().mockResolvedValue({ id: 'msg-1' })
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -46,20 +66,12 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
         { provide: ClsService, useValue: mockClsService },
         { provide: getQueueToken('ai-reply'), useValue: mockQueue },
         {
-          provide: require('../common/audit/audit.service').AuditService,
+          provide: AuditService,
           useValue: mockAuditService,
         },
-        {
-          provide: ConfigService,
-          useValue: { get: jest.fn().mockReturnValue('localhost') },
-        },
-        {
-          provide: RedisService,
-          useValue: {
-            get: jest.fn().mockResolvedValue(null),
-            setNx: jest.fn(),
-          },
-        },
+        { provide: ConfigService, useValue: mockConfigService },
+        { provide: RedisService, useValue: mockRedisService },
+        { provide: MessageIngestionService, useValue: mockMessageIngestionService },
       ],
     }).compile();
 
@@ -68,17 +80,21 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
 
   describe('Webhook Routing Isolation', () => {
     it('should reject forged webhook payload where device is unknown (missing tenant context)', async () => {
-      // Simulate Fonnte payload
+      // Simulate that the session doesn't exist
+      mockPrismaService.whatsappSession.findFirst.mockResolvedValue(null);
+      mockRedisService.get.mockResolvedValue(null); // No cache
+
       const payload = {
-        device: 'unknown-device-123',
-        sender: '12345',
-        message: 'Hello',
-        id: 'msg-1',
+        device: 'UNKNOWN_DEVICE_123',
+        sender: '628999',
+        message: 'Hi',
+        id: 'msg-forged',
       };
 
       await expect(
-        webhookService.handleFonnteIncomingMessage(payload as any),
+        webhookService.handleFonnteIncomingMessage(payload),
       ).rejects.toThrow(UnauthorizedException);
+      expect(mockQueue.add).not.toHaveBeenCalled();
     });
   });
 });

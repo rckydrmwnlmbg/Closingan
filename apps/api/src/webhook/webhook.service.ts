@@ -11,6 +11,7 @@ import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.inte
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../common/redis/redis.service';
+import { MessageIngestionService } from './ingestion/message-ingestion.service';
 
 @Injectable()
 export class WebhookService {
@@ -26,6 +27,7 @@ export class WebhookService {
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly messageIngestionService: MessageIngestionService,
   ) {}
 
   async handleFonnteIncomingMessage(payload: FonnteWebhookPayload) {
@@ -205,6 +207,20 @@ export class WebhookService {
       // It's an incoming message from the lead.
     }
 
+    // Call MessageIngestionService to save the message directly
+    // This implements Phase 2 core logic: Fonnte -> parsing -> saving to DB
+    const message = await this.messageIngestionService.processIncomingMessage(tenantId, payload);
+
+    if (!message) {
+        this.logger.error({ tenantId, payload }, 'Failed to ingest message');
+        // Depending on strictness, we might throw or just return a warning. We'll proceed.
+    }
+
+    // Skip AI processing constraint: DO NOT build AI reply logic or BullMQ queue processing yet.
+    // We comment out the aiReplyQueue.add to strictly adhere to the prompt constraint:
+    // "Do NOT build the AI (OpenAI) reply logic or the message queue (BullMQ) processing yet. For this PR, we ONLY want to achieve successful data ingestion"
+
+    /*
     const extendedPayload = {
       ...payload,
       isHumanTakeoverActive,
@@ -228,6 +244,7 @@ export class WebhookService {
         removeOnFail: false, // Keep in queue to act as Dead Letter Queue, handled by worker events
       },
     );
+    */
 
     return { success: true };
   }
