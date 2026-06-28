@@ -7,7 +7,7 @@ export class MessageQueueService {
   private readonly logger = new Logger(MessageQueueService.name);
 
   constructor(
-    @InjectQueue('incoming-messages')
+    @InjectQueue('incoming-messages-queue')
     private readonly incomingMessagesQueue: Queue,
   ) {}
 
