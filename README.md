@@ -1,29 +1,24 @@
-# Aegis
+# CLOSINGAN
 
-AI-native HSE (Health, Safety & Environment) / K3 compliance platform for Indonesia's industrial sector.
+AI-powered WhatsApp CRM for automotive sales teams in Indonesia.
 
 ## Status
-🚧 **In active development.** Solo-built product. Not yet deployed to production or in use by paying customers — the modules below represent work in progress, not completed/shipped features.
+🚧 **In active development.** Pre-launch — not yet live with paying customers.
 
-## Problem
-Much of the HSE/K3 software used by Indonesian industrial companies today is still manual or spreadsheet-based (e.g. Microsoft Forms for safety observations) and covers a narrower set of compliance needs than what regulations actually require. Aegis aims to bring AI-assisted automation to this workflow while staying aligned with Indonesian safety regulations (Permenaker, PP, UU).
-
-## Modules in progress
-- Foundation & core architecture
-- Offline data sync
-- AI pipeline (voice-to-report, document intelligence)
-- Web dashboard API
-- CAPA (Corrective and Preventive Action)
-- PTW + JSA (Permit to Work / Job Safety Analysis)
-- Contractor governance
+## What it does
+CLOSINGAN helps automotive sales teams manage and respond to WhatsApp leads with AI-assisted conversation handling. It uses a QR-code connection model: CLOSINGAN owns the system's WhatsApp account via the Fonnte API, so end users don't need to supply their own API tokens.
 
 ## Tech stack
-- Backend: Laravel (PHP), PostgreSQL
-- Planned mobile client: Flutter
-- Built using an AI-agent-assisted development workflow (Google Jules) to support solo execution across architecture, documentation, and implementation
+TypeScript, Next.js, Prisma ORM, PostgreSQL, Redis (background job processing), Fonnte WhatsApp Business API, OpenAI integration.
+
+## Engineering notes
+Built and maintained solo, using an AI-agent-assisted development workflow (Google Jules). Notable production issues resolved during development include:
+- A blocked Prisma database migration in production
+- A CI pipeline out-of-memory crash (resolved by running tests serially)
+- A Redis-based queue/throttling incompatibility
 
 ## Documentation
-See [`/docs`](./docs) for PRD, schema, and architecture notes.
+See [`/Docs`](./Docs) for PRD, phase plans, API contracts, and schema documentation.
 
 ## Contact
 Ricky Darmawan Lambogo — rickydarmawan212@gmail.com
