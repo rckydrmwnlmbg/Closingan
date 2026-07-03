@@ -14,7 +14,10 @@ export class MessageIngestionService {
     private readonly messageQueueService: MessageQueueService,
   ) {}
 
-  async processIncomingMessage(tenantId: string, payload: FonnteWebhookPayload) {
+  async processIncomingMessage(
+    tenantId: string,
+    payload: FonnteWebhookPayload,
+  ) {
     this.cls.set('tenantId', tenantId);
 
     const senderNumber = payload.sender || payload.from;
@@ -22,7 +25,10 @@ export class MessageIngestionService {
     const messageText = payload.message || payload.pesan || payload.text;
 
     if (!senderNumber || !deviceNumber || !messageText) {
-      this.logger.error({ tenantId, payload }, 'Missing required payload fields for ingestion');
+      this.logger.error(
+        { tenantId, payload },
+        'Missing required payload fields for ingestion',
+      );
       return;
     }
 
@@ -30,7 +36,10 @@ export class MessageIngestionService {
     const prospectNumber = isOutgoing ? payload.to : senderNumber;
 
     if (!prospectNumber) {
-      this.logger.error({ tenantId, payload }, 'Unable to determine prospect number');
+      this.logger.error(
+        { tenantId, payload },
+        'Unable to determine prospect number',
+      );
       return;
     }
 
@@ -56,7 +65,10 @@ export class MessageIngestionService {
           customerName: prospectName,
         },
       });
-      this.logger.log({ tenantId, conversationId: conversation.id }, 'Created new conversation');
+      this.logger.log(
+        { tenantId, conversationId: conversation.id },
+        'Created new conversation',
+      );
     } else {
       // Update conversation timestamp
       await this.prisma.conversation.update({
@@ -90,7 +102,7 @@ export class MessageIngestionService {
     // Determine sender type
     let senderType: 'CUSTOMER' | 'AI' | 'SELLER' | 'SYSTEM' = 'CUSTOMER';
     if (isOutgoing) {
-        senderType = 'SELLER'; // Assuming it's human agent if it matches device number via Fonnte webhook
+      senderType = 'SELLER'; // Assuming it's human agent if it matches device number via Fonnte webhook
     }
 
     // Save Message
@@ -104,7 +116,10 @@ export class MessageIngestionService {
       },
     });
 
-    this.logger.log({ tenantId, messageId: message.id }, 'Ingested new message successfully');
+    this.logger.log(
+      { tenantId, messageId: message.id },
+      'Ingested new message successfully',
+    );
 
     // Dispatch job to incoming-messages-queue
     if (senderType === 'CUSTOMER') {

@@ -49,8 +49,9 @@ export class WebhookService {
     if (cachedSessionStr) {
       session = JSON.parse(cachedSessionStr);
     } else {
+      // RISK-8 FIX: Lookup by fonnteDeviceId (not phoneNumber) per SCHEMA.md spec
       session = await this.prisma.whatsappSession.findFirst({
-        where: { phoneNumber: payload.device }, // Assuming Fonnte 'device' matches our phoneNumber
+        where: { fonnteDeviceId: payload.device },
       });
 
       if (session) {
@@ -58,22 +59,13 @@ export class WebhookService {
       }
     }
 
-    const FALLBACK_DEVICE = '6287882134303';
-    let isFallback = false;
-
+    // RISK-7 FIX: Strict tenant resolution — no fallback bypass allowed
     if (!session) {
-      if (payload.device === FALLBACK_DEVICE) {
-        this.logger.warn(
-          `Using fallback mechanism for device ${payload.device}`,
-        );
-        isFallback = true;
-      } else {
-        this.logger.error(`No tenant matches device: ${payload.device}`);
-        throw new UnauthorizedException('Unknown device');
-      }
+      this.logger.error(`No tenant matches device: ${payload.device}`);
+      throw new UnauthorizedException('Unknown device');
     }
 
-    const tenantId = session?.tenantId || 'FALLBACK_TENANT';
+    const tenantId = session.tenantId;
 
     // Set Tenant Isolation Context
     this.cls.set('tenantId', tenantId);
@@ -92,13 +84,6 @@ export class WebhookService {
         return { success: true, duplicated: true };
       }
     }
-
-    // Audit Logging
-    await this.auditService.log({
-      action: 'WA_CONNECTED', // Closest match without schema modification, or we can use custom logging
-      entityType: 'WEBHOOK_PAYLOAD',
-      entityId: payload.id || 'unknown',
-    });
 
     this.logger.log(
       { tenantId, webhookId: payload.id },
@@ -209,11 +194,14 @@ export class WebhookService {
 
     // Call MessageIngestionService to save the message directly
     // This implements Phase 2 core logic: Fonnte -> parsing -> saving to DB
-    const message = await this.messageIngestionService.processIncomingMessage(tenantId, payload);
+    const message = await this.messageIngestionService.processIncomingMessage(
+      tenantId,
+      payload,
+    );
 
     if (!message) {
-        this.logger.error({ tenantId, payload }, 'Failed to ingest message');
-        // Depending on strictness, we might throw or just return a warning. We'll proceed.
+      this.logger.error({ tenantId, payload }, 'Failed to ingest message');
+      // Depending on strictness, we might throw or just return a warning. We'll proceed.
     }
 
     // Skip AI processing constraint: DO NOT build AI reply logic or BullMQ queue processing yet.

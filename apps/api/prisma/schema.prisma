@@ -287,8 +287,8 @@ model OtpCode {
 model WhatsappSession {
   id                 String         @id @default(cuid())
   tenantId           String         @unique
-  phoneNumber        String
-  phoneNumberHash    String // SHA-256 for trial abuse prevention
+  phoneNumber        String?
+  phoneNumberHash    String? // SHA-256 for trial abuse prevention
   displayName        String?
   provider           String         @default("FONNTE")
   providerSessionId  String?

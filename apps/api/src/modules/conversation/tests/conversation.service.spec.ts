@@ -60,12 +60,18 @@ describe('ConversationService', () => {
   describe('getMessagesByPhone', () => {
     it('should throw if conversation not found', async () => {
       (prisma.conversation.findFirst as jest.Mock).mockResolvedValue(null);
-      await expect(service.getMessagesByPhone('tenant-1', '123')).rejects.toThrow('App Exception');
+      await expect(
+        service.getMessagesByPhone('tenant-1', '123'),
+      ).rejects.toThrow('App Exception');
     });
 
     it('should return messages if conversation exists', async () => {
-      (prisma.conversation.findFirst as jest.Mock).mockResolvedValue({ id: 'conv-1' });
-      (prisma.message.findMany as jest.Mock).mockResolvedValue([{ id: 'msg-1' }]);
+      (prisma.conversation.findFirst as jest.Mock).mockResolvedValue({
+        id: 'conv-1',
+      });
+      (prisma.message.findMany as jest.Mock).mockResolvedValue([
+        { id: 'msg-1' },
+      ]);
       const result = await service.getMessagesByPhone('tenant-1', '123');
       expect(prisma.conversation.findFirst).toHaveBeenCalledWith({
         where: { tenantId: 'tenant-1', customerPhone: '123' },

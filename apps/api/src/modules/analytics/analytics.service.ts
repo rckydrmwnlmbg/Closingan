@@ -95,4 +95,28 @@ export class AnalyticsService {
       campaignSummary,
     };
   }
+
+  async getSellerAnalytics(tenantId: string) {
+    // Basic implementation to return response times or conversation status per seller
+    // In a multi-user environment, we would filter by seller. For now we aggregate at tenant level.
+    const conversations = await this.prisma.conversation.groupBy({
+      by: ['state'],
+      where: { tenantId },
+      _count: true,
+    });
+
+    const followUps = await this.prisma.followUp.groupBy({
+      by: ['status'],
+      where: { tenantId },
+      _count: true,
+    });
+
+    const averageResponseTimeMs = 300000; // Mock 5 mins
+
+    return {
+      conversationStates: conversations,
+      followUpStatus: followUps,
+      averageResponseTimeMs,
+    };
+  }
 }

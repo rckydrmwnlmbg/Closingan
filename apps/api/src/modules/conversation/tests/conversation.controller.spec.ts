@@ -14,9 +14,13 @@ describe('ConversationController', () => {
           provide: ConversationService,
           useValue: {
             getMessages: jest.fn().mockResolvedValue({ data: [], meta: {} }),
-            getMessagesByPhone: jest.fn().mockResolvedValue({ data: [], meta: {} }),
+            getMessagesByPhone: jest
+              .fn()
+              .mockResolvedValue({ data: [], meta: {} }),
             sendMessageManual: jest.fn().mockResolvedValue({}),
-            getConversations: jest.fn().mockResolvedValue({ data: [], meta: {} }),
+            getConversations: jest
+              .fn()
+              .mockResolvedValue({ data: [], meta: {} }),
             generateAiSuggestion: jest.fn().mockResolvedValue({}),
           },
         },
@@ -34,14 +38,24 @@ describe('ConversationController', () => {
   describe('getMessages', () => {
     it('should call getMessages with default limit', async () => {
       await controller.getMessages('tenant-1', 'conv-1');
-      expect(service.getMessages).toHaveBeenCalledWith('tenant-1', 'conv-1', undefined, 30);
+      expect(service.getMessages).toHaveBeenCalledWith(
+        'tenant-1',
+        'conv-1',
+        undefined,
+        30,
+      );
     });
   });
 
   describe('getMessagesByPhone', () => {
     it('should call getMessagesByPhone with default limit', async () => {
       await controller.getMessagesByPhone('tenant-1', '08123456789');
-      expect(service.getMessagesByPhone).toHaveBeenCalledWith('tenant-1', '08123456789', undefined, 30);
+      expect(service.getMessagesByPhone).toHaveBeenCalledWith(
+        'tenant-1',
+        '08123456789',
+        undefined,
+        30,
+      );
     });
   });
 });

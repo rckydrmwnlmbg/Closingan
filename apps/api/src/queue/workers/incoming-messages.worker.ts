@@ -6,7 +6,6 @@ import { RedisService } from '../../common/redis/redis.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AiService } from '../../ai/ai.service';
 
-
 interface IncomingMessageJobData {
   tenantId: string;
   payload: any;
@@ -70,7 +69,10 @@ export class IncomingMessagesWorker extends WorkerHost {
           }
 
           // Generate suggested reply
-          const suggestedReply = await this.aiService.generateSuggestedReply(tenantId, conversationId);
+          const suggestedReply = await this.aiService.generateSuggestedReply(
+            tenantId,
+            conversationId,
+          );
 
           // Save the suggested reply to the Message table
           const message = await this.prisma.message.create({
@@ -84,7 +86,9 @@ export class IncomingMessagesWorker extends WorkerHost {
             },
           });
 
-          this.logger.log(`Generated AI suggested reply for conversation ${conversationId} (Tenant: ${tenantId})`);
+          this.logger.log(
+            `Generated AI suggested reply for conversation ${conversationId} (Tenant: ${tenantId})`,
+          );
 
           return { success: true, messageId: message.id };
         } catch (error: any) {

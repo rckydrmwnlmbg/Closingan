@@ -14,6 +14,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('v1');
+  app.enableCors();
 
   // 1. Logger
   app.useLogger(app.get(Logger));

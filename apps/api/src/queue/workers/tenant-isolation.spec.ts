@@ -31,7 +31,7 @@ describe('Tenant Isolation (Noisy Neighbor)', () => {
     const prismaService = {
       message: {
         create: jest.fn().mockResolvedValue({ id: 'msg-1' }),
-      }
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({

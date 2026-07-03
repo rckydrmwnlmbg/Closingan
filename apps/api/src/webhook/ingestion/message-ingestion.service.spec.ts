@@ -4,13 +4,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
 import { MessageQueueService } from '../../queue/services/message-queue.service';
 
-
 describe('MessageIngestionService', () => {
   let service: MessageIngestionService;
   let mockPrismaService: any;
   let mockClsService: any;
   let mockMessageQueueService: any;
-
 
   beforeEach(async () => {
     mockPrismaService = {
@@ -105,7 +103,9 @@ describe('MessageIngestionService', () => {
       id: 'msg-2',
     };
 
-    mockPrismaService.conversation.findFirst.mockResolvedValue({ id: 'conv-1' });
+    mockPrismaService.conversation.findFirst.mockResolvedValue({
+      id: 'conv-1',
+    });
     mockPrismaService.lead.findUnique.mockResolvedValue({ id: 'lead-1' });
     mockPrismaService.message.create.mockResolvedValue({ id: 'message-2' });
 
@@ -141,7 +141,9 @@ describe('MessageIngestionService', () => {
       id: 'msg-3',
     };
 
-    mockPrismaService.conversation.findFirst.mockResolvedValue({ id: 'conv-1' });
+    mockPrismaService.conversation.findFirst.mockResolvedValue({
+      id: 'conv-1',
+    });
     mockPrismaService.lead.findUnique.mockResolvedValue({ id: 'lead-1' });
     mockPrismaService.message.create.mockResolvedValue({ id: 'message-3' });
 

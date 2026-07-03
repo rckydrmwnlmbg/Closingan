@@ -11,7 +11,7 @@ import { MidtransPaymentService } from '../services/midtrans-payment.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { ClsService } from 'nestjs-cls';
 
-@Controller('v1/quota')
+@Controller('quota')
 @UseGuards(JwtAuthGuard)
 export class QuotaController {
   constructor(

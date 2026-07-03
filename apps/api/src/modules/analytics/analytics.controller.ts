@@ -4,7 +4,7 @@ import { AnalyticsService } from './analytics.service';
 import { ResponseBuilder } from '../../common/helpers/response.builder';
 import { TenantId } from '../../common/decorators/tenant.decorator';
 
-@Controller('v1/analytics')
+@Controller('analytics')
 @UseGuards(JwtAuthGuard)
 export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
@@ -12,6 +12,12 @@ export class AnalyticsController {
   @Get('summary')
   async getSummary(@TenantId() tenantId: string) {
     const data = await this.analyticsService.getSummary(tenantId);
+    return ResponseBuilder.success(data);
+  }
+
+  @Get('seller')
+  async getSellerAnalytics(@TenantId() tenantId: string) {
+    const data = await this.analyticsService.getSellerAnalytics(tenantId);
     return ResponseBuilder.success(data);
   }
 }

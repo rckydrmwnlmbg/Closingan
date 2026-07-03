@@ -23,7 +23,7 @@ class UpdateKnowledgeDto {
 }
 
 @UseGuards(JwtAuthGuard)
-@Controller('v1/knowledge')
+@Controller('knowledge')
 export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
 

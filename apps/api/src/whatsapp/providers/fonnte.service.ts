@@ -6,6 +6,7 @@ import {
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import CircuitBreaker from 'opossum';
+import * as crypto from 'crypto';
 import {
   firstValueFrom,
   timeout as rxTimeout,
@@ -276,6 +277,43 @@ export class FonnteService implements WhatsappProviderInterface {
       return {
         isConnected: false,
       };
+    }
+  }
+
+  validateWebhookSignature(payload: any, signature: string): boolean {
+    if (!signature) {
+      return false;
+    }
+
+    const token = this.configService.get<string>('FONNTE_SYSTEM_TOKEN');
+    if (!token) {
+      this.logger.error(
+        'FONNTE_SYSTEM_TOKEN is not configured for webhook signature validation',
+      );
+      return false;
+    }
+
+    try {
+      const payloadString =
+        typeof payload === 'string' ? payload : JSON.stringify(payload);
+      const expectedSignature = crypto
+        .createHmac('sha256', token)
+        .update(payloadString)
+        .digest('hex');
+
+      // Use timing-safe comparison to prevent timing attacks
+      if (signature.length !== expectedSignature.length) {
+        return false;
+      }
+      return crypto.timingSafeEqual(
+        Buffer.from(signature),
+        Buffer.from(expectedSignature),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Webhook signature validation error: ${error instanceof Error ? error.message : 'Unknown'}`,
+      );
+      return false;
     }
   }
 }

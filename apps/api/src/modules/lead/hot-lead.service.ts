@@ -10,6 +10,7 @@ import { LeadAnalysisSchema, LeadAnalysisDto } from './dto/lead-analysis.dto';
 import { HeatTier } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
+import { AppException } from '../../common/exceptions/app.exception';
 
 @Injectable()
 export class HotLeadService {
@@ -291,5 +292,29 @@ export class HotLeadService {
       default:
         return 0;
     }
+  }
+
+  async overrideHeatTier(tenantId: string, leadId: string, heatTier: HeatTier) {
+    const lead = await this.prisma.lead.findFirst({
+      where: { id: leadId, tenantId },
+    });
+
+    if (!lead) {
+      throw new AppException('NOT_FOUND', 'Lead not found', 404);
+    }
+
+    const updated = await this.prisma.lead.update({
+      where: { id: leadId },
+      data: {
+        sellerOverride: heatTier,
+        heatTier: heatTier,
+      },
+    });
+
+    // Invalidate hot leads cache
+    await this.redisService.delPattern(`hot_leads:${tenantId}:*`);
+    await this.redisService.del(`dashboard:summary:${tenantId}`);
+
+    return updated;
   }
 }

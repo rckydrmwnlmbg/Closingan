@@ -25,7 +25,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Audit } from '../common/decorators/audit.decorator';
 import { AuditAction } from '@prisma/client';
 
-@Controller('v1/auth')
+@Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

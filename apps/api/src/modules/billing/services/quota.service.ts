@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { AppException } from '../../../common/exceptions/app.exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
@@ -116,7 +117,11 @@ export class QuotaService {
    */
   async addExtraCredits(tenantId: string, amount: number): Promise<void> {
     if (amount <= 0) {
-      throw new Error('Amount must be positive to add extra credits');
+      throw new AppException(
+        'INVALID_AMOUNT',
+        'Amount must be positive to add extra credits',
+        400,
+      );
     }
 
     try {

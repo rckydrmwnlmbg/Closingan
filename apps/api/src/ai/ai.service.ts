@@ -12,7 +12,10 @@ export class AiService {
     private readonly aiProvider: AiProviderInterface,
   ) {}
 
-  async generateSuggestedReply(tenantId: string, conversationId: string): Promise<string> {
+  async generateSuggestedReply(
+    tenantId: string,
+    conversationId: string,
+  ): Promise<string> {
     // 1. Fetch conversation history with tenant isolation
     const messages = await this.prisma.message.findMany({
       where: {
@@ -27,13 +30,15 @@ export class AiService {
 
     // Handle case where there are no messages
     if (messages.length === 0) {
-       this.logger.warn(`No messages found for conversation ${conversationId} (Tenant: ${tenantId})`);
-       return "Hello! How can I help you today?";
+      this.logger.warn(
+        `No messages found for conversation ${conversationId} (Tenant: ${tenantId})`,
+      );
+      return 'Hello! How can I help you today?';
     }
 
     // 2. Format context for AI
     messages.reverse(); // Order from oldest to newest for context
-    let formattedContext = messages
+    const formattedContext = messages
       .map(
         (msg) =>
           `[${msg.senderType === 'CUSTOMER' ? 'Customer' : 'Seller/AI'}]: ${msg.content}`,
@@ -44,13 +49,13 @@ export class AiService {
 
     // 3. Ask AI Provider
     try {
-      const response = await this.aiProvider.generateReply(
-        tenantId,
-        prompt,
-      );
+      const response = await this.aiProvider.generateReply(tenantId, prompt);
       return response.reply;
     } catch (error) {
-      this.logger.error(`Failed to generate suggested reply for conversation ${conversationId} (Tenant: ${tenantId})`, error);
+      this.logger.error(
+        `Failed to generate suggested reply for conversation ${conversationId} (Tenant: ${tenantId})`,
+        error,
+      );
       throw error;
     }
   }

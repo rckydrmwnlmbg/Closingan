@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { AppException } from '../../common/exceptions/app.exception';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -49,7 +50,11 @@ export class CampaignService {
     });
 
     if (!campaign) {
-      throw new Error('Campaign not found or does not belong to tenant');
+      throw new AppException(
+        'CAMPAIGN_NOT_FOUND',
+        'Campaign not found or does not belong to tenant',
+        404,
+      );
     }
 
     // Update status to IN_PROGRESS

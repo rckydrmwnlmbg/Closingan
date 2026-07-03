@@ -102,8 +102,6 @@ export class WhatsappController {
       session = await this.prisma.whatsappSession.create({
         data: {
           tenantId,
-          phoneNumber: 'pending',
-          phoneNumberHash: 'pending',
           qrCode: qrData.qrData,
           qrExpiresAt: qrData.expiresAt,
           state: 'DISCONNECTED',

@@ -73,40 +73,18 @@ export class AiReplyWorker extends WorkerHost {
         this.cls.set('tenantId', tenantId);
 
         try {
-          await this.auditService.log({
-            action: 'AI_MODE_CHANGED', // Using existing enum value for ai trigger log
-            entityType: 'JOB',
-            entityId: job.id,
-            metadata: { step: 'STARTED' },
-          });
+          this.logger.log(`Job ${job.id} started for tenant ${tenantId}`);
 
-          // 0. Fallback Logic for MVP Fonnte Device
-          if (tenantId === 'FALLBACK_TENANT') {
-            this.logger.warn(`Using fallback AI flow for unassigned tenant`);
-            const userMessage = payload.message || payload.text || 'Hello';
-            const sender = payload.sender || payload.from || 'unknown';
-
-            // Just reply using OpenAI directly
-            const { reply } = await this.aiProvider.generateReply(
-              'FALLBACK_TENANT',
-              userMessage,
-              'Company context: Default MVP Company',
+          // 0. Strict Tenant Validation — no fallback bypass allowed (RISK-7 FIX)
+          if (!tenantId) {
+            this.logger.error(
+              'Job received without tenantId — aborting to enforce tenant isolation',
             );
-
-            // Fonnte System Token Fallback Send via WhatsappProvider?
-            // The Fonnte provider in WhatsappProviderInterface likely uses standard config variables.
-            // Let's rely on WhatsappProvider or Fonnte direct call.
-            try {
-              await this.whatsappProvider.sendMessage({
-                tenantId: 'FALLBACK_TENANT',
-                to: sender,
-                message: reply,
-              });
-            } catch (error) {
-              this.logger.error(`Fallback Whatsapp Error: ${error.message}`);
-            }
-
-            return { success: true, fallbackMode: true };
+            throw new AppException(
+              'TENANT_MISSING',
+              'Cannot process AI reply without a valid tenantId.',
+              400,
+            );
           }
 
           // Extract message from Fonnte payload format
@@ -270,7 +248,9 @@ export class AiReplyWorker extends WorkerHost {
                 systemContext,
               );
               const suggestion = response.reply;
-              const tokensUsed = response.tokensUsed;
+              const totalTokens = response.tokensUsed;
+              const promptTokens = 0,
+                completionTokens = 0;
 
               // Emit suggestion via WebSocket
               this.conversationGateway.broadcastAiSuggestion(tenantId, {
@@ -278,11 +258,25 @@ export class AiReplyWorker extends WorkerHost {
                 suggestion,
               });
 
+              // Log AI usage
+              await this.prisma.aiUsageLog.create({
+                data: {
+                  tenantId,
+                  conversationId: conversation.id,
+                  model: 'gpt-4o-mini',
+                  promptTokens,
+                  completionTokens,
+                  totalTokens,
+                  latencyMs: 0, // Simplification for now, or track start/end time
+                  queueName: 'AI_REPLY',
+                },
+              });
+
               // Deduct quota
-              if (tokenQuota && tokensUsed > 0) {
+              if (tokenQuota && totalTokens > 0) {
                 await this.prisma.tokenQuota.update({
                   where: { tenantId },
-                  data: { usedQuota: { increment: tokensUsed } },
+                  data: { usedQuota: { increment: totalTokens } },
                 });
               }
 
@@ -295,9 +289,124 @@ export class AiReplyWorker extends WorkerHost {
             }
           }
 
-          // 5. Core Conversation Logic (AUTO_REPLY)
-          let aiResponse: string;
-          let tokensUsed = 0;
+          // 4b. Handle SMART_HYBRID Mode
+          let smartHybridReply: string | null = null;
+          let smartHybridTokenUsage: {
+            prompt: number;
+            completion: number;
+            total: number;
+          } | null = null;
+          if (conversation.aiMode === 'SMART_HYBRID') {
+            try {
+              const recentMessages = await this.prisma.message.findMany({
+                where: { conversationId: conversation.id },
+                orderBy: { createdAt: 'desc' },
+                take: 10,
+              });
+
+              if (
+                recentMessages.length > 0 &&
+                recentMessages[0].senderType === 'AI'
+              ) {
+                return { success: true, reason: 'already_replied' };
+              }
+
+              const historyText = recentMessages
+                .reverse()
+                .map((m) => `${m.senderType}: ${m.content}`)
+                .join('\n');
+
+              const relevantKnowledge =
+                await this.knowledgeService.searchRelevantKnowledge(
+                  tenantId,
+                  userMessage,
+                );
+              const systemContext =
+                relevantKnowledge.length > 0
+                  ? relevantKnowledge.join('\n\n')
+                  : undefined;
+
+              const response = await this.aiProvider.generateReply(
+                tenantId,
+                historyText,
+                systemContext,
+              );
+              smartHybridReply = response.reply;
+              smartHybridTokenUsage = {
+                prompt: 0,
+                completion: 0,
+                total: response.tokensUsed,
+              };
+
+              // Confidence Check Heuristic for SMART_HYBRID
+              const uncertaintyKeywords = [
+                'maaf',
+                'kurang tahu',
+                'belum pasti',
+                'tidak yakin',
+                'silakan hubungi',
+              ];
+              const isLowConfidence = uncertaintyKeywords.some((keyword) =>
+                smartHybridReply!.toLowerCase().includes(keyword),
+              );
+
+              if (isLowConfidence) {
+                this.logger.log(
+                  `SMART_HYBRID: Low confidence detected for conversation ${conversation.id}. Escalating to AI_ASSIST.`,
+                );
+
+                // Act like AI_ASSIST: Emit suggestion and escalate
+                this.conversationGateway.broadcastAiSuggestion(tenantId, {
+                  conversationId: conversation.id,
+                  suggestion: smartHybridReply,
+                });
+
+                await this.prisma.conversation.update({
+                  where: { id: conversation.id },
+                  data: { state: 'ESCALATED', unreadCount: { increment: 1 } },
+                });
+
+                // Log AI usage
+                await this.prisma.aiUsageLog.create({
+                  data: {
+                    tenantId,
+                    conversationId: conversation.id,
+                    model: 'gpt-4o-mini',
+                    promptTokens: smartHybridTokenUsage.prompt,
+                    completionTokens: smartHybridTokenUsage.completion,
+                    totalTokens: smartHybridTokenUsage.total,
+                    latencyMs: 0,
+                    queueName: 'AI_REPLY',
+                  },
+                });
+
+                if (tokenQuota && smartHybridTokenUsage.total > 0) {
+                  await this.prisma.tokenQuota.update({
+                    where: { tenantId },
+                    data: {
+                      usedQuota: { increment: smartHybridTokenUsage.total },
+                    },
+                  });
+                }
+                return { success: true, reason: 'smart_hybrid_escalated' };
+              }
+              // If high confidence, we let it fall through to the send block.
+              // We'll skip the generation in AUTO_REPLY block if smartHybridReply is already set.
+            } catch (error) {
+              this.logger.error(
+                `SMART_HYBRID Error for conversation ${conversation.id}: ${error instanceof Error ? error.message : 'Unknown'}`,
+              );
+              return { success: false, reason: 'smart_hybrid_failed' };
+            }
+          }
+
+          // 5. Core Conversation Logic (AUTO_REPLY and confident SMART_HYBRID)
+          let aiResponse: string = smartHybridReply || '';
+          let tokenUsage = smartHybridTokenUsage || {
+            prompt: 0,
+            completion: 0,
+            total: 0,
+          };
           try {
             // Get recent messages for context
             const recentMessages = await this.prisma.message.findMany({
@@ -348,17 +457,25 @@ export class AiReplyWorker extends WorkerHost {
                 ? relevantKnowledge.join('\n\n')
                 : undefined;
 
-            const raceResult = await Promise.race([
-              this.aiProvider.generateReply(
-                tenantId,
-                historyText,
-                systemContext,
-              ),
-              timeout,
-            ]);
-            clearTimeout(timeoutId!);
-            aiResponse = raceResult.reply;
-            tokensUsed = raceResult.tokensUsed;
+            if (!aiResponse) {
+              const raceResult = await Promise.race([
+                this.aiProvider.generateReply(
+                  tenantId,
+                  historyText,
+                  systemContext,
+                ),
+                timeout,
+              ]);
+              clearTimeout(timeoutId!);
+              aiResponse = raceResult.reply;
+              tokenUsage = {
+                prompt: 0,
+                completion: 0,
+                total: raceResult.tokensUsed,
+              };
+            } else {
+              clearTimeout(timeoutId!);
+            }
           } catch (error) {
             // Safety Escalation Layer
             if (error instanceof AiSafetyException) {
@@ -565,27 +682,33 @@ export class AiReplyWorker extends WorkerHost {
           });
 
           // 8. Audit Logging & Quota Update (Deduction tracking)
-          // Deduct 1 from token quota for generating an AI reply
-          if (tokenQuota && tokensUsed > 0) {
+          if (tokenQuota && tokenUsage.total > 0) {
             await this.prisma.tokenQuota.update({
               where: { tenantId },
               data: {
-                usedQuota: { increment: tokensUsed },
+                usedQuota: { increment: tokenUsage.total },
+              },
+            });
+
+            // Persist AI usage log
+            await this.prisma.aiUsageLog.create({
+              data: {
+                tenantId,
+                conversationId: conversation.id,
+                messageId: outgoingMessage.id,
+                model: 'gpt-4o-mini',
+                promptTokens: tokenUsage.prompt,
+                completionTokens: tokenUsage.completion,
+                totalTokens: tokenUsage.total,
+                latencyMs: 0,
+                queueName: 'AI_REPLY',
               },
             });
           }
 
-          await this.auditService.log({
-            tenantId,
-            action: 'AI_MODE_CHANGED',
-            entityType: 'JOB',
-            entityId: job.id,
-            metadata: {
-              step: 'COMPLETED',
-              messageId: outgoingMessage.id,
-              tokensUsed: tokensUsed,
-            },
-          });
+          this.logger.log(
+            `Job ${job.id} completed successfully for tenant ${tenantId}`,
+          );
 
           return { success: true };
         } catch (error: any) {
@@ -643,18 +766,6 @@ export class AiReplyWorker extends WorkerHost {
         } catch (e) {
           this.logger.error(`DLQ Save Error: ${e.message}`);
         }
-
-        await this.auditService.log({
-          action: 'WA_DISCONNECTED', // Nearest semantic log to a disconnected process
-          tenantId: job.data.tenantId, // Must provide tenantId due to Isolation rule
-          entityType: 'FAILED_JOB',
-          entityId: job.id,
-          metadata: {
-            error: error.message,
-            queue: 'ai-reply',
-            attempts: job.attemptsMade,
-          },
-        });
       });
     }
   }

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Delete, Body, Param } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
-@Controller('v1/abuse')
+@Controller('abuse')
 export class AntiAbuseController {
   constructor(private readonly prisma: PrismaService) {}
 

@@ -186,7 +186,6 @@ export class ConversationService {
     return result;
   }
 
-
   async getMessagesByPhone(
     tenantId: string,
     customerPhone: string,
@@ -352,5 +351,47 @@ export class ConversationService {
       model: 'gpt-4o-mini',
       latencyMs: Date.now() - startTime,
     };
+  }
+
+  async getConversation(tenantId: string, conversationId: string) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId },
+      include: { lead: true },
+    });
+
+    if (!conversation) {
+      throw new AppException('NOT_FOUND', 'Conversation not found', 404);
+    }
+    return conversation;
+  }
+
+  async updateAiMode(tenantId: string, conversationId: string, aiMode: any) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId },
+    });
+
+    if (!conversation) {
+      throw new AppException('NOT_FOUND', 'Conversation not found', 404);
+    }
+
+    return this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { aiMode },
+    });
+  }
+
+  async archiveConversation(tenantId: string, conversationId: string) {
+    const conversation = await this.prisma.conversation.findFirst({
+      where: { id: conversationId, tenantId },
+    });
+
+    if (!conversation) {
+      throw new AppException('NOT_FOUND', 'Conversation not found', 404);
+    }
+
+    return this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: { state: 'ARCHIVED' },
+    });
   }
 }

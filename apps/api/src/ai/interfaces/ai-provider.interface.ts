@@ -2,7 +2,7 @@ export interface AiProviderInterface {
   generateReply(
     tenantId: string,
     prompt: string,
-    systemContext?: string,
+    systemPrompt?: string,
   ): Promise<{ reply: string; tokensUsed: number }>;
   analyzeLead(
     tenantId: string,

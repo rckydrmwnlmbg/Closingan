@@ -55,7 +55,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
     };
 
     mockMessageIngestionService = {
-      processIncomingMessage: jest.fn().mockResolvedValue({ id: 'msg-1' })
+      processIncomingMessage: jest.fn().mockResolvedValue({ id: 'msg-1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -72,7 +72,10 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
         },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: RedisService, useValue: mockRedisService },
-        { provide: MessageIngestionService, useValue: mockMessageIngestionService },
+        {
+          provide: MessageIngestionService,
+          useValue: mockMessageIngestionService,
+        },
       ],
     }).compile();
 
@@ -96,7 +99,9 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
     const res = await webhookService.handleFonnteIncomingMessage(payload);
     expect(res.success).toBe(true);
     expect(res).not.toHaveProperty('duplicated');
-    expect(mockMessageIngestionService.processIncomingMessage).toHaveBeenCalled();
+    expect(
+      mockMessageIngestionService.processIncomingMessage,
+    ).toHaveBeenCalled();
   });
 
   it('should ignore webhook if payload is a duplicate (idempotency)', async () => {
@@ -114,7 +119,9 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
     expect(result.success).toBe(true);
     expect((result as any).duplicated).toBe(true);
     expect(mockQueue.add).not.toHaveBeenCalled();
-    expect(mockMessageIngestionService.processIncomingMessage).not.toHaveBeenCalled();
+    expect(
+      mockMessageIngestionService.processIncomingMessage,
+    ).not.toHaveBeenCalled();
   });
 
   it('should detect outgoing message, set manual_override flag', async () => {

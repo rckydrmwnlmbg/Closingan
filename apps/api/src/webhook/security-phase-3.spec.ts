@@ -54,7 +54,7 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
     };
 
     const mockMessageIngestionService = {
-      processIncomingMessage: jest.fn().mockResolvedValue({ id: 'msg-1' })
+      processIncomingMessage: jest.fn().mockResolvedValue({ id: 'msg-1' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -71,7 +71,10 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
         },
         { provide: ConfigService, useValue: mockConfigService },
         { provide: RedisService, useValue: mockRedisService },
-        { provide: MessageIngestionService, useValue: mockMessageIngestionService },
+        {
+          provide: MessageIngestionService,
+          useValue: mockMessageIngestionService,
+        },
       ],
     }).compile();
 

@@ -22,6 +22,7 @@ export interface WhatsappProviderInterface {
   ): Promise<{ qrData: string; expiresAt: Date }>;
   sendMessage(options: SendMessageOptions): Promise<SendMessageResult>;
   checkConnectionStatus(tenantId?: string): Promise<ConnectionStatusResult>;
+  validateWebhookSignature(payload: any, signature: string): boolean;
 }
 
 export const WHATSAPP_PROVIDER = Symbol('WHATSAPP_PROVIDER');

@@ -34,6 +34,10 @@ import { AntiAbuseGuard } from './common/guards/anti-abuse/anti-abuse.guard';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { DeviceModule } from './modules/device/device.module';
 import { BotConfigModule } from './modules/bot-config/bot-config.module';
+import { UsersModule } from './modules/users/users.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { AdminModule } from './modules/admin/admin.module';
+import { StatusModule } from './status/status.module';
 
 @Module({
   imports: [
@@ -106,6 +110,10 @@ import { BotConfigModule } from './modules/bot-config/bot-config.module';
     TenantModule,
     DeviceModule,
     BotConfigModule,
+    UsersModule,
+    SettingsModule,
+    AdminModule,
+    StatusModule,
   ],
   controllers: [AppController],
   providers: [

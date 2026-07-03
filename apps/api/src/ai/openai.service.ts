@@ -11,6 +11,7 @@ import { ObservabilityMetricsService } from '../observability/observability-metr
 import { AiSafetyService } from './ai-safety.service';
 import { AiSafetyException } from './exceptions/ai-safety.exception';
 import { ProviderDegradationException } from '../common/exceptions/provider-degradation.exception';
+import { AppException } from '../common/exceptions/app.exception';
 
 @Injectable()
 export class OpenAiService implements AiProviderInterface {
@@ -105,7 +106,9 @@ export class OpenAiService implements AiProviderInterface {
       });
 
       const output = response.choices[0]?.message?.content || '';
-      const tokensUsed = response.usage?.total_tokens || 0;
+      const promptTokens = response.usage?.prompt_tokens || 0;
+      const completionTokens = response.usage?.completion_tokens || 0;
+      const totalTokens = response.usage?.total_tokens || 0;
 
       // 3. Output Validation (Confidence, content, etc)
       const outputValidation = this.aiSafetyService.validateOutput(output);
@@ -121,11 +124,11 @@ export class OpenAiService implements AiProviderInterface {
       const sanitizedOutput = this.aiSafetyService.sanitizeOutput(output);
 
       this.logger.log(
-        { tenantId, tokensUsed },
+        { tenantId, totalTokens },
         `AI Reply Generated for Tenant: ${tenantId}`,
       );
 
-      return { reply: sanitizedOutput, tokensUsed };
+      return { reply: sanitizedOutput, tokensUsed: totalTokens };
     } catch (error) {
       // If it's an AiSafetyException, let it bubble up to the worker
       if (error instanceof AiSafetyException) {
@@ -242,7 +245,11 @@ IMPORTANT: The conversation will be enclosed within ---USER_MESSAGE--- delimiter
       const tokensUsed = response.usage?.total_tokens || 0;
 
       if (!embedding) {
-        throw new Error('No embedding returned from OpenAI');
+        throw new AppException(
+          'EMBEDDING_FAILED',
+          'No embedding returned from OpenAI',
+          500,
+        );
       }
 
       this.logger.log(
