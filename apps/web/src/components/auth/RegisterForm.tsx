@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Loader2, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/useAuthStore";
 import { siteConfig } from "@/config/site";
 
 interface RegisterFormProps {
@@ -17,6 +18,7 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const setToken = useAuthStore((state) => state.setToken);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +37,7 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
         // Mock success
       }
 
-      document.cookie = "session_token=mock-token; path=/; max-age=86400"; // 1 day
+      setToken("mock-token");
       router.push("/dashboard");
     } catch (err: unknown) {
       setError((err as Error).message || "An error occurred");

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useSocket } from "@/hooks/useSocket";
+import { useAuthStore } from "@/store/useAuthStore";
 
 type ConnectionState = "CONNECTED" | "DISCONNECTED" | "CONNECTING";
 
@@ -20,12 +21,7 @@ export function WhatsAppConnectionStatus() {
 
   const socket = useSocket();
 
-  const getCookie = (name: string) => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(';').shift();
-    return null;
-  };
+  const token = useAuthStore((state) => state.token);
 
   const fetchStatus = async () => {
     // Only show global loading on initial fetch
@@ -33,7 +29,6 @@ export function WhatsAppConnectionStatus() {
       setLoading(true);
     }
     try {
-      const token = getCookie("session_token") || "";
       const res = await fetch("/api/whatsapp/qr-status", {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -100,7 +95,6 @@ export function WhatsAppConnectionStatus() {
     setLoading(true);
     setError("");
     try {
-      const token = getCookie("session_token") || "";
       const res = await fetch("/api/whatsapp/generate-qr", {
         method: "POST",
         headers: {
@@ -125,7 +119,6 @@ export function WhatsAppConnectionStatus() {
   const handleDisconnect = async () => {
     setLoading(true);
     try {
-      const token = getCookie("session_token") || "";
       const res = await fetch("/api/whatsapp/disconnect", {
         method: "POST",
         headers: {

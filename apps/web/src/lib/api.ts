@@ -1,11 +1,13 @@
+import { useAuthStore } from '@/store/useAuthStore';
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 export async function fetchApi(endpoint: string, options: RequestInit = {}) {
-  // We use standard NEXT_PUBLIC_API_URL based fetching.
-  // Wait, the memory states: localStorage / sessionStorage — tidak supported di Claude.ai artifacts
-  // Let's assume there is an auth token elsewhere or handle it later. For now, fetch without localstorage if possible, or just standard.
+  const token = useAuthStore.getState().token;
+  
   const headers = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
