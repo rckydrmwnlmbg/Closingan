@@ -14,6 +14,8 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+import { AuthProvider } from "@/components/auth/AuthProvider";
+
 export const metadata: Metadata = {
   title: "Closingan - AI Closing Assistant",
   description: "AI Closing Assistant",
@@ -37,7 +39,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh w-full overflow-x-hidden`}
       >
-        <PageTransition>{children}</PageTransition>
+        <AuthProvider>
+          <PageTransition>{children}</PageTransition>
+        </AuthProvider>
       </body>
     </html>
   );

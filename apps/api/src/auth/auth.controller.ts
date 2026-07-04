@@ -6,7 +6,11 @@ import {
   Headers,
   Ip,
   HttpCode,
+  Res,
+  Req,
 } from '@nestjs/common';
+import type { Response, Request } from 'express';
+import { AppException } from '../common/exceptions/app.exception';
 import { AuthService } from './auth.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthOtpService } from './auth-otp.service';
@@ -67,9 +71,16 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Ip() ip: string,
+    @Res({ passthrough: true }) res: Response,
     @Headers('x-tenant-id') tenantId?: string,
   ) {
     const result = await this.authService.login(dto, ip, tenantId);
+    res.cookie('refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
     return ResponseBuilder.success(result);
   }
 
@@ -80,12 +91,40 @@ export class AuthController {
     return ResponseBuilder.success(result);
   }
 
+  @Post('silent-refresh')
+  @HttpCode(200)
+  async silentRefresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const token = req.cookies?.refresh_token;
+    if (!token) {
+      throw new AppException('UNAUTHORIZED', 'No refresh token provided', 401);
+    }
+    const result = await this.authTokenService.refreshTokens({ refreshToken: token });
+    res.cookie('refresh_token', result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return ResponseBuilder.success(result);
+  }
+
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(200)
   @Audit(AuditAction.USER_LOGOUT)
-  async logout(@Body() dto: RefreshTokenDto) {
-    await this.authTokenService.logout(dto.refreshToken);
+  async logout(
+    @Body() dto: RefreshTokenDto,
+    @Res({ passthrough: true }) res: Response,
+    @Req() req: Request,
+  ) {
+    const refreshToken = dto.refreshToken || req.cookies?.refresh_token;
+    if (refreshToken) {
+      await this.authTokenService.logout(refreshToken);
+    }
+    res.clearCookie('refresh_token');
     return ResponseBuilder.success({ success: true });
   }
 

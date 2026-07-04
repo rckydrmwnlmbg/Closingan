@@ -2,6 +2,7 @@ import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
@@ -19,8 +20,9 @@ async function bootstrap() {
   // 1. Logger
   app.useLogger(app.get(Logger));
 
-  // 2. Security Headers
+  // 2. Security Headers & Cookies
   app.use(helmet());
+  app.use(cookieParser());
 
   // 3. Validation Pipe
   app.useGlobalPipes(
