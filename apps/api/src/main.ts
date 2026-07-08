@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-base-to-string */
 import { NestFactory, HttpAdapterHost } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -38,11 +39,16 @@ async function bootstrap() {
   app.useGlobalFilters(new GlobalExceptionFilter(httpAdapterHost));
 
   // 5. Catch Unhandled Promise Rejections
-  process.on('unhandledRejection', (reason, promise) => {
-    app
-      .get(Logger)
-      .error(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
-  });
+  process.on(
+    'unhandledRejection',
+    (reason: unknown, promise: Promise<unknown>) => {
+      app
+        .get(Logger)
+        .error(
+          `Unhandled Rejection at: ${String(promise)}, reason: ${String(reason)}`,
+        );
+    },
+  );
 
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);

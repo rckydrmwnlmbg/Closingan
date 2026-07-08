@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
+import { AppException } from '../exceptions/app.exception';
 
 @Injectable()
 export class PrismaService
@@ -26,7 +27,6 @@ export class PrismaService
 
             const timeoutPromise = new Promise((_, reject) => {
               timeoutId = setTimeout(() => {
-                const { AppException } = require('../exceptions/app.exception');
                 reject(
                   new AppException(
                     'DB_TIMEOUT',

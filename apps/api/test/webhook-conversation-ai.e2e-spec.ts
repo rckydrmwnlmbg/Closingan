@@ -34,7 +34,6 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
   });
 
   let tenantId: string;
-  let token: string;
   let deviceId: string;
   const customerPhone = '628123456789';
 
@@ -48,14 +47,16 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
       });
 
     await prisma.user.update({
-      where: { id: res.body.data.userId },
+      where: { id: (res.body as { data: { userId: string } }).data.userId },
       data: { emailVerified: true },
     });
 
     const login = await request(app.getHttpServer())
       .post('/v1/auth/login')
       .send({ email: 'webhook999@example.com', password: 'password' });
-    token = login.body.data.accessToken;
+    const loginToken = (login.body as { data: { accessToken: string } }).data
+      .accessToken;
+    expect(loginToken).toBeDefined();
 
     const user = await prisma.user.findUnique({
       where: { email: 'webhook999@example.com' },
@@ -88,12 +89,13 @@ describe('Webhook -> Conversation -> AI Chain (e2e)', () => {
       .send(payload)
       .expect(200);
 
-    expect(res.body.success).toBe(true);
+    const body = res.body as { success: boolean };
+    expect(body.success).toBe(true);
 
     // Give it a small delay for async processes/bullmq to finish processing
     await new Promise((r) => setTimeout(r, 1000));
 
-    const conversation = await prisma.conversation.findFirst({
+    await prisma.conversation.findFirst({
       where: { customerPhone, tenantId },
       include: { messages: true },
     });

@@ -1,12 +1,13 @@
-const RedisMock = require('ioredis-mock');
+import RedisMock from 'ioredis-mock';
+import { setMaxListeners } from 'events';
+
 jest.mock('ioredis', () => ({ Redis: RedisMock, default: RedisMock }));
 
-const { setMaxListeners } = require('events');
 setMaxListeners(100);
 
 afterAll(() => {
   // Attempt global cleanup to prevent memory leaks in Jest
-  if (global.gc) {
-    global.gc();
+  if (typeof gc !== 'undefined') {
+    gc();
   }
 });

@@ -13,10 +13,10 @@ import { MessageIngestionService } from './ingestion/message-ingestion.service';
 
 describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
   let webhookService: WebhookService;
-  let mockRedisService: any;
-  let mockQueue: any;
-  let mockPrismaService: any;
-  let mockWhatsappProvider: any;
+  let mockRedisService: Record<string, jest.Mock>;
+  let mockQueue: Record<string, jest.Mock>;
+  let mockPrismaService: Record<string, Record<string, jest.Mock>>;
+  let mockWhatsappProvider: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     // Reset mocks for each test

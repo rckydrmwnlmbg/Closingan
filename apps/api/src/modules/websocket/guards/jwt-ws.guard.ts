@@ -9,6 +9,13 @@ import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
 import { ClsService } from 'nestjs-cls';
 
+interface JwtPayload {
+  sub: string;
+  email: string;
+  tenantId: string;
+  role: string;
+}
+
 @Injectable()
 export class JwtWsGuard implements CanActivate {
   constructor(
@@ -26,14 +33,15 @@ export class JwtWsGuard implements CanActivate {
     }
 
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
         secret:
           this.configService.get<string>('JWT_ACCESS_SECRET') ||
           'default_secret',
       });
 
       // Attach user to socket client directly so we can use it in Gateway
-      client.data.user = {
+      client.data = (client.data as Record<string, unknown>) || {};
+      (client.data as Record<string, unknown>).user = {
         userId: payload.sub,
         email: payload.email,
         tenantId: payload.tenantId,
@@ -44,9 +52,9 @@ export class JwtWsGuard implements CanActivate {
         this.cls.set('tenantId', payload.tenantId);
       }
       if (payload.sub) {
-        this.cls.set('user', client.data.user);
+        this.cls.set('user', (client.data as Record<string, unknown>).user);
       }
-    } catch (e) {
+    } catch {
       throw new UnauthorizedException('Invalid token');
     }
 
@@ -60,7 +68,9 @@ export class JwtWsGuard implements CanActivate {
       return type === 'Bearer' ? token : undefined;
     }
     // As a fallback, check query param or auth payload in connect
-    const token = client.handshake.auth?.token || client.handshake.query?.token;
-    return token as string;
+    const token =
+      (client.handshake.auth as Record<string, string>)?.token ||
+      (client.handshake.query as Record<string, string>)?.token;
+    return token;
   }
 }

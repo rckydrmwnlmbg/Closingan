@@ -11,13 +11,13 @@ describe('HotLeadService', () => {
   let service: HotLeadService;
   let openaiService: jest.Mocked<OpenAiService>;
   let prismaService: jest.Mocked<PrismaService>;
-  let mockQueue: any;
+  let mockQueue: Record<string, jest.Mock>;
   let clsService: jest.Mocked<ClsService>;
 
   beforeEach(async () => {
     openaiService = {
       analyzeLead: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<OpenAiService>;
 
     prismaService = {
       lead: {
@@ -28,7 +28,7 @@ describe('HotLeadService', () => {
       message: {
         findMany: jest.fn(),
       },
-    } as any;
+    } as unknown as jest.Mocked<PrismaService>;
 
     mockQueue = {
       add: jest.fn(),
@@ -37,7 +37,7 @@ describe('HotLeadService', () => {
     clsService = {
       get: jest.fn(),
       set: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<ClsService>;
 
     const mockRedisService = {
       get: jest.fn(),
@@ -118,8 +118,8 @@ describe('HotLeadService', () => {
       clsService.get.mockReturnValue('tenant-1');
       await service.analyzeLead('conv-1', 'berapa harga otr?');
 
-      expect(openaiService.analyzeLead).toHaveBeenCalled();
-      expect(prismaService.lead.update).toHaveBeenCalledWith(
+      expect(openaiService.analyzeLead as jest.Mock).toHaveBeenCalled();
+      expect(prismaService.lead.update as jest.Mock).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'lead-1' },
           data: expect.objectContaining({ heatTier: 'HOT' }),
@@ -154,7 +154,7 @@ describe('HotLeadService', () => {
       await service.analyzeLead('conv-1', 'berapa harga otr?');
 
       // Update should not be called due to schema validation failure
-      expect(prismaService.lead.update).not.toHaveBeenCalled();
+      expect(prismaService.lead.update as jest.Mock).not.toHaveBeenCalled();
     });
 
     it('should strictly observe idempotency/anti-spam rules', async () => {

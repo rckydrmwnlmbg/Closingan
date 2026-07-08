@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Post,
@@ -101,7 +102,9 @@ export class AuthController {
     if (!token) {
       throw new AppException('UNAUTHORIZED', 'No refresh token provided', 401);
     }
-    const result = await this.authTokenService.refreshTokens({ refreshToken: token });
+    const result = await this.authTokenService.refreshTokens({
+      refreshToken: token,
+    });
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

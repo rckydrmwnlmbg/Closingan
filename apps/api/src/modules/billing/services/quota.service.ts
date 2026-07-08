@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AppException } from '../../../common/exceptions/app.exception';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+import { TokenQuota } from '@prisma/client';
 
 @Injectable()
 export class QuotaService {
@@ -104,8 +105,8 @@ export class QuotaService {
       await this.checkThresholdsAndEmit(updatedQuota);
     } catch (error) {
       this.logger.error(
-        `Failed to increment quota for tenant ${tenantId}: ${error.message}`,
-        error.stack,
+        `Failed to increment quota for tenant ${tenantId}: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
@@ -142,8 +143,8 @@ export class QuotaService {
       });
     } catch (error) {
       this.logger.error(
-        `Failed to add extra credits for tenant ${tenantId}: ${error.message}`,
-        error.stack,
+        `Failed to add extra credits for tenant ${tenantId}: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
       );
       throw error;
     }
@@ -161,7 +162,7 @@ export class QuotaService {
     });
   }
 
-  private async checkThresholdsAndEmit(tokenQuota: any): Promise<void> {
+  private async checkThresholdsAndEmit(tokenQuota: TokenQuota): Promise<void> {
     const { tenantId, usedQuota, totalQuota, warned85At, warned95At } =
       tokenQuota;
 

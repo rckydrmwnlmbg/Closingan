@@ -12,11 +12,11 @@ import { MessageIngestionService } from './ingestion/message-ingestion.service';
 
 describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () => {
   let webhookService: WebhookService;
-  let mockRedisService: any;
-  let mockQueue: any;
-  let mockPrismaService: any;
-  let mockWhatsappProvider: any;
-  let mockMessageIngestionService: any;
+  let mockRedisService: Record<string, jest.Mock>;
+  let mockQueue: Record<string, jest.Mock>;
+  let mockPrismaService: Record<string, Record<string, jest.Mock>>;
+  let mockWhatsappProvider: Record<string, jest.Mock>;
+  let mockMessageIngestionService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     mockPrismaService = {
@@ -117,7 +117,7 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
     const result = await webhookService.handleFonnteIncomingMessage(payload);
 
     expect(result.success).toBe(true);
-    expect((result as any).duplicated).toBe(true);
+    expect((result as { duplicated?: boolean }).duplicated).toBe(true);
     expect(mockQueue.add).not.toHaveBeenCalled();
     expect(
       mockMessageIngestionService.processIncomingMessage,

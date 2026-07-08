@@ -49,9 +49,10 @@ describe('Auth Flow (e2e)', () => {
       })
       .expect(201);
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.userId).toBeDefined();
-    userId = res.body.data.userId;
+    const body = res.body as { success: boolean; data: { userId: string } };
+    expect(body.success).toBe(true);
+    expect(body.data.userId).toBeDefined();
+    userId = body.data.userId;
 
     const otpRecord = await prisma.otpCode.findFirst({ where: { userId } });
     expect(otpRecord).toBeDefined();
@@ -64,7 +65,8 @@ describe('Auth Flow (e2e)', () => {
       .send({ userId, code: otpCode })
       .expect(200);
 
-    expect(res.body.success).toBe(true);
+    const body = res.body as { success: boolean };
+    expect(body.success).toBe(true);
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     expect(user!.emailVerified).toBe(true);
@@ -76,12 +78,16 @@ describe('Auth Flow (e2e)', () => {
       .send({ email: 'authflow@example.com', password: 'password123' })
       .expect(200);
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.accessToken).toBeDefined();
-    expect(res.body.data.refreshToken).toBeDefined();
+    const body = res.body as {
+      success: boolean;
+      data: { accessToken: string; refreshToken: string };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.accessToken).toBeDefined();
+    expect(body.data.refreshToken).toBeDefined();
 
-    accessToken = res.body.data.accessToken;
-    refreshToken = res.body.data.refreshToken;
+    accessToken = body.data.accessToken;
+    refreshToken = body.data.refreshToken;
   });
 
   it('4. Access protected endpoint', async () => {
@@ -93,7 +99,8 @@ describe('Auth Flow (e2e)', () => {
       .get('/whatsapp/qr-status')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200); // qr-status usually returns 200 with success: true and data: DISCONNECTED
-    expect(res.body.success).toBe(true);
+    const body = res.body as { success: boolean };
+    expect(body.success).toBe(true);
   });
 
   it('5. Refresh Token', async () => {
@@ -102,12 +109,16 @@ describe('Auth Flow (e2e)', () => {
       .send({ refreshToken })
       .expect(200);
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.accessToken).toBeDefined();
-    expect(res.body.data.refreshToken).toBeDefined();
+    const body = res.body as {
+      success: boolean;
+      data: { accessToken: string; refreshToken: string };
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.accessToken).toBeDefined();
+    expect(body.data.refreshToken).toBeDefined();
 
-    accessToken = res.body.data.accessToken;
-    refreshToken = res.body.data.refreshToken;
+    accessToken = body.data.accessToken;
+    refreshToken = body.data.refreshToken;
   });
 
   it('6. Logout', async () => {
@@ -117,7 +128,8 @@ describe('Auth Flow (e2e)', () => {
       .send({ refreshToken })
       .expect(200);
 
-    expect(res.body.success).toBe(true);
+    const body = res.body as { success: boolean };
+    expect(body.success).toBe(true);
 
     // Make sure token is marked as used in DB
     const tokenInDb = await prisma.refreshToken.findFirst({

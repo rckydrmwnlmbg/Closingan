@@ -32,7 +32,7 @@ export class TenantPrismaService implements OnModuleInit, OnModuleDestroy {
       query: {
         $allModels: {
           async $allOperations({ model, operation, args, query }) {
-            const tenantId = cls.get('tenantId');
+            const tenantId = cls.get('tenantId') as string;
 
             if (EXEMPTED_MODELS.includes(model)) {
               return query(args);

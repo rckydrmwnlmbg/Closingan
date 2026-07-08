@@ -4,6 +4,7 @@ import { PrismaService } from '../src/common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
 import { WHATSAPP_PROVIDER } from '../src/whatsapp/interfaces/whatsapp-provider.interface';
 import { getQueueToken } from '@nestjs/bullmq';
+import { AuditService } from '../src/common/audit/audit.service';
 
 describe('Tenant Aware Queue Isolation Test', () => {
   let disconnectDetectionService: DisconnectDetectionService;
@@ -32,17 +33,20 @@ describe('Tenant Aware Queue Isolation Test', () => {
     };
 
     const mockClsService = {
-      run: jest.fn().mockImplementation(async (cb) => {
-        return await cb();
+      run: jest.fn().mockImplementation((cb: () => unknown) => {
+        return cb();
       }),
       set: jest.fn(),
     };
 
     const mockWhatsappProvider = {
-      checkConnectionStatus: jest.fn().mockImplementation(async (tenantId) => {
-        if (tenantId === 'tenant-a') return { isConnected: false }; // Tenant A disconnected
-        return { isConnected: true }; // Tenant B connected
-      }),
+      checkConnectionStatus: jest
+        .fn()
+        .mockImplementation((tenantId: string) => {
+          if (tenantId === 'tenant-a')
+            return Promise.resolve({ isConnected: false }); // Tenant A disconnected
+          return Promise.resolve({ isConnected: true }); // Tenant B connected
+        }),
     };
 
     const mockAuditService = {
@@ -63,7 +67,7 @@ describe('Tenant Aware Queue Isolation Test', () => {
         { provide: getQueueToken('ai-reply'), useValue: mockQueue },
         { provide: getQueueToken('blast-campaign'), useValue: mockQueue },
         {
-          provide: require('../src/common/audit/audit.service').AuditService,
+          provide: AuditService,
           useValue: mockAuditService,
         },
       ],
@@ -79,15 +83,19 @@ describe('Tenant Aware Queue Isolation Test', () => {
     await disconnectDetectionService.handleDisconnectDetection();
 
     // Tenant A should be set to RECONNECTING
-    expect(prismaService.whatsappSession.updateMany).toHaveBeenCalledWith(
+    expect(
+      jest.mocked(prismaService.whatsappSession.updateMany),
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: ['session-1'] } },
-        data: expect.objectContaining({ state: 'RECONNECTING' }),
+        data: expect.objectContaining({ state: 'RECONNECTING' }) as unknown,
       }),
     );
 
     // Tenant B should not be updated
-    expect(prismaService.whatsappSession.update).not.toHaveBeenCalledWith(
+    expect(
+      jest.mocked(prismaService.whatsappSession.update),
+    ).not.toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: ['session-2'] } },
       }),

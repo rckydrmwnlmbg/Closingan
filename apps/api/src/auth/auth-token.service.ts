@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { User } from '@prisma/client';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../common/prisma/prisma.service';
@@ -16,7 +17,7 @@ export class AuthTokenService {
     private readonly auditService: AuditService,
   ) {}
 
-  async generateTokens(user: any) {
+  async generateTokens(user: User) {
     const payload = {
       sub: user.id,
       email: user.email,

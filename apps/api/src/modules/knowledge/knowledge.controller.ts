@@ -29,7 +29,7 @@ export class KnowledgeController {
 
   @Post()
   create(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { tenantId: string },
     @Body() createKnowledgeDto: CreateKnowledgeDto,
   ) {
     return this.knowledgeService.create(
@@ -40,18 +40,18 @@ export class KnowledgeController {
   }
 
   @Get()
-  findAll(@CurrentUser() user: any) {
+  findAll(@CurrentUser() user: { tenantId: string }) {
     return this.knowledgeService.findAll(user.tenantId);
   }
 
   @Get(':id')
-  findOne(@CurrentUser() user: any, @Param('id') id: string) {
+  findOne(@CurrentUser() user: { tenantId: string }, @Param('id') id: string) {
     return this.knowledgeService.findOne(user.tenantId, id);
   }
 
   @Patch(':id')
   update(
-    @CurrentUser() user: any,
+    @CurrentUser() user: { tenantId: string },
     @Param('id') id: string,
     @Body() updateKnowledgeDto: UpdateKnowledgeDto,
   ) {
@@ -64,7 +64,7 @@ export class KnowledgeController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: any, @Param('id') id: string) {
+  remove(@CurrentUser() user: { tenantId: string }, @Param('id') id: string) {
     return this.knowledgeService.remove(user.tenantId, id);
   }
 }

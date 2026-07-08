@@ -8,7 +8,7 @@ import { AiService } from '../../ai/ai.service';
 
 interface IncomingMessageJobData {
   tenantId: string;
-  payload: any;
+  payload: Record<string, unknown>;
 }
 
 @Processor('incoming-messages-queue', {
@@ -61,7 +61,7 @@ export class IncomingMessagesWorker extends WorkerHost {
 
         try {
           this.logger.log(`Received message for tenant ${tenantId}`);
-          const { conversationId } = job.data.payload;
+          const conversationId = job.data.payload.conversationId as string;
 
           if (!conversationId) {
             this.logger.error(`Missing conversationId in job payload`);
@@ -91,10 +91,11 @@ export class IncomingMessagesWorker extends WorkerHost {
           );
 
           return { success: true, messageId: message.id };
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as Error;
           this.logger.error(
-            { jobId: job.id, error: error.message },
-            `Failed incoming-messages job ${job.id}: ${error.message}`,
+            { jobId: job.id, error: err.message },
+            `Failed incoming-messages job ${job.id}: ${err.message}`,
           );
           throw error;
         }
@@ -105,7 +106,10 @@ export class IncomingMessagesWorker extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  async onFailed(job: Job, error: Error) {
+  async onFailed(
+    job: Job<IncomingMessageJobData, unknown, string>,
+    error: Error,
+  ) {
     if (
       error.message.includes('moveToDelayed') ||
       error.message.includes('DelayedError')

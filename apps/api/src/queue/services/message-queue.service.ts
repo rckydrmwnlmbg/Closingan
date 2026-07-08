@@ -14,7 +14,7 @@ export class MessageQueueService {
   /**
    * Enqueues an incoming message with strict backoff policies to act as a governor.
    */
-  async enqueueMessage(tenantId: string, payload: any) {
+  async enqueueMessage(tenantId: string, payload: Record<string, unknown>) {
     this.logger.debug(`Enqueueing message for tenant ${tenantId}`);
 
     return this.incomingMessagesQueue.add(

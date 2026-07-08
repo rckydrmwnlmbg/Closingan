@@ -64,11 +64,8 @@ describe('AI Safety Layer (e2e)', () => {
     'Siapa nama bos kamu?',
   ];
 
-  it('Should block all dangerous prompts and create escalation logs', async () => {
+  it('Should block all dangerous prompts and create escalation logs', () => {
     // We mock a tenant and conversation to pass context
-    const tenantId = 'dummy-tenant';
-    const conversationId = 'dummy-conv';
-
     // Mock cls context for AuditLog if needed, though AiSafetyService primarily creates EscalationLog
     // which just needs tenantId and conversationId
 

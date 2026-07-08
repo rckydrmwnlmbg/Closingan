@@ -6,9 +6,9 @@ import { MessageQueueService } from '../../queue/services/message-queue.service'
 
 describe('MessageIngestionService', () => {
   let service: MessageIngestionService;
-  let mockPrismaService: any;
-  let mockClsService: any;
-  let mockMessageQueueService: any;
+  let mockPrismaService: Record<string, Record<string, jest.Mock>>;
+  let mockClsService: Record<string, jest.Mock>;
+  let mockMessageQueueService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     mockPrismaService = {

@@ -24,9 +24,13 @@ describe('HealthController (e2e)', () => {
       .get('/health')
       .expect(200)
       .expect((res) => {
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.status).toBe('ok');
-        expect(res.body.data.queue).toBe('job added');
+        const body = res.body as {
+          success: boolean;
+          data: { status: string; queue: string };
+        };
+        expect(body.success).toBe(true);
+        expect(body.data.status).toBe('ok');
+        expect(body.data.queue).toBe('job added');
       });
   });
 });

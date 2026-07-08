@@ -28,8 +28,9 @@ export class AuditService {
       // Prioritize explicit tenantId, otherwise fallback to CLS
       const tenantId = payload.tenantId || this.cls.get('tenantId');
       // Prioritize explicit userId, otherwise try fallback
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      const userId = payload.userId || this.cls.get('user')?.id;
+
+      const userId =
+        payload.userId || this.cls.get<{ id?: string }>('user')?.id;
 
       if (!tenantId) {
         this.logger.warn(
@@ -49,7 +50,7 @@ export class AuditService {
       await this.prisma.auditLog.create({
         data: {
           tenantId: tenantId,
-          userId: userId as string | undefined,
+          userId: userId,
           action: payload.action,
           entityType: payload.entityType,
           entityId: payload.entityId,

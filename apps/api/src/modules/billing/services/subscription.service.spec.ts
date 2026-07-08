@@ -60,7 +60,9 @@ describe('SubscriptionService', () => {
       const result = await service.handleTrialExpiry('tenant-1');
 
       expect(result.state).toBe(SubscriptionState.PAST_DUE);
-      expect(prismaService.subscription.update).toHaveBeenCalledWith({
+      expect(
+        prismaService.subscription.update as jest.Mock,
+      ).toHaveBeenCalledWith({
         where: { tenantId: 'tenant-1' },
         data: expect.objectContaining({ state: SubscriptionState.PAST_DUE }),
       });
@@ -92,7 +94,9 @@ describe('SubscriptionService', () => {
       const result = await service.handlePaymentSuccess('tenant-1', 'inv-1');
 
       expect(result.state).toBe(SubscriptionState.ACTIVE);
-      expect(prismaService.subscription.update).toHaveBeenCalledWith({
+      expect(
+        prismaService.subscription.update as jest.Mock,
+      ).toHaveBeenCalledWith({
         where: { tenantId: 'tenant-1' },
         data: expect.objectContaining({
           state: SubscriptionState.ACTIVE,
@@ -122,7 +126,9 @@ describe('SubscriptionService', () => {
       const result = await service.handlePaymentFailure('tenant-1', 'inv-1');
 
       expect(result.state).toBe(SubscriptionState.PAST_DUE);
-      expect(prismaService.subscription.update).toHaveBeenCalledWith({
+      expect(
+        prismaService.subscription.update as jest.Mock,
+      ).toHaveBeenCalledWith({
         where: { tenantId: 'tenant-1' },
         data: expect.objectContaining({ state: SubscriptionState.PAST_DUE }),
       });
@@ -138,7 +144,9 @@ describe('SubscriptionService', () => {
       const result = await service.handlePaymentFailure('tenant-1', 'inv-1');
 
       expect(result.state).toBe(SubscriptionState.SUSPENDED);
-      expect(prismaService.subscription.update).not.toHaveBeenCalled();
+      expect(
+        prismaService.subscription.update as jest.Mock,
+      ).not.toHaveBeenCalled();
     });
   });
 });

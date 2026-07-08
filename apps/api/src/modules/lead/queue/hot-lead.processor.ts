@@ -1,5 +1,5 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger, Inject, OnModuleDestroy } from '@nestjs/common';
+import { Logger, Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { HotLeadJobData } from '../../../queue/interfaces/job-data.interface';

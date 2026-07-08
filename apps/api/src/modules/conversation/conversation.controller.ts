@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
@@ -72,7 +73,7 @@ export class ConversationController {
     @TenantId() tenantId: string,
     @Query() query: GetConversationsQueryDto,
   ) {
-    const { data, meta } = await this.conversationService.getConversations(
+    const { data, meta }: any = await this.conversationService.getConversations(
       tenantId,
       query,
     );

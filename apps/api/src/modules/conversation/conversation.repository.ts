@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
 
 @Injectable()
@@ -9,7 +10,7 @@ export class ConversationRepository {
   async findConversations(tenantId: string, query: GetConversationsQueryDto) {
     const { state, aiMode, heatTier, search, cursor, limit = 20 } = query;
 
-    const where: any = {
+    const where: Prisma.ConversationWhereInput = {
       tenantId,
       isArchived: false,
     };

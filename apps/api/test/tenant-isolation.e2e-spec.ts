@@ -47,7 +47,7 @@ describe('Tenant Isolation (e2e)', () => {
       .expect(201);
 
     await prisma.user.update({
-      where: { id: resA.body.data.userId },
+      where: { id: (resA.body as { data: { userId: string } }).data.userId },
       data: { emailVerified: true },
     });
 
@@ -55,7 +55,8 @@ describe('Tenant Isolation (e2e)', () => {
       .post('/v1/auth/login')
       .send({ email: 'userAti@example.com', password: 'password123' })
       .expect(200);
-    tenantAToken = loginA.body.data.accessToken;
+    tenantAToken = (loginA.body as { data: { accessToken: string } }).data
+      .accessToken;
 
     const userA = await prisma.user.findUnique({
       where: { email: 'userAti@example.com' },
@@ -73,7 +74,7 @@ describe('Tenant Isolation (e2e)', () => {
       .expect(201);
 
     await prisma.user.update({
-      where: { id: resB.body.data.userId },
+      where: { id: (resB.body as { data: { userId: string } }).data.userId },
       data: { emailVerified: true },
     });
 
@@ -81,7 +82,8 @@ describe('Tenant Isolation (e2e)', () => {
       .post('/v1/auth/login')
       .send({ email: 'userBti@example.com', password: 'password123' })
       .expect(200);
-    tenantBToken = loginB.body.data.accessToken;
+    tenantBToken = (loginB.body as { data: { accessToken: string } }).data
+      .accessToken;
 
     const userB = await prisma.user.findUnique({
       where: { email: 'userBti@example.com' },
@@ -115,9 +117,13 @@ describe('Tenant Isolation (e2e)', () => {
       .set('Authorization', `Bearer ${tenantAToken}`)
       .expect(200);
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.length).toBe(1);
-    expect(res.body.data[0].customerName).toBe('Customer A');
+    const body = res.body as {
+      success: boolean;
+      data: { customerName: string }[];
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.length).toBe(1);
+    expect(body.data[0].customerName).toBe('Customer A');
   });
 
   it('User B should only see 1 conversation', async () => {
@@ -126,8 +132,12 @@ describe('Tenant Isolation (e2e)', () => {
       .set('Authorization', `Bearer ${tenantBToken}`)
       .expect(200);
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.length).toBe(1);
-    expect(res.body.data[0].customerName).toBe('Customer B');
+    const body = res.body as {
+      success: boolean;
+      data: { customerName: string }[];
+    };
+    expect(body.success).toBe(true);
+    expect(body.data.length).toBe(1);
+    expect(body.data[0].customerName).toBe('Customer B');
   });
 });

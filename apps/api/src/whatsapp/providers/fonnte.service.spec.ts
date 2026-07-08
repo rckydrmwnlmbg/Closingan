@@ -59,9 +59,11 @@ describe('FonnteService - Provider Timeout Hardening', () => {
   });
 
   it('should succeed sendMessage if no timeout', async () => {
-    jest
-      .spyOn(httpService, 'post')
-      .mockReturnValue(of({ data: { status: true, id: ['msg1'] } }) as any);
+    jest.spyOn(httpService, 'post').mockReturnValue(
+      of({
+        data: { status: true, id: ['msg1'] },
+      } as unknown as import('axios').AxiosResponse<unknown>),
+    );
 
     const result = await fonnteService.sendMessage({
       tenantId: 'tenant-1',

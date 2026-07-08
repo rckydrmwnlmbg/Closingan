@@ -19,12 +19,12 @@ export class MailService {
     });
   }
 
-  async sendOtp(to: string, otp: string) {
+  sendOtp(to: string, otp: string) {
     // Keeping mock log for dev/test without full setup, but ready for real send
     this.logger.log(`[MOCK EMAIL] To: ${to} - Your OTP is: ${otp}`);
   }
 
-  async sendPasswordReset(to: string, token: string) {
+  sendPasswordReset(to: string, token: string) {
     this.logger.log(
       `[MOCK EMAIL] To: ${to} - Your Password Reset Token is: ${token}`,
     );

@@ -1,11 +1,10 @@
-import { Injectable, Logger, UseGuards } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   WebSocketGateway,
   WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
-  ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
@@ -33,7 +32,7 @@ export class ConversationGateway
     room: string,
     event: string,
     key: string,
-    data: any,
+    data: Record<string, unknown> | string | number | boolean,
     delay = 500,
   ) {
     if (this.debounceMap.has(key)) {
@@ -52,7 +51,7 @@ export class ConversationGateway
     private readonly cls: ClsService,
   ) {}
 
-  afterInit(server: Server) {
+  afterInit() {
     this.logger.log('WebSocket Gateway initialized');
   }
 
@@ -64,7 +63,10 @@ export class ConversationGateway
         return;
       }
 
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<{
+        tenantId: string;
+        sub: string;
+      }>(token, {
         secret:
           this.configService.get<string>('JWT_ACCESS_SECRET') ||
           'default_secret',
@@ -79,16 +81,18 @@ export class ConversationGateway
 
       // Hard constraint: Tenant-scoped rooms — cross-tenant broadcast is a security violation
       const room = `tenant-${tenantId}`;
-      client.join(room);
+      void client.join(room);
       this.logger.log(`Client ${client.id} joined room: ${room}`);
 
-      client.data.user = {
+      client.data = (client.data as Record<string, unknown>) || {};
+      (client.data as Record<string, unknown>).user = {
         userId: payload.sub,
         tenantId,
       };
     } catch (error) {
+      const err = error as Error;
       this.logger.error(
-        `Connection error for client ${client.id}: ${error.message}`,
+        `Connection error for client ${client.id}: ${err.message}`,
       );
       client.disconnect();
     }
@@ -118,7 +122,7 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; unreadCount: number; lastMessage: string },
   ) {
-    const activeTenantId = this.cls.get('tenantId');
+    const activeTenantId = this.cls.get<string>('tenantId');
     if (!activeTenantId || activeTenantId !== tenantId) {
       this.logger.warn(
         `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
@@ -136,7 +140,7 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; state: string },
   ) {
-    const activeTenantId = this.cls.get('tenantId');
+    const activeTenantId = this.cls.get<string>('tenantId');
     if (!activeTenantId || activeTenantId !== tenantId) {
       this.logger.warn(
         `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
@@ -152,7 +156,7 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; heatTier: string; heatReasons: string[] },
   ) {
-    const activeTenantId = this.cls.get('tenantId');
+    const activeTenantId = this.cls.get<string>('tenantId');
     if (!activeTenantId || activeTenantId !== tenantId) {
       this.logger.warn(
         `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
@@ -166,7 +170,7 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; aiMode: string },
   ) {
-    const activeTenantId = this.cls.get('tenantId');
+    const activeTenantId = this.cls.get<string>('tenantId');
     if (!activeTenantId || activeTenantId !== tenantId) {
       this.logger.warn(
         `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
@@ -180,7 +184,7 @@ export class ConversationGateway
     tenantId: string,
     data: { type: string; message: string; conversationId?: string },
   ) {
-    const activeTenantId = this.cls.get('tenantId');
+    const activeTenantId = this.cls.get<string>('tenantId');
     if (!activeTenantId || activeTenantId !== tenantId) {
       this.logger.warn(
         `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,
@@ -194,7 +198,7 @@ export class ConversationGateway
     tenantId: string,
     data: { conversationId: string; suggestion: string },
   ) {
-    const activeTenantId = this.cls.get('tenantId');
+    const activeTenantId = this.cls.get<string>('tenantId');
     if (!activeTenantId || activeTenantId !== tenantId) {
       this.logger.warn(
         `Security Violation: Attempted cross-tenant broadcast. Context: ${activeTenantId}, Target: ${tenantId}`,

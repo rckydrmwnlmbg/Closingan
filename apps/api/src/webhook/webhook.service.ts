@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -12,6 +13,7 @@ import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../common/redis/redis.service';
 import { MessageIngestionService } from './ingestion/message-ingestion.service';
+import { WhatsappSession } from '@prisma/client';
 
 @Injectable()
 export class WebhookService {
@@ -43,7 +45,7 @@ export class WebhookService {
 
     // High read cache for WhatsappSession lookup
     const cacheKey = `wa-session:device:${payload.device}`;
-    let session: any = null;
+    let session: WhatsappSession | null = null;
     const cachedSessionStr = await this.redisService.get(cacheKey);
 
     if (cachedSessionStr) {
@@ -146,7 +148,6 @@ export class WebhookService {
 
     // Anti-Looping: Check Redis for Human Takeover Status
     const sender = payload.sender || payload.from;
-    let isHumanTakeoverActive = false;
 
     if (sender) {
       const takeoverKey = `tenant:${tenantId}:customerPhone:${sender}:takeover`;
@@ -155,11 +156,8 @@ export class WebhookService {
         this.logger.log(
           `[Anti-Looping] Webhook paused for ${sender} under Tenant ${tenantId} due to Human Takeover`,
         );
-        isHumanTakeoverActive = true;
       }
     }
-
-    // Pass the isHumanTakeoverActive flag so worker can save message but skip AI
 
     // 1-Minute Manual Override Filter: Check if this is an OUTGOING message
     // When an outgoing message is sent from the human admin's device, Fonnte usually has the device as sender, or explicit status.

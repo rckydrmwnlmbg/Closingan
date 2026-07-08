@@ -62,7 +62,7 @@ export class AdminService {
     return { activeTenants, mrr };
   }
 
-  async getAiPerformance() {
+  getAiPerformance() {
     // Just a placeholder for actual aggregation over AiUsageLog
     return {
       averageLatencyMs: 1200,

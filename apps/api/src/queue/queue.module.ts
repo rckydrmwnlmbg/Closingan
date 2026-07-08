@@ -20,7 +20,7 @@ import { KnowledgeModule } from '../modules/knowledge/knowledge.module';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => {
+      useFactory: (configService: ConfigService) => {
         const redisHost = configService.get<string>('REDIS_HOST', 'localhost');
         const redisPort = configService.get<number>('REDIS_PORT', 6379);
         const redisPassword = configService.get<string>('REDIS_PASSWORD');

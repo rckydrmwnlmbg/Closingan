@@ -11,7 +11,7 @@ describe('Human Takeover Rule', () => {
   let service: ConversationService;
   let prisma: PrismaService;
   let audit: AuditService;
-  let whatsappProvider: any;
+  let whatsappProvider: Record<string, jest.Mock>;
 
   let redis: RedisService;
 
@@ -105,7 +105,7 @@ describe('Human Takeover Rule', () => {
     await service.sendMessageManual('tenant-1', 'conv-1', 'hello from human');
 
     // Should update conversation state and set pause cooldown
-    expect(prisma.conversation.update).toHaveBeenCalledWith(
+    expect(prisma.conversation.update as jest.Mock).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'conv-1' },
         data: expect.objectContaining({
@@ -116,7 +116,7 @@ describe('Human Takeover Rule', () => {
     );
 
     // Should create seller message
-    expect(prisma.message.create).toHaveBeenCalledWith(
+    expect(prisma.message.create as jest.Mock).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           senderType: 'SELLER',
@@ -175,7 +175,7 @@ describe('Human Takeover Rule', () => {
     await service.sendMessageManual('tenant-1', 'conv-1', 'hello');
 
     // Should not pause AI or set HUMAN_ACTIVE
-    expect(prisma.conversation.update).toHaveBeenCalledWith(
+    expect(prisma.conversation.update as jest.Mock).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
           state: 'OPEN',

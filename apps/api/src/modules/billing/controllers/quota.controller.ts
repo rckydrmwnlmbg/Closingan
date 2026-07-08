@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   UseGuards,
-  Req,
   NotFoundException,
 } from '@nestjs/common';
 import { QuotaService } from '../services/quota.service';
@@ -22,10 +21,10 @@ export class QuotaController {
 
   @Get('status')
   async getQuotaStatus() {
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
     const tokenQuota = await this.quotaService.getTokenQuota(tenantId);
 
-    let upsell: any = null;
+    let upsell: Record<string, unknown> | null = null;
     if (tokenQuota && tokenQuota.totalQuota > 0) {
       const usagePercentage = tokenQuota.usedQuota / tokenQuota.totalQuota;
       if (usagePercentage >= 0.9 && tokenQuota.extraCredits < 100) {
@@ -47,7 +46,7 @@ export class QuotaController {
 
   @Post('buy-addon')
   async buyAddon() {
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
 
     // We need a subscriptionId for MidtransPaymentService.createInvoice
     // We will get it from the tenant's current subscription.

@@ -19,7 +19,7 @@ describe('OpenAiService', () => {
   let service: OpenAiService;
   let aiSafetyService: jest.Mocked<AiSafetyService>;
   // let configService: jest.Mocked<ConfigService>;
-  let openaiClient: any;
+  let openaiClient: Record<string, Record<string, Record<string, jest.Mock>>>;
 
   beforeEach(async () => {
     const aiSafetyServiceMock = {
@@ -49,7 +49,11 @@ describe('OpenAiService', () => {
     service = module.get<OpenAiService>(OpenAiService);
     aiSafetyService = module.get(AiSafetyService);
     // configService = module.get(ConfigService);
-    openaiClient = (service as any).openai;
+    openaiClient = (
+      service as unknown as {
+        openai: Record<string, Record<string, Record<string, jest.Mock>>>;
+      }
+    ).openai;
   });
 
   it('should be defined', () => {
@@ -80,7 +84,7 @@ describe('OpenAiService', () => {
       const createCallArgs =
         openaiClient.chat.completions.create.mock.calls[0][0];
       const userMessage = createCallArgs.messages.find(
-        (m: any) => m.role === 'user',
+        (m: Record<string, unknown>) => m.role === 'user',
       ).content;
 
       expect(userMessage).toContain('test  hack');
@@ -108,7 +112,9 @@ describe('OpenAiService', () => {
 
   describe('generateReply with context', () => {
     it('should augment system prompt when systemContext is provided', async () => {
-      (service as any).chatBreaker.fire = jest.fn().mockResolvedValue({
+      (
+        service as unknown as { chatBreaker: { fire: jest.Mock } }
+      ).chatBreaker.fire = jest.fn().mockResolvedValue({
         choices: [{ message: { content: 'Augmented Reply' } }],
         usage: { total_tokens: 15 },
       });
@@ -120,7 +126,10 @@ describe('OpenAiService', () => {
       );
 
       expect(result.reply).toBe('Augmented Reply');
-      expect((service as any).chatBreaker.fire).toHaveBeenCalledWith(
+      expect(
+        (service as unknown as { chatBreaker: { fire: jest.Mock } }).chatBreaker
+          .fire,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: expect.arrayContaining([
             expect.objectContaining({

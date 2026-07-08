@@ -12,7 +12,10 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
 import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
-import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
+import type {
+  WhatsappProviderInterface,
+  SendMessageResult,
+} from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 import { AiReplyJobData } from '../interfaces/job-data.interface';
 import { ConversationGateway } from '../../modules/websocket/conversation.gateway';
@@ -178,7 +181,7 @@ export class AiReplyWorker extends WorkerHost {
 
           // 2. Strict Human Override (Anti Double-Reply) for AI Reply part
           if (
-            (payload as any).isHumanTakeoverActive ||
+            (payload as Record<string, unknown>).isHumanTakeoverActive ||
             conversation.state === 'HUMAN_ACTIVE' ||
             conversation.aiMode === 'AI_OFF' ||
             (conversation.aiModePausedUntil &&
@@ -432,7 +435,7 @@ export class AiReplyWorker extends WorkerHost {
               .join('\n');
 
             let timeoutId: NodeJS.Timeout;
-            const timeout = new Promise<any>((_, reject) => {
+            const timeout = new Promise<never>((_, reject) => {
               timeoutId = setTimeout(
                 () =>
                   reject(
@@ -571,7 +574,7 @@ export class AiReplyWorker extends WorkerHost {
             return { success: false, reason: 'provider_error_escalated' };
           }
 
-          let sendResult;
+          let sendResult: SendMessageResult;
           try {
             let waTimeoutId: NodeJS.Timeout;
             const timeout = new Promise<never>((_, reject) => {
@@ -588,14 +591,14 @@ export class AiReplyWorker extends WorkerHost {
               );
             });
 
-            sendResult = (await Promise.race([
+            sendResult = await Promise.race([
               this.whatsappProvider.sendMessage({
                 tenantId,
                 to: sender,
                 message: aiResponse,
               }),
               timeout,
-            ])) as any;
+            ]);
             clearTimeout(waTimeoutId!);
 
             if (!sendResult.success) {
@@ -711,10 +714,11 @@ export class AiReplyWorker extends WorkerHost {
           );
 
           return { success: true };
-        } catch (error: any) {
+        } catch (error) {
+          const err = error as Error;
           this.logger.error(
-            { jobId: job.id, error: error.message },
-            `Failed ai-reply job ${job.id}: ${error.message}`,
+            { jobId: job.id, error: err.message },
+            `Failed ai-reply job ${job.id}: ${err.message}`,
           );
           throw error; // Let BullMQ handle retries
         }
@@ -725,7 +729,7 @@ export class AiReplyWorker extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  async onFailed(job: Job, error: Error) {
+  async onFailed(job: Job<AiReplyJobData, unknown, string>, error: Error) {
     if (
       error.message.includes('moveToDelayed') ||
       error.message.includes('DelayedError')
@@ -745,9 +749,9 @@ export class AiReplyWorker extends WorkerHost {
       await this.cls.run(async () => {
         await this.prisma.failedJob.create({
           data: {
-            queueName: 'AI_REPLY' as any, // Adjust to Prisma QueueName enum if exact string differs
+            queueName: 'AI_REPLY',
             jobId: job.id || 'unknown',
-            jobData: job.data,
+            jobData: job.data as Record<string, unknown>,
             errorMessage: error.message,
             errorStack: error.stack,
             attemptCount: job.attemptsMade,
@@ -764,7 +768,9 @@ export class AiReplyWorker extends WorkerHost {
             },
           });
         } catch (e) {
-          this.logger.error(`DLQ Save Error: ${e.message}`);
+          this.logger.error(
+            `DLQ Save Error: ${e instanceof Error ? e.message : 'Unknown'}`,
+          );
         }
       });
     }

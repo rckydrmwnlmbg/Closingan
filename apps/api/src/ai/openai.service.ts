@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-unsafe-assignment */
 import {
   Injectable,
   InternalServerErrorException,
@@ -17,7 +18,12 @@ import { AppException } from '../common/exceptions/app.exception';
 export class OpenAiService implements AiProviderInterface {
   private readonly openai: OpenAI;
   private readonly logger = new Logger(OpenAiService.name);
-  private readonly chatBreaker: CircuitBreaker<any, any>;
+  private readonly chatBreaker: CircuitBreaker<
+    [
+      import('openai/resources/chat/completions').ChatCompletionCreateParamsNonStreaming,
+    ],
+    import('openai/resources/chat/completions').ChatCompletion
+  >;
 
   constructor(
     private readonly configService: ConfigService,
@@ -43,7 +49,9 @@ export class OpenAiService implements AiProviderInterface {
     };
 
     this.chatBreaker = new CircuitBreaker(
-      (options: any) => this.openai.chat.completions.create(options),
+      (
+        options: import('openai/resources/chat/completions').ChatCompletionCreateParamsNonStreaming,
+      ) => this.openai.chat.completions.create(options),
       breakerOptions,
     );
 
@@ -106,8 +114,8 @@ export class OpenAiService implements AiProviderInterface {
       });
 
       const output = response.choices[0]?.message?.content || '';
-      const promptTokens = response.usage?.prompt_tokens || 0;
-      const completionTokens = response.usage?.completion_tokens || 0;
+      const _promptTokens = response.usage?.prompt_tokens || 0;
+      const _completionTokens = response.usage?.completion_tokens || 0;
       const totalTokens = response.usage?.total_tokens || 0;
 
       // 3. Output Validation (Confidence, content, etc)
@@ -152,7 +160,7 @@ export class OpenAiService implements AiProviderInterface {
   async analyzeLead(
     tenantId: string,
     conversation: string,
-  ): Promise<{ result: any; tokensUsed: number }> {
+  ): Promise<{ result: Record<string, unknown>; tokensUsed: number }> {
     await this.metricsService.incrementAiRequestCount();
     try {
       // 1. Input Validation

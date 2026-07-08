@@ -111,9 +111,10 @@ export class BlastWorker extends WorkerHost {
         });
 
         return { success: true };
-      } catch (error: any) {
+      } catch (error) {
+        const err = error as Error;
         this.logger.error(
-          `Failed to send blast message to ${recipient.phoneNormalized}: ${error.message}`,
+          `Failed to send blast message to ${recipient.phoneNormalized}: ${err.message}`,
         );
 
         // Update recipient status to FAILED
@@ -121,7 +122,7 @@ export class BlastWorker extends WorkerHost {
           where: { id: recipientId },
           data: {
             status: 'FAILED',
-            failureReason: error.message,
+            failureReason: err.message,
           },
         });
 
@@ -160,7 +161,7 @@ export class BlastWorker extends WorkerHost {
           data: {
             tenantId: job.data?.tenantId || null,
             queueName: job.name,
-            payload: (job.data as any) || {},
+            payload: (job.data as Record<string, unknown>) || {},
             errorReason: error.message,
           },
         });

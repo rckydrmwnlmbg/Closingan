@@ -102,7 +102,7 @@ export class AiAnalysisProcessor extends WorkerHost {
   }
 
   @OnWorkerEvent('failed')
-  async onFailed(job: Job, error: Error) {
+  onFailed(job: Job, error: Error) {
     if (
       error.message.includes('moveToDelayed') ||
       error.message.includes('DelayedError')

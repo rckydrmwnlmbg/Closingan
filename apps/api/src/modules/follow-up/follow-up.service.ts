@@ -24,7 +24,10 @@ export class FollowUpService {
 
     const cachedData = await this.redisService.get(cacheKey);
     if (cachedData) {
-      return JSON.parse(cachedData);
+      return JSON.parse(cachedData) as {
+        data: any[];
+        meta: { nextCursor: string | null; hasNext: boolean };
+      };
     }
 
     const { status, cursor, limit = 20 } = query;

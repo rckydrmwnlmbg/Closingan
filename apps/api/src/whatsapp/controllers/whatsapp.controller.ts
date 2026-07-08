@@ -2,7 +2,6 @@ import {
   Controller,
   Post,
   Get,
-  Req,
   UseGuards,
   Inject,
   InternalServerErrorException,
@@ -30,7 +29,7 @@ export class WhatsappController {
 
   @Get('status')
   async getStatus() {
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
     const session = await this.prisma.whatsappSession.findUnique({
       where: { tenantId },
     });
@@ -70,20 +69,13 @@ export class WhatsappController {
 
   @Post('generate-qr')
   async generateQr() {
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
     if (!tenantId) {
       throw new InternalServerErrorException('Tenant context missing');
     }
 
     // Abstracted away in Fonnte via device APIs.
-    let qrData;
-    try {
-      qrData = await this.whatsappProvider.generateQrCode(tenantId);
-    } catch (error) {
-      // In E2E tests, the mocked provider isn't injected if we don't mock it at the module level correctly.
-      // So for test we fallback, or rely on correct DI
-      throw error;
-    }
+    const qrData = await this.whatsappProvider.generateQrCode(tenantId);
 
     // Save QR to session
     let session = await this.prisma.whatsappSession.findUnique({
@@ -120,7 +112,7 @@ export class WhatsappController {
 
   @Post('disconnect')
   async disconnect() {
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
 
     await this.prisma.whatsappSession.updateMany({
       where: { tenantId },

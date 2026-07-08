@@ -3,7 +3,9 @@ import { AppException } from '../exceptions/app.exception';
 
 export const TenantId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest();
+    const request = ctx
+      .switchToHttp()
+      .getRequest<{ user?: { tenantId?: string } }>();
     const user = request.user;
 
     if (!user || !user.tenantId) {

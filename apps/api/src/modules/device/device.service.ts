@@ -2,7 +2,6 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import * as crypto from 'crypto';
-import { WaSessionState } from '@prisma/client';
 
 @Injectable()
 export class DeviceService {

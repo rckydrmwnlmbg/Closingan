@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  ExecutionContext,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ClsService } from 'nestjs-cls';
 import { AppException } from '../exceptions/app.exception';
@@ -19,8 +15,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return false;
     }
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const request = context.switchToHttp().getRequest<{ user?: any }>();
+    const user = request.user as
+      | { tenantId?: string; userId?: string; role?: string }
+      | undefined;
 
     if (user) {
       // Inject the tenantId into CLS context
@@ -37,7 +35,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return true;
   }
 
-  handleRequest(err: any, user: any, info: any) {
+  handleRequest(err: Error | null, user: Record<string, unknown> | false) {
     if (err || !user) {
       throw (
         err ||

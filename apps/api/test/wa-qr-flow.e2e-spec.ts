@@ -6,6 +6,7 @@ import { PrismaService } from '../src/common/prisma/prisma.service';
 import { cleanDatabase } from './test-helper';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { WHATSAPP_PROVIDER } from '../src/whatsapp/interfaces/whatsapp-provider.interface';
 
 describe('WA QR Flow (e2e)', () => {
   let app: INestApplication;
@@ -47,14 +48,14 @@ describe('WA QR Flow (e2e)', () => {
       });
 
     await prisma.user.update({
-      where: { id: res.body.data.userId },
+      where: { id: (res.body as { data: { userId: string } }).data.userId },
       data: { emailVerified: true },
     });
 
     const login = await request(app.getHttpServer())
       .post('/v1/auth/login')
       .send({ email: 'wa@example.com', password: 'password' });
-    token = login.body.data.accessToken;
+    token = (login.body as { data: { accessToken: string } }).data.accessToken;
 
     const user = await prisma.user.findUnique({
       where: { email: 'wa@example.com' },
@@ -69,10 +70,10 @@ describe('WA QR Flow (e2e)', () => {
     // Wait, let's fix the module setup
 
     // Instead of overriding which requires re-instantiating, we can just spy on the service since we know it's FonnteService
-    const {
-      WHATSAPP_PROVIDER,
-    } = require('../src/whatsapp/interfaces/whatsapp-provider.interface');
-    const whatsappService = app.get(WHATSAPP_PROVIDER);
+
+    const whatsappService = app.get<Record<string, jest.Mock>>(
+      WHATSAPP_PROVIDER as any,
+    );
 
     jest.spyOn(whatsappService, 'generateQrCode').mockResolvedValue({
       qrData: 'mocked-qr-url',
@@ -88,8 +89,9 @@ describe('WA QR Flow (e2e)', () => {
       .send({})
       .expect(201); // POST usually defaults to 201 Created in NestJS unless specified
 
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.qrCodeUrl).toBeDefined();
+    const body = res.body as { success: boolean; data: { qrCodeUrl: string } };
+    expect(body.success).toBe(true);
+    expect(body.data.qrCodeUrl).toBeDefined();
 
     const session = await prisma.whatsappSession.findUnique({
       where: { tenantId },
@@ -105,7 +107,8 @@ describe('WA QR Flow (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200);
 
-    expect(res.body.success).toBe(true);
+    const body = res.body as { success: boolean };
+    expect(body.success).toBe(true);
     // Actually our code returns DISCONNECTED if disconnected or CONNECTED. We can check that the endpoint returns 200 properly.
   });
 
@@ -118,7 +121,7 @@ describe('WA QR Flow (e2e)', () => {
       sender: '123',
     };
 
-    const res = await request(app.getHttpServer())
+    await request(app.getHttpServer())
       .post('/webhook/whatsapp?tenantId=' + tenantId)
       .send(payload)
       .expect(200);

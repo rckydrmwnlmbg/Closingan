@@ -7,7 +7,7 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { LeadAnalysisSchema, LeadAnalysisDto } from './dto/lead-analysis.dto';
-import { HeatTier } from '@prisma/client';
+import { HeatTier, Prisma, Lead } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
 import { AppException } from '../../common/exceptions/app.exception';
@@ -61,11 +61,14 @@ export class HotLeadService {
 
     const cachedData = await this.redisService.get(cacheKey);
     if (cachedData) {
-      return JSON.parse(cachedData);
+      return JSON.parse(cachedData) as {
+        data: any[];
+        meta: { nextCursor: string | null; hasNext: boolean };
+      };
     }
 
     const { heatTier, cursor, limit = 20 } = query;
-    const where: any = { tenantId };
+    const where: Prisma.LeadWhereInput = { tenantId };
     if (heatTier) {
       where.heatTier = heatTier;
     } else {
@@ -142,7 +145,7 @@ export class HotLeadService {
     conversationId: string,
     messageContent: string,
   ): Promise<void> {
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
     // 1. Cost Control & Pre-Filtering
     if (!this.shouldAnalyzeMessage(messageContent)) {
       this.logger.debug(
@@ -226,13 +229,13 @@ export class HotLeadService {
     await this.redisService.del(`dashboard:summary:${tenantId}`); // also clear dashboard
 
     // 3. Anti-Spam Alerting (Idempotency)
-    this.checkAndTriggerAlert(tenantId, lead, updatedLead);
+    void this.checkAndTriggerAlert(tenantId, lead, updatedLead);
   }
 
   private async checkAndTriggerAlert(
     tenantId: string,
-    oldLead: any,
-    newLead: any,
+    oldLead: Lead,
+    newLead: Lead,
   ) {
     const isNowHotOrCritical =
       newLead.heatTier === HeatTier.HOT ||

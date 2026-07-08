@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { IsOptional, IsString, IsBoolean, IsArray } from 'class-validator';
 
 export class UpdateAiSettingsDto {

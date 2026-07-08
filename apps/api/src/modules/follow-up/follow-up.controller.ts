@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
@@ -28,7 +29,7 @@ export class FollowUpController {
     @TenantId() tenantId: string,
     @Query() query: GetFollowUpsDto,
   ) {
-    const { data, meta } = await this.followUpService.getFollowUps(
+    const { data, meta }: any = await this.followUpService.getFollowUps(
       tenantId,
       query,
     );
@@ -38,7 +39,7 @@ export class FollowUpController {
   @Post()
   async createFollowUp(
     @TenantId() tenantId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: { id: string },
     @Body() dto: CreateFollowUpDto,
   ) {
     const data = await this.followUpService.createFollowUp(

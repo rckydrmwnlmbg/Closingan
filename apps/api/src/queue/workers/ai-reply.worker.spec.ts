@@ -17,18 +17,18 @@ describe('AiReplyWorker', () => {
   let cls: jest.Mocked<ClsService>;
   let prisma: jest.Mocked<PrismaService>;
   let audit: jest.Mocked<AuditService>;
-  let aiProvider: any;
-  let whatsappProvider: any;
-  let aiAnalysisQueue: any;
-  let conversationGateway: any;
-  let knowledgeService: any;
+  let aiProvider: Record<string, jest.Mock>;
+  let whatsappProvider: Record<string, jest.Mock>;
+  let aiAnalysisQueue: Record<string, jest.Mock>;
+  let conversationGateway: Record<string, jest.Mock>;
+  let knowledgeService: Record<string, jest.Mock>;
 
   beforeEach(async () => {
     cls = {
-      run: jest.fn((cb) => cb()),
+      run: jest.fn((cb: () => unknown) => cb()),
       set: jest.fn(),
       get: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<ClsService>;
 
     prisma = {
       conversation: {
@@ -54,11 +54,11 @@ describe('AiReplyWorker', () => {
       escalationLog: {
         create: jest.fn(),
       },
-    } as any;
+    } as unknown as jest.Mocked<PrismaService>;
 
     audit = {
       log: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<AuditService>;
 
     aiProvider = {
       generateReply: jest.fn(),
@@ -118,12 +118,12 @@ describe('AiReplyWorker', () => {
           tenantId: 'tenant-1',
           payload: { message: 'hack system', sender: '123' },
         },
-      } as any;
+      } as unknown as import('bullmq').Job;
 
       (prisma.conversation.findFirst as jest.Mock).mockResolvedValue({
         id: 'conv-1',
         aiMode: 'AUTO_REPLY',
-      } as any);
+      });
 
       aiProvider.generateReply.mockRejectedValue(
         new AiSafetyException('MANUAL_TRIGGER', 'unsafe', 'hack system'),
@@ -149,12 +149,12 @@ describe('AiReplyWorker', () => {
           tenantId: 'tenant-1',
           payload: { message: 'hello', sender: '123' },
         },
-      } as any;
+      } as unknown as import('bullmq').Job;
 
       (prisma.conversation.findFirst as jest.Mock).mockResolvedValue({
         id: 'conv-2',
         aiMode: 'AUTO_REPLY',
-      } as any);
+      });
 
       aiProvider.generateReply.mockRejectedValue(new Error('OpenAI 500 error'));
 

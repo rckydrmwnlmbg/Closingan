@@ -66,8 +66,8 @@ describe('Tenant Data Isolation (Security Phase 3 Unit Test)', () => {
         if (key === 'tenantId') return currentTenantId;
         return null;
       },
-      set: (key: string, value: any) => {
-        if (key === 'tenantId') currentTenantId = value;
+      set: (key: string, value: unknown) => {
+        if (key === 'tenantId') currentTenantId = value as string;
       },
     };
 

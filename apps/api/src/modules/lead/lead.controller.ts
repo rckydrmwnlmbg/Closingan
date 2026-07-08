@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Controller,
   Get,
@@ -9,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { TenantId } from '../../common/decorators/tenant.decorator';
+import { HeatTier } from '@prisma/client';
 import { ResponseBuilder } from '../../common/helpers/response.builder';
 import { HotLeadService } from './hot-lead.service';
 import { GetLeadsQueryDto } from './dto/get-leads.dto';
@@ -23,7 +25,10 @@ export class LeadController {
     @TenantId() tenantId: string,
     @Query() query: GetLeadsQueryDto,
   ) {
-    const { data, meta } = await this.hotLeadService.getLeads(tenantId, query);
+    const { data, meta }: any = await this.hotLeadService.getLeads(
+      tenantId,
+      query,
+    );
     return ResponseBuilder.list(data, meta);
   }
 
@@ -31,7 +36,7 @@ export class LeadController {
   async overrideHeatTier(
     @TenantId() tenantId: string,
     @Param('id') id: string,
-    @Body('heatTier') heatTier: any, // use any if HeatTier enum isn't imported
+    @Body('heatTier') heatTier: HeatTier, // use any if HeatTier enum isn't imported
   ) {
     const updated = await this.hotLeadService.overrideHeatTier(
       tenantId,

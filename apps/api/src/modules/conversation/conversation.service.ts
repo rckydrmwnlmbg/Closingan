@@ -1,8 +1,15 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment */
 import * as crypto from 'crypto';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConversationRepository } from './conversation.repository';
 import { GetConversationsQueryDto } from './dto/get-conversations.dto';
-import { Conversation } from '@prisma/client';
+import {
+  Conversation,
+  ConversationState,
+  AiMode,
+  SenderType,
+  HeatTier,
+} from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AuditService } from '../../common/audit/audit.service';
 import type { AiProviderInterface } from '../../ai/interfaces/ai-provider.interface';
@@ -17,14 +24,14 @@ type ConversationWithRelations = Partial<Conversation> & {
   id: string;
   customerPhone: string;
   customerName: string | null;
-  state: any;
-  aiMode: any;
+  state: ConversationState;
+  aiMode: AiMode;
   aiModePausedUntil: Date | null;
   unreadCount: number;
   lastMessageAt: Date | null;
   lastMessagePreview: string | null;
-  lastSenderType: any;
-  lead?: { heatTier: any; heatReasons: string[] } | null;
+  lastSenderType: SenderType;
+  lead?: { heatTier: HeatTier; heatReasons: string[] } | null;
   _count?: { followUps: number };
 };
 
@@ -183,7 +190,7 @@ export class ConversationService {
 
     const result = { data: formattedData, meta };
     await this.redisService.set(cacheKey, JSON.stringify(result), 10);
-    return result;
+    return result as any;
   }
 
   async getMessagesByPhone(
@@ -365,7 +372,7 @@ export class ConversationService {
     return conversation;
   }
 
-  async updateAiMode(tenantId: string, conversationId: string, aiMode: any) {
+  async updateAiMode(tenantId: string, conversationId: string, aiMode: AiMode) {
     const conversation = await this.prisma.conversation.findFirst({
       where: { id: conversationId, tenantId },
     });

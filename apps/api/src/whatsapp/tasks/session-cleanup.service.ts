@@ -37,8 +37,9 @@ export class SessionCleanupService {
           `Cleaned up ${result.count} stale WhatsApp sessions with expired QRs`,
         );
       }
-    } catch (error: any) {
-      this.logger.error(`Error during stale session cleanup: ${error.message}`);
+    } catch (error) {
+      const err = error as Error;
+      this.logger.error(`Error during stale session cleanup: ${err.message}`);
     }
   }
 }

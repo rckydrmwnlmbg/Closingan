@@ -7,5 +7,6 @@ export interface FonnteWebhookPayload {
   name?: string;
   from?: string;
   id?: string;
-  [key: string]: any; // Allow other properties
+  to?: string; // Target of outgoing message
+  [key: string]: unknown; // Allow other properties
 }

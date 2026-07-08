@@ -29,7 +29,9 @@ describe('SessionCleanupService', () => {
   it('should call prisma updateMany to clear expired QR codes', async () => {
     await sessionCleanupService.cleanupStaleSessions();
 
-    expect(prismaService.whatsappSession.updateMany).toHaveBeenCalledWith(
+    expect(
+      prismaService.whatsappSession.updateMany as jest.Mock,
+    ).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
           qrExpiresAt: expect.objectContaining({

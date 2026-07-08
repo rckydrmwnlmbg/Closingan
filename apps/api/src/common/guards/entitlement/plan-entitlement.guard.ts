@@ -28,12 +28,12 @@ export class PlanEntitlementGuard implements CanActivate {
       return true;
     }
 
-    const tenantId = this.cls.get('tenantId');
+    const tenantId = this.cls.get<string>('tenantId');
 
     if (!tenantId) {
       // If there's no tenantId in CLS context, try to get it from request user
-      const request = context.switchToHttp().getRequest();
-      const userTenantId = request.user?.tenantId;
+      const request = context.switchToHttp().getRequest<{ user?: any }>();
+      const userTenantId = (request.user as { tenantId?: string })?.tenantId;
       if (!userTenantId) {
         throw new ForbiddenException('Subscription context missing.');
       }

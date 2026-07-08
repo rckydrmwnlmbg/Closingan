@@ -5,14 +5,14 @@ import {
   HttpCode,
   HttpStatus,
   Headers,
-  Inject,
-  RawBodyRequest,
   Req,
+  Inject,
 } from '@nestjs/common';
 import { WebhookService } from './webhook.service';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { AppException } from '../common/exceptions/app.exception';
+import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
 import type { Request } from 'express';
 
 @Controller('webhook')
@@ -26,9 +26,9 @@ export class WebhookController {
   @Post('fonnte')
   @HttpCode(HttpStatus.OK)
   async handleFonnteWebhook(
-    @Body() payload: any,
+    @Body() payload: FonnteWebhookPayload,
     @Headers('x-fonnte-signature') signature: string,
-    @Req() req: any,
+    @Req() req: Request & { rawBody?: Buffer },
   ) {
     // RISK-1 FIX: Validate webhook signature before processing
     // Use raw body for signature computation to avoid JSON re-serialization issues

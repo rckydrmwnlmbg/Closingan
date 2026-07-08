@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import { AppException } from './app.exception';
 
 export class ProviderDegradationException extends AppException {

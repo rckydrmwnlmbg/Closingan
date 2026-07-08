@@ -190,7 +190,7 @@ export class AiSafetyService {
           return '[LINK REMOVED]';
         }
         return url;
-      } catch (e) {
+      } catch {
         // Invalid URL format
         return '[INVALID LINK]';
       }

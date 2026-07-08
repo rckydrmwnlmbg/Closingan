@@ -4,6 +4,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { AxiosResponse } from 'axios';
 import { ConfigService } from '@nestjs/config';
 import CircuitBreaker from 'opossum';
 import * as crypto from 'crypto';
@@ -20,7 +21,6 @@ import {
   SendMessageResult,
   WhatsappProviderInterface,
 } from '../interfaces/whatsapp-provider.interface';
-import { FonnteWebhookPayload } from '../interfaces/fonnte-webhook.interface';
 import { ProviderDegradationException } from '../../common/exceptions/provider-degradation.exception';
 
 interface FonnteSendResponse {
@@ -40,7 +40,10 @@ interface FonnteDeviceResponse {
 export class FonnteService implements WhatsappProviderInterface {
   private readonly baseUrl: string;
   private readonly logger = new Logger(FonnteService.name);
-  private readonly sendMessageBreaker: CircuitBreaker<any, any>;
+  private readonly sendMessageBreaker: CircuitBreaker<
+    [SendMessageOptions],
+    AxiosResponse<FonnteSendResponse>
+  >;
 
   constructor(
     private readonly httpService: HttpService,
@@ -63,7 +66,7 @@ export class FonnteService implements WhatsappProviderInterface {
     this.sendMessageBreaker = new CircuitBreaker(
       async (options: SendMessageOptions) => {
         const { to, message } = options;
-        return firstValueFrom(
+        return firstValueFrom<AxiosResponse<FonnteSendResponse>>(
           this.httpService
             .post<FonnteSendResponse>(
               `${this.baseUrl}/send`,
@@ -79,11 +82,13 @@ export class FonnteService implements WhatsappProviderInterface {
             )
             .pipe(
               rxTimeout(5000),
-              catchError((err) => {
+              catchError((err: unknown) => {
                 if (err instanceof TimeoutError) {
                   return throwError(() => new Error('Fonnte API timeout'));
                 }
-                return throwError(() => err);
+                return throwError(() =>
+                  err instanceof Error ? err : new Error(String(err)),
+                );
               }),
             ),
         );
@@ -143,11 +148,13 @@ export class FonnteService implements WhatsappProviderInterface {
           )
           .pipe(
             rxTimeout(5000),
-            catchError((err) => {
+            catchError((err: unknown) => {
               if (err instanceof TimeoutError) {
                 return throwError(() => new Error('Fonnte API timeout'));
               }
-              return throwError(() => err);
+              return throwError(() =>
+                err instanceof Error ? err : new Error(String(err)),
+              );
             }),
           ),
       );
@@ -243,11 +250,13 @@ export class FonnteService implements WhatsappProviderInterface {
           )
           .pipe(
             rxTimeout(5000),
-            catchError((err) => {
+            catchError((err: unknown) => {
               if (err instanceof TimeoutError) {
                 return throwError(() => new Error('Fonnte API timeout'));
               }
-              return throwError(() => err);
+              return throwError(() =>
+                err instanceof Error ? err : new Error(String(err)),
+              );
             }),
           ),
       );
@@ -270,7 +279,7 @@ export class FonnteService implements WhatsappProviderInterface {
       return {
         isConnected: false,
       };
-    } catch (error) {
+    } catch {
       this.logger.error(
         `Failed to check connection status for Tenant: ${tenantId || 'Unknown'}`,
       );
@@ -280,7 +289,7 @@ export class FonnteService implements WhatsappProviderInterface {
     }
   }
 
-  validateWebhookSignature(payload: any, signature: string): boolean {
+  validateWebhookSignature(payload: unknown, signature: string): boolean {
     if (!signature) {
       return false;
     }

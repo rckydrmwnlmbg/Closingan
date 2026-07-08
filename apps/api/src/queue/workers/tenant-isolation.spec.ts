@@ -17,12 +17,12 @@ describe('Tenant Isolation (Noisy Neighbor)', () => {
       incr: jest.fn(),
       decr: jest.fn(),
       expire: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<RedisService>;
 
     clsService = {
-      run: jest.fn((cb) => cb()),
+      run: jest.fn((cb: () => unknown) => cb()),
       set: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<ClsService>;
 
     const aiService = {
       generateSuggestedReply: jest.fn().mockResolvedValue('Hello AI'),
