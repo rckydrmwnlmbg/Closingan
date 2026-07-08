@@ -62,7 +62,7 @@ export class CampaignController {
         messageTemplate: data.messageTemplate,
         recipientSource: data.recipientSource,
         scheduledAt: data.scheduledAt ? new Date(data.scheduledAt) : null,
-        createdBy: user?.id || 'system',
+        createdBy: user?.userId || 'system',
       },
     });
     return { success: true, data: campaign };

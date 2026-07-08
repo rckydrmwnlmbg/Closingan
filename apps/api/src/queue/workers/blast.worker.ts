@@ -8,6 +8,7 @@ import { AppException } from '../../common/exceptions/app.exception';
 import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { Inject } from '@nestjs/common';
+import { BaseWorker } from './base.worker';
 
 @Processor('blast-campaign', {
   concurrency: 1, // Low concurrency to not block ai-reply and hot-lead
@@ -16,12 +17,13 @@ import { Inject } from '@nestjs/common';
     duration: 1000,
   },
 })
-export class BlastWorker extends WorkerHost {
-  private readonly logger = new Logger(BlastWorker.name);
+export class BlastWorker extends BaseWorker<BlastJobData, unknown, string> {
+  protected readonly logger = new Logger(BlastWorker.name);
+  protected readonly queueName = 'blast-campaign';
 
   constructor(
-    private readonly cls: ClsService,
-    private readonly prisma: PrismaService,
+    protected readonly cls: ClsService,
+    protected readonly prisma: PrismaService,
     @Inject(WHATSAPP_PROVIDER)
     private readonly whatsappService: WhatsappProviderInterface,
   ) {
@@ -139,38 +141,4 @@ export class BlastWorker extends WorkerHost {
     });
   }
 
-  @OnWorkerEvent('failed')
-  async onFailed(job: Job<BlastJobData, unknown, string>, error: Error) {
-    if (
-      error.message.includes('moveToDelayed') ||
-      error.message.includes('DelayedError')
-    ) {
-      return;
-    }
-    this.logger.error(
-      `Job ${job.id} of type ${job.name} failed with error: ${error.message}`,
-      error.stack,
-    );
-
-    if (job.attemptsMade >= (job.opts.attempts || 1)) {
-      this.logger.error(
-        `Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`,
-      );
-      try {
-        await this.prisma.deadLetterLog.create({
-          data: {
-            tenantId: job.data?.tenantId || null,
-            queueName: job.name,
-            payload: (job.data as Record<string, unknown>) || {},
-            errorReason: error.message,
-          },
-        });
-      } catch (err) {
-        this.logger.error(
-          `Failed to save DeadLetterLog for job ${job.id}`,
-          err,
-        );
-      }
-    }
-  }
 }

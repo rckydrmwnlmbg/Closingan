@@ -16,6 +16,7 @@ import { AuthService } from './auth.service';
 import { AuthTokenService } from './auth-token.service';
 import { AuthOtpService } from './auth-otp.service';
 import { AuthPasswordService } from './auth-password.service';
+import { AntiAbuseService } from '../common/guards/anti-abuse/anti-abuse.service';
 import { ResponseBuilder } from '../common/helpers/response.builder';
 import {
   RegisterDto,
@@ -37,15 +38,18 @@ export class AuthController {
     private readonly authTokenService: AuthTokenService,
     private readonly authOtpService: AuthOtpService,
     private readonly authPasswordService: AuthPasswordService,
+    private readonly antiAbuseService: AntiAbuseService,
   ) {}
 
   @Post('register')
   @Audit(AuditAction.USER_REGISTER)
   async register(
     @Body() dto: RegisterDto,
+    @Req() req: Request,
     @Headers('x-tenant-id') tenantId?: string,
   ) {
-    const result = await this.authService.register(dto, tenantId);
+    const fingerprintHash = this.antiAbuseService.generateFingerprint(req);
+    const result = await this.authService.register(dto, fingerprintHash, tenantId);
     return ResponseBuilder.success(result);
   }
 
@@ -72,10 +76,12 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Ip() ip: string,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
     @Headers('x-tenant-id') tenantId?: string,
   ) {
-    const result = await this.authService.login(dto, ip, tenantId);
+    const fingerprintHash = this.antiAbuseService.generateFingerprint(req);
+    const result = await this.authService.login(dto, ip, fingerprintHash, tenantId);
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

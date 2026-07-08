@@ -1,7 +1,7 @@
 import { IsString, IsOptional } from 'class-validator';
 import { FonnteWebhookPayload } from './fonnte-webhook.interface';
 
-export class FonnteWebhookPayloadDto implements FonnteWebhookPayload {
+export class FonnteWebhookPayloadDto {
   @IsString()
   device: string;
 
@@ -26,4 +26,6 @@ export class FonnteWebhookPayloadDto implements FonnteWebhookPayload {
   @IsString()
   @IsOptional()
   id?: string;
+
+  [key: string]: any;
 }

@@ -9,6 +9,7 @@ import { AuthPasswordService } from './auth-password.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { MailModule } from '../mail/mail.module';
+import { AntiAbuseModule } from '../common/guards/anti-abuse/anti-abuse.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MailModule } from '../mail/mail.module';
       }),
     }),
     MailModule,
+    AntiAbuseModule,
   ],
   controllers: [AuthController],
   providers: [

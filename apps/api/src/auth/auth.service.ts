@@ -7,6 +7,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { AuditAction } from '@prisma/client';
 import { AuthTokenService } from './auth-token.service';
 import { AuthOtpService } from './auth-otp.service';
+import disposableDomains = require('disposable-email-domains');
 
 @Injectable()
 export class AuthService {
@@ -18,17 +19,44 @@ export class AuthService {
   ) {}
 
   private isDisposableEmail(email: string): boolean {
-    const disposableDomains = ['mailinator.com', 'guerrillamail.com']; // Extend this list
     const domain = email.split('@')[1];
     return disposableDomains.includes(domain);
   }
 
-  async register(dto: RegisterDto, tenantId?: string) {
+  async register(dto: RegisterDto, fingerprintHash: string, tenantId?: string) {
     if (this.isDisposableEmail(dto.email)) {
       throw new AppException(
         'EMAIL_DISPOSABLE',
         'Email disposable tidak diizinkan.',
         422,
+      );
+    }
+
+    const MAX_REGISTRATIONS = 2;
+    const registrationCount = await this.prisma.auditLog.count({
+      where: {
+        action: AuditAction.USER_REGISTER,
+        metadata: {
+          path: ['fingerprintHash'],
+          equals: fingerprintHash,
+        },
+      },
+    });
+
+    if (registrationCount >= MAX_REGISTRATIONS) {
+      await this.prisma.abusiveClient.upsert({
+        where: { fingerprintHash },
+        create: {
+          fingerprintHash,
+          reason: 'Auto-banned: Exceeded maximum trial registrations',
+        },
+        update: {},
+      });
+
+      throw new AppException(
+        'RATE_LIMITED',
+        'Terlalu banyak pendaftaran dari perangkat ini.',
+        429,
       );
     }
 
@@ -77,6 +105,7 @@ export class AuthService {
       action: AuditAction.USER_REGISTER,
       entityType: 'User',
       entityId: user.id,
+      metadata: { fingerprintHash },
     });
 
     return {
@@ -86,7 +115,7 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto, ipAddress?: string, tenantId?: string) {
+  async login(dto: LoginDto, ipAddress: string, fingerprintHash: string, tenantId?: string) {
     const whereClause: Record<string, string> = { email: dto.email };
     if (tenantId) whereClause.tenantId = tenantId;
     const user = await this.prisma.user.findFirst({
@@ -166,6 +195,7 @@ export class AuthService {
       userId: user.id,
       action: AuditAction.USER_LOGIN,
       ipAddress: ipAddress,
+      metadata: { fingerprintHash },
     });
 
     return this.authTokenService.generateTokens(user);

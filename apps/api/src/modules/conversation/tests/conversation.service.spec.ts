@@ -61,8 +61,8 @@ describe('ConversationService', () => {
     it('should throw if conversation not found', async () => {
       (prisma.conversation.findFirst as jest.Mock).mockResolvedValue(null);
       await expect(
-        service.getMessagesByPhone('tenant-1', '123'),
-      ).rejects.toThrow('App Exception');
+        service.getMessagesByPhone('tenant-1', '081234567890'),
+      ).rejects.toThrow('Percakapan tidak ditemukan.');
     });
 
     it('should return messages if conversation exists', async () => {

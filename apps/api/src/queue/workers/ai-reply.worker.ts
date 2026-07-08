@@ -22,20 +22,24 @@ import { ConversationGateway } from '../../modules/websocket/conversation.gatewa
 import { AppException } from '../../common/exceptions/app.exception';
 import { ProviderDegradationException } from '../../common/exceptions/provider-degradation.exception';
 import { KnowledgeService } from '../../modules/knowledge/knowledge.service';
+import { AiSafetyService } from '../../ai/ai-safety.service';
+import { QueueName } from '@prisma/client';
+import { BaseWorker } from './base.worker';
 
 @Processor('ai-reply', {
-  concurrency: 5,
+  concurrency: 10,
   limiter: {
-    max: 10, // Max 10 jobs processed
-    duration: 1000, // per 1 second (1000ms) - backpressure control for OpenAI
+    max: 100,
+    duration: 1000,
   },
 })
-export class AiReplyWorker extends WorkerHost {
-  private readonly logger = new Logger(AiReplyWorker.name);
+export class AiReplyWorker extends BaseWorker<AiReplyJobData, unknown, string> {
+  protected readonly logger = new Logger(AiReplyWorker.name);
+  protected readonly queueName = 'ai-reply';
 
   constructor(
-    private readonly cls: ClsService,
-    private readonly prisma: PrismaService,
+    protected readonly cls: ClsService,
+    protected readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly auditService: AuditService,
     @Inject('AI_PROVIDER') private readonly aiProvider: AiProviderInterface,
@@ -728,51 +732,4 @@ export class AiReplyWorker extends WorkerHost {
     }
   }
 
-  @OnWorkerEvent('failed')
-  async onFailed(job: Job<AiReplyJobData, unknown, string>, error: Error) {
-    if (
-      error.message.includes('moveToDelayed') ||
-      error.message.includes('DelayedError')
-    ) {
-      return;
-    }
-    this.logger.error(
-      `Job ${job.id} of type ${job.name} failed with error: ${error.message}`,
-      error.stack,
-    );
-    // When attempts exhaust, bullmq stops retrying. We capture it for DLQ handling.
-    if (job.attemptsMade >= (job.opts.attempts || 1)) {
-      this.logger.error(
-        `Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`,
-      );
-      // Run in a new context as we may need to insert to DB independently of the queue job run context
-      await this.cls.run(async () => {
-        await this.prisma.failedJob.create({
-          data: {
-            queueName: 'AI_REPLY',
-            jobId: job.id || 'unknown',
-            jobData: job.data as Record<string, unknown>,
-            errorMessage: error.message,
-            errorStack: error.stack,
-            attemptCount: job.attemptsMade,
-          },
-        });
-
-        try {
-          await this.prisma.deadLetterLog.create({
-            data: {
-              tenantId: job.data?.tenantId || null,
-              queueName: job.name,
-              payload: job.data || {},
-              errorReason: error.message,
-            },
-          });
-        } catch (e) {
-          this.logger.error(
-            `DLQ Save Error: ${e instanceof Error ? e.message : 'Unknown'}`,
-          );
-        }
-      });
-    }
-  }
 }

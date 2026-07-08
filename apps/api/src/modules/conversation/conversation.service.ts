@@ -7,7 +7,8 @@ import {
   Conversation,
   ConversationState,
   AiMode,
-  SenderType,
+  MessageSenderType,
+  Prisma,
   HeatTier,
 } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -30,7 +31,7 @@ type ConversationWithRelations = Partial<Conversation> & {
   unreadCount: number;
   lastMessageAt: Date | null;
   lastMessagePreview: string | null;
-  lastSenderType: SenderType;
+  lastSenderType: MessageSenderType | null;
   lead?: { heatTier: HeatTier; heatReasons: string[] } | null;
   _count?: { followUps: number };
 };

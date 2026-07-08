@@ -12,7 +12,7 @@ import { WebhookService } from './webhook.service';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { AppException } from '../common/exceptions/app.exception';
-import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.interface';
+import { FonnteWebhookPayloadDto } from '../whatsapp/interfaces/fonnte-webhook.dto';
 import type { Request } from 'express';
 
 @Controller('webhook')
@@ -26,7 +26,7 @@ export class WebhookController {
   @Post('fonnte')
   @HttpCode(HttpStatus.OK)
   async handleFonnteWebhook(
-    @Body() payload: FonnteWebhookPayload,
+    @Body() payload: FonnteWebhookPayloadDto,
     @Headers('x-fonnte-signature') signature: string,
     @Req() req: Request & { rawBody?: Buffer },
   ) {

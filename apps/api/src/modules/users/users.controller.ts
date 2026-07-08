@@ -6,7 +6,7 @@ import {
   Post,
   Body,
   UseGuards,
-  Request,
+  Req,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,14 +19,14 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  async getMe(@Request() req: Request & { user: { id: string } }) {
+  async getMe(@Req() req: Request & { user: { id: string } }) {
     const user = await this.usersService.getMe(req.user.id);
     return ResponseBuilder.success(user);
   }
 
   @Patch('me')
   async updateMe(
-    @Request() req: Request & { user: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Body() updateDto: UpdateUserDto,
   ) {
     const user = await this.usersService.updateMe(req.user.id, updateDto);
@@ -35,7 +35,7 @@ export class UsersController {
 
   @Post('me/change-password')
   async changePassword(
-    @Request() req: Request & { user: { id: string } },
+    @Req() req: Request & { user: { id: string } },
     @Body() dto: ChangePasswordDto,
   ) {
     await this.usersService.changePassword(req.user.id, dto);

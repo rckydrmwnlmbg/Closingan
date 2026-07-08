@@ -5,6 +5,7 @@ import { ClsService } from 'nestjs-cls';
 import { RedisService } from '../../common/redis/redis.service';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { AiService } from '../../ai/ai.service';
+import { BaseWorker } from './base.worker';
 
 interface IncomingMessageJobData {
   tenantId: string;
@@ -12,19 +13,20 @@ interface IncomingMessageJobData {
 }
 
 @Processor('incoming-messages-queue', {
-  concurrency: 5,
-  limiter: {
-    max: 10,
-    duration: 1000,
-  },
+  concurrency: 10, // Match ai-reply concurrency
 })
-export class IncomingMessagesWorker extends WorkerHost {
-  private readonly logger = new Logger(IncomingMessagesWorker.name);
+export class IncomingMessagesWorker extends BaseWorker<
+  IncomingMessageJobData,
+  unknown,
+  string
+> {
+  protected readonly logger = new Logger(IncomingMessagesWorker.name);
+  protected readonly queueName = 'incoming-messages-queue';
 
   constructor(
-    private readonly cls: ClsService,
+    protected readonly cls: ClsService,
+    protected readonly prisma: PrismaService,
     private readonly redisService: RedisService,
-    private readonly prisma: PrismaService,
     private readonly aiService: AiService,
   ) {
     super();
@@ -105,41 +107,4 @@ export class IncomingMessagesWorker extends WorkerHost {
     }
   }
 
-  @OnWorkerEvent('failed')
-  async onFailed(
-    job: Job<IncomingMessageJobData, unknown, string>,
-    error: Error,
-  ) {
-    if (
-      error.message.includes('moveToDelayed') ||
-      error.message.includes('DelayedError')
-    ) {
-      return; // Ignore noisy DelayedError logs
-    }
-    this.logger.error(
-      `Job ${job.id} of type ${job.name} failed with error: ${error.message}`,
-      error.stack,
-    );
-
-    if (job.attemptsMade >= (job.opts.attempts || 1)) {
-      this.logger.error(
-        `Job ${job.id} has exhausted all retries and moved to Dead Letter Queue behavior.`,
-      );
-      try {
-        await this.prisma.deadLetterLog.create({
-          data: {
-            tenantId: job.data?.tenantId || null,
-            queueName: job.name,
-            payload: job.data || {},
-            errorReason: error.message,
-          },
-        });
-      } catch (err) {
-        this.logger.error(
-          `Failed to save DeadLetterLog for job ${job.id}`,
-          err,
-        );
-      }
-    }
-  }
 }

@@ -8,6 +8,10 @@ export class AntiAbuseService {
    * Generates a device fingerprint hash based on the IP address and User-Agent.
    */
   generateFingerprint(req: Request): string {
+    const explicitFingerprint = req.headers['x-device-fingerprint'];
+    if (explicitFingerprint && typeof explicitFingerprint === 'string') {
+      return createHash('sha256').update(explicitFingerprint).digest('hex');
+    }
     const ip =
       req.headers['x-forwarded-for'] ||
       req.socket.remoteAddress ||
