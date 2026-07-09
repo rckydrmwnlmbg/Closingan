@@ -26,6 +26,7 @@ async function bootstrap() {
     bufferLogs: true,
     rawBody: true,
   });
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
   const configService = app.get(ConfigService);
 
   app.setGlobalPrefix('v1');

@@ -137,6 +137,7 @@ enum AuditAction {
   SUPPRESSION_REMOVED
   DATA_EXPORTED
   PROFILE_UPDATED
+  SYSTEM_ADMIN_LOGIN
 }
 
 enum WaSessionState {
@@ -943,4 +944,28 @@ model ChurnSignal {
 
   @@index([tenantId])
   @@index([interventionStatus])
+}
+
+// ─── SUPER ADMIN ─────────────────────────────────────────────
+
+model SystemAdmin {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String?
+  role          String    @default("SUPER_ADMIN")
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       Json
+  description String?
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
 }

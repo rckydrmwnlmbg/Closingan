@@ -43,6 +43,8 @@ import { CacheModule } from './common/cache/cache.module';
 import { StorageModule } from './common/storage/storage.module';
 import { LabelModule } from './modules/label/label.module';
 import { QuickReplyModule } from './modules/quick-reply/quick-reply.module';
+import { SystemAdminModule } from './modules/system-admin/system-admin.module';
+
 
 @Module({
   imports: [
@@ -85,7 +87,7 @@ import { QuickReplyModule } from './modules/quick-reply/quick-reply.module';
         throttlers: [
           {
             ttl: 60000,
-            limit: 10,
+            limit: 100,
           },
         ],
       }),
@@ -123,6 +125,7 @@ import { QuickReplyModule } from './modules/quick-reply/quick-reply.module';
     StatusModule,
     LabelModule,
     QuickReplyModule,
+    SystemAdminModule,
   ],
   controllers: [AppController],
   providers: [
