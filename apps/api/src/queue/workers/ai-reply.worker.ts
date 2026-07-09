@@ -731,5 +731,4 @@ export class AiReplyWorker extends BaseWorker<AiReplyJobData, unknown, string> {
       await this.redisService.decr(activeJobsKey);
     }
   }
-
 }

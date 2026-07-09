@@ -82,4 +82,45 @@ ${link}
       );
     }
   }
+
+  async sendChurnSummary(to: string, signals: any[]) {
+    if (signals.length === 0) return;
+
+    try {
+      const textContent = `
+Laporan Churn Signals Harian
+
+Ditemukan ${signals.length} tenant yang berisiko churn:
+${signals.map((s) => `- Tenant ID: ${s.tenantId} | Signal: ${s.signalType} | Note: ${s.notes}`).join('\n')}
+
+Harap segera ditindaklanjuti dengan menghubungi mereka via WhatsApp (Intervensi manual).
+      `.trim();
+
+      const htmlContent = `
+        <h2>Laporan Churn Signals Harian</h2>
+        <p>Ditemukan <strong>${signals.length}</strong> tenant yang berisiko churn:</p>
+        <ul>
+          ${signals.map((s) => `<li><strong>Tenant ID:</strong> ${s.tenantId} | <strong>Signal:</strong> ${s.signalType} | <em>Note:</em> ${s.notes}</li>`).join('')}
+        </ul>
+        <p>Harap segera ditindaklanjuti dengan menghubungi mereka via WhatsApp (Intervensi manual).</p>
+      `;
+
+      if (this.configService.get<string>('SMTP_USER')) {
+        await this.transporter.sendMail({
+          from: `"CLOSINGAN System" <${this.configService.get<string>('SMTP_USER')}>`,
+          to,
+          subject: `🚨 Churn Prevention Alert: ${signals.length} Tenants at Risk`,
+          text: textContent,
+          html: htmlContent,
+        });
+        this.logger.log(`Churn summary email sent to ${to}`);
+      } else {
+        this.logger.log(`[MOCK EMAIL] Churn summary to ${to}:\n${textContent}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send churn summary email to ${to}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
 }

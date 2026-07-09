@@ -11,7 +11,7 @@ import { Inject } from '@nestjs/common';
 import { BaseWorker } from './base.worker';
 
 @Processor('blast-campaign', {
-  concurrency: 1, // Low concurrency to not block ai-reply and hot-lead
+  concurrency: 2, // Low concurrency to not block ai-reply and hot-lead
   limiter: {
     max: 5, // Pace rate limit: max 5 jobs per second
     duration: 1000,
@@ -140,5 +140,4 @@ export class BlastWorker extends BaseWorker<BlastJobData, unknown, string> {
       }
     });
   }
-
 }

@@ -1,0 +1,70 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: closingan_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Use Node.js 20.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20.x
+        cache: 'npm'
+        cache-dependency-path: '**/package.json'
+
+    - name: Install Dependencies
+      run: |
+        npm install
+        cd apps/api && npm install
+        cd ../../apps/web && npm install
+
+    - name: Generate Prisma Client
+      run: cd apps/api && npx prisma generate
+
+    - name: Run Linter
+      run: |
+        cd apps/api && npm run lint
+
+    - name: Run Tests
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/closingan_test?schema=public
+        REDIS_HOST: localhost
+        REDIS_PORT: 6379
+        JWT_SECRET: test_secret_123
+        OPENAI_API_KEY: dummy_key
+      run: |
+        cd apps/api && npx prisma db push --accept-data-loss
+        cd apps/api && npm run test
+
+    - name: Build Applications
+      run: |
+        cd apps/api && npm run build
+        cd ../../apps/web && npm run build

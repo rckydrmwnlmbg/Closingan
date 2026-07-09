@@ -9,6 +9,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionState } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 import { REQUIRE_SUBSCRIPTION_KEY } from '../../decorators/require-subscription.decorator';
+import { CacheService } from '../../cache/cache.service';
 
 @Injectable()
 export class PlanEntitlementGuard implements CanActivate {
@@ -16,6 +17,7 @@ export class PlanEntitlementGuard implements CanActivate {
     private reflector: Reflector,
     private prisma: PrismaService,
     private cls: ClsService,
+    private cacheService: CacheService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -44,15 +46,24 @@ export class PlanEntitlementGuard implements CanActivate {
   }
 
   private async checkSubscription(tenantId: string): Promise<boolean> {
+    const cacheKey = `tenant:${tenantId}:entitlement`;
+    let isEntitled = await this.cacheService.get<boolean>(cacheKey, 'tenant_entitlement');
+
+    if (isEntitled !== null) {
+      if (!isEntitled) {
+        throw new ForbiddenException('Subscription expired. Please upgrade or renew your plan.');
+      }
+      return true;
+    }
+
     const subscription = await this.prisma.subscription.findUnique({
       where: { tenantId },
       select: { state: true },
     });
 
     if (!subscription) {
-      throw new ForbiddenException(
-        'Subscription expired. Please upgrade or renew your plan.',
-      );
+      await this.cacheService.set(cacheKey, false, 300); // 5 mins
+      throw new ForbiddenException('Subscription expired. Please upgrade or renew your plan.');
     }
 
     const allowedStates: SubscriptionState[] = [
@@ -61,10 +72,11 @@ export class PlanEntitlementGuard implements CanActivate {
       SubscriptionState.PAST_DUE, // Allowed as a grace period
     ];
 
-    if (!allowedStates.includes(subscription.state)) {
-      throw new ForbiddenException(
-        'Subscription expired. Please upgrade or renew your plan.',
-      );
+    const valid = allowedStates.includes(subscription.state);
+    await this.cacheService.set(cacheKey, valid, 300); // 5 mins
+
+    if (!valid) {
+      throw new ForbiddenException('Subscription expired. Please upgrade or renew your plan.');
     }
 
     return true;

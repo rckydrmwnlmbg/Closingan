@@ -171,6 +171,21 @@ enum QueueName {
   BLAST
 }
 
+enum ChurnSignalType {
+  LOGIN_DROP
+  NO_AI_ACTIVITY
+  RENEWAL_AT_RISK
+  LOW_FOLLOWUP_RATE
+  NO_CONVERSATION_7_DAYS
+}
+
+enum InterventionStatus {
+  PENDING
+  CONTACTED
+  RECOVERED
+  FAILED
+}
+
 // ─── TENANT & USER ──────────────────────────────────────────
 
 model Tenant {
@@ -197,8 +212,11 @@ model Tenant {
   conversationLabels  ConversationLabel[]
   churnSignals        ChurnSignal[]
   notificationPrefs   NotificationPreference?
+  isOnboarded         Boolean                 @default(false)
+  onboardingState     Json?
   referralsMade       Referral[]              @relation("ReferralMaker")
   referralUsed        Referral?               @relation("ReferralReceiver")
+  referralCode        String                  @unique @default(cuid())
 
   messages                     Message[]
   escalationLogs               EscalationLog[]
@@ -726,6 +744,7 @@ model NotificationPreference {
   weeklySummary   Boolean @default(true)
   idleAlert       Boolean @default(true)
   quotaWarning    Boolean @default(true)
+  achievementAlert Boolean @default(true)
 
   updatedAt DateTime @updatedAt
 
@@ -739,7 +758,7 @@ model Referral {
   tenantId      String
   referrerId    String
   receiverId    String?        @unique
-  referralCode  String         @unique
+  referralCode  String
   status        ReferralStatus @default(SIGNED_UP)
   rewardGivenAt DateTime?
 
@@ -808,18 +827,7 @@ model ConversationLabelAssignment {
 
 // ─── RETENTION ───────────────────────────────────────────────
 
-model ChurnSignal {
-  id         String    @id @default(cuid())
-  tenantId   String
-  signalType String // LOGIN_FREQUENCY_DROP | AI_INACTIVE | RENEWAL_NEAR_NO_ACTIVITY
-  detectedAt DateTime  @default(now())
-  resolvedAt DateTime?
-  notes      String?
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-}
 
 model ExitSurvey {
   id                String  @id @default(cuid())
@@ -916,4 +924,23 @@ model BotConfig {
   updatedAt       DateTime @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// ─── CHURN PREVENTION ───────────────────────────────────────
+
+model ChurnSignal {
+  id                 String             @id @default(cuid())
+  tenantId           String
+  signalType         ChurnSignalType
+  notes              String?
+  interventionStatus InterventionStatus @default(PENDING)
+  resolvedAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([interventionStatus])
 }

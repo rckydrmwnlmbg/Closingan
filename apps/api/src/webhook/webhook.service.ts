@@ -12,6 +12,7 @@ import { FonnteWebhookPayload } from '../whatsapp/interfaces/fonnte-webhook.inte
 import { PrismaService } from '../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../common/redis/redis.service';
+import { CacheService } from '../common/cache/cache.service';
 import { MessageIngestionService } from './ingestion/message-ingestion.service';
 import { WhatsappSession } from '@prisma/client';
 
@@ -28,6 +29,7 @@ export class WebhookService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
     private readonly eventEmitter: EventEmitter2,
     private readonly messageIngestionService: MessageIngestionService,
   ) {}
@@ -200,37 +202,33 @@ export class WebhookService {
     if (!message) {
       this.logger.error({ tenantId, payload }, 'Failed to ingest message');
       // Depending on strictness, we might throw or just return a warning. We'll proceed.
+    } else {
+      // Invalidate relevant caches on new message
+      await this.cacheService.invalidate(`tenant:${tenantId}:dashboard:summary`);
+      await this.cacheService.invalidatePattern(`conversations:${tenantId}:*`);
+      await this.cacheService.invalidatePattern(`hot_leads:${tenantId}:*`);
     }
 
-    // Skip AI processing constraint: DO NOT build AI reply logic or BullMQ queue processing yet.
-    // We comment out the aiReplyQueue.add to strictly adhere to the prompt constraint:
-    // "Do NOT build the AI (OpenAI) reply logic or the message queue (BullMQ) processing yet. For this PR, we ONLY want to achieve successful data ingestion"
-
-    /*
-    const extendedPayload = {
-      ...payload,
-      isHumanTakeoverActive,
-    };
-
-    // Queue Resilience configuration: Exponential Backoff
+    // Enqueue for AI processing via BullMQ
+    // The AI Reply Worker handles: human takeover checks, AI mode routing,
+    // quota validation, safety checks, and message sending.
     await this.aiReplyQueue.add(
       'process-message',
       {
         tenantId,
-        payload: extendedPayload,
+        payload,
       },
       {
-        delay: isOutgoing ? 0 : 60000, // 60 seconds delay for incoming messages, no delay for outgoing (just to save to DB quickly)
+        delay: isOutgoing ? 0 : 500, // Small delay for incoming to allow dedup; immediate for outgoing (history save)
         attempts: 5,
         backoff: {
           type: 'exponential',
           delay: 2000,
         },
         removeOnComplete: true,
-        removeOnFail: false, // Keep in queue to act as Dead Letter Queue, handled by worker events
+        removeOnFail: false, // Keep in queue for Dead Letter Queue handling
       },
     );
-    */
 
     return { success: true };
   }

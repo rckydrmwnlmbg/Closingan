@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import * as crypto from 'crypto';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConversationRepository } from './conversation.repository';
@@ -18,6 +18,7 @@ import { WHATSAPP_PROVIDER } from '../../whatsapp/interfaces/whatsapp-provider.i
 import type { WhatsappProviderInterface } from '../../whatsapp/interfaces/whatsapp-provider.interface';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../../common/redis/redis.service';
+import { CacheService } from '../../common/cache/cache.service';
 import { AppException } from '../../common/exceptions/app.exception';
 import { AiSafetyException } from '../../ai/exceptions/ai-safety.exception';
 
@@ -151,6 +152,7 @@ export class ConversationService {
     private readonly whatsappProvider: WhatsappProviderInterface,
     private readonly configService: ConfigService,
     private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async getConversations(tenantId: string, query: GetConversationsQueryDto) {
@@ -160,9 +162,9 @@ export class ConversationService {
       .digest('hex');
     const cacheKey = `conversations:${tenantId}:${paramsHash}`;
 
-    const cachedData = await this.redisService.get(cacheKey);
+    const cachedData = await this.cacheService.get<any>(cacheKey, 'conversations_list');
     if (cachedData) {
-      return JSON.parse(cachedData);
+      return cachedData;
     }
 
     const { data, meta } = await this.conversationRepository.findConversations(
@@ -190,7 +192,7 @@ export class ConversationService {
     });
 
     const result = { data: formattedData, meta };
-    await this.redisService.set(cacheKey, JSON.stringify(result), 10);
+    await this.cacheService.set(cacheKey, result, 10);
     return result as any;
   }
 

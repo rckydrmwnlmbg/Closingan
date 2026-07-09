@@ -9,13 +9,13 @@ export class DeviceService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createDeviceDto: CreateDeviceDto) {
+  async create(tenantId: string, createDeviceDto: CreateDeviceDto) {
     this.logger.log({
-      message: `Creating new device for tenant: ${createDeviceDto.tenantId}`,
+      message: `Creating new device for tenant: ${tenantId}`,
     });
 
     const tenant = await this.prisma.tenant.findUnique({
-      where: { id: createDeviceDto.tenantId },
+      where: { id: tenantId },
     });
 
     if (!tenant) {
@@ -29,7 +29,7 @@ export class DeviceService {
 
     return this.prisma.whatsappSession.create({
       data: {
-        tenantId: createDeviceDto.tenantId,
+        tenantId: tenantId,
         phoneNumber: createDeviceDto.phoneNumber,
         phoneNumberHash,
         provider: 'FONNTE',

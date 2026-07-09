@@ -5,7 +5,11 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ClsService } from 'nestjs-cls';
 import { QueueName } from '@prisma/client';
 
-export abstract class BaseWorker<DataType = any, ResultType = any, NameType extends string = string> extends WorkerHost {
+export abstract class BaseWorker<
+  DataType = any,
+  ResultType = any,
+  NameType extends string = string,
+> extends WorkerHost {
   protected abstract readonly logger: Logger;
   protected abstract readonly prisma: PrismaService;
   protected abstract readonly cls: ClsService;
@@ -40,7 +44,8 @@ export abstract class BaseWorker<DataType = any, ResultType = any, NameType exte
             data: {
               queueName: this.queueName as QueueName,
               jobId: job.id || 'unknown',
-              jobData: job.data as unknown as import('@prisma/client').Prisma.InputJsonValue,
+              jobData:
+                job.data as unknown as import('@prisma/client').Prisma.InputJsonValue,
               errorMessage: error.message,
               errorStack: error.stack,
               attemptCount: job.attemptsMade,
@@ -51,7 +56,7 @@ export abstract class BaseWorker<DataType = any, ResultType = any, NameType exte
             data: {
               tenantId,
               queueName: job.name,
-              payload: (job.data || {}) as unknown as import('@prisma/client').Prisma.InputJsonValue,
+              payload: job.data || {},
               errorReason: error.message,
             },
           });

@@ -55,15 +55,27 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should throw EMAIL_DISPOSABLE if email is disposable', async () => {
-      const dto = { email: 'test@mailinator.com', fullName: 'Test', password: 'password' };
-      await expect(authService.register(dto, 'fingerprint')).rejects.toThrow(AppException);
+      const dto = {
+        email: 'test@mailinator.com',
+        fullName: 'Test',
+        password: 'password',
+      };
+      await expect(authService.register(dto, 'fingerprint')).rejects.toThrow(
+        AppException,
+      );
     });
 
     it('should throw RATE_LIMITED and create abusiveClient if MAX_REGISTRATIONS exceeded', async () => {
       prismaService.auditLog.count.mockResolvedValue(2); // MAX_REGISTRATIONS is 2
 
-      const dto = { email: 'test@gmail.com', fullName: 'Test', password: 'password' };
-      await expect(authService.register(dto, 'banned_fingerprint')).rejects.toThrow(AppException);
+      const dto = {
+        email: 'test@gmail.com',
+        fullName: 'Test',
+        password: 'password',
+      };
+      await expect(
+        authService.register(dto, 'banned_fingerprint'),
+      ).rejects.toThrow(AppException);
       expect(prismaService.abusiveClient.upsert).toHaveBeenCalledWith({
         where: { fingerprintHash: 'banned_fingerprint' },
         create: expect.any(Object),
@@ -74,22 +86,35 @@ describe('AuthService', () => {
     it('should successfully register a user and send OTP', async () => {
       prismaService.auditLog.count.mockResolvedValue(0);
       prismaService.user.findFirst.mockResolvedValue(null);
-      
+
       const mockTenant = { id: 'tenant-1', name: "Test's Tenant" };
-      const mockUser = { id: 'user-1', email: 'test@gmail.com', tenantId: mockTenant.id };
-      
+      const mockUser = {
+        id: 'user-1',
+        email: 'test@gmail.com',
+        tenantId: mockTenant.id,
+      };
+
       prismaService.tenant.create.mockResolvedValue(mockTenant);
       prismaService.user.create.mockResolvedValue(mockUser);
 
-      const dto = { email: 'test@gmail.com', fullName: 'Test', password: 'password' };
+      const dto = {
+        email: 'test@gmail.com',
+        fullName: 'Test',
+        password: 'password',
+      };
       const result = await authService.register(dto, 'fingerprint');
 
       expect(result.userId).toBe('user-1');
-      expect(authOtpService.generateRegistrationOtp).toHaveBeenCalledWith('user-1', 'test@gmail.com');
-      expect(auditService.log).toHaveBeenCalledWith(expect.objectContaining({
-        action: 'USER_REGISTER',
-        metadata: { fingerprintHash: 'fingerprint' }
-      }));
+      expect(authOtpService.generateRegistrationOtp).toHaveBeenCalledWith(
+        'user-1',
+        'test@gmail.com',
+      );
+      expect(auditService.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'USER_REGISTER',
+          metadata: { fingerprintHash: 'fingerprint' },
+        }),
+      );
     });
   });
 });

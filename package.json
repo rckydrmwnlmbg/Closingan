@@ -11,6 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "deploy": "bash scripts/deploy.sh",
     "db:fix-prod": "bash scripts/fix-prod-db.sh",
+    "preflight": "ts-node scripts/preflight.ts",
     "dev:api": "npm run start:dev -w api",
     "dev:web": "npm run dev -w web",
     "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\""

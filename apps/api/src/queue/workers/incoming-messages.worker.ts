@@ -106,5 +106,4 @@ export class IncomingMessagesWorker extends BaseWorker<
       await this.redisService.decr(activeJobsKey);
     }
   }
-
 }

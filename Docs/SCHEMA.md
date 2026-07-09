@@ -85,6 +85,8 @@ model Tenant {
   quickReplyTemplates QuickReplyTemplate[]
   conversationLabels  ConversationLabel[]
   churnSignals        ChurnSignal[]
+  isOnboarded         Boolean  @default(false)
+  onboardingState     Json?
   notificationPrefs   NotificationPreference?
 }
 
@@ -593,6 +595,7 @@ model NotificationPreference {
   weeklySummary     Boolean  @default(true)
   idleAlert         Boolean  @default(true)
   quotaWarning      Boolean  @default(true)
+  achievementAlert  Boolean  @default(true)
 
   updatedAt         DateTime @updatedAt
 

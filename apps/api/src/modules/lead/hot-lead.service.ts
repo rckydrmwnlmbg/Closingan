@@ -9,7 +9,7 @@ import { Queue } from 'bullmq';
 import { LeadAnalysisSchema, LeadAnalysisDto } from './dto/lead-analysis.dto';
 import { HeatTier, Prisma, Lead } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
-import { RedisService } from '../../common/redis/redis.service';
+import { CacheService } from '../../common/cache/cache.service';
 import { AppException } from '../../common/exceptions/app.exception';
 
 @Injectable()
@@ -45,7 +45,7 @@ export class HotLeadService {
     private readonly prisma: PrismaService,
     @InjectQueue('hot-lead') private readonly hotLeadQueue: Queue,
     private readonly cls: ClsService,
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
   ) {}
 
   /**
@@ -59,12 +59,12 @@ export class HotLeadService {
       .digest('hex');
     const cacheKey = `hot_leads:${tenantId}:${paramsHash}`;
 
-    const cachedData = await this.redisService.get(cacheKey);
-    if (cachedData) {
-      return JSON.parse(cachedData) as {
+    const cachedData = await this.cacheService.get<{
         data: any[];
         meta: { nextCursor: string | null; hasNext: boolean };
-      };
+      }>(cacheKey, 'hot_leads_list');
+    if (cachedData) {
+      return cachedData;
     }
 
     const { heatTier, cursor, limit = 20 } = query;
@@ -114,7 +114,7 @@ export class HotLeadService {
       },
     };
 
-    await this.redisService.set(cacheKey, JSON.stringify(result), 15);
+    await this.cacheService.set(cacheKey, result, 15);
     return result;
   }
 
@@ -225,8 +225,8 @@ export class HotLeadService {
     });
 
     // Invalidate hot leads cache
-    await this.redisService.delPattern(`hot_leads:${tenantId}:*`);
-    await this.redisService.del(`dashboard:summary:${tenantId}`); // also clear dashboard
+    await this.cacheService.invalidatePattern(`hot_leads:${tenantId}:*`);
+    await this.cacheService.invalidate(`tenant:${tenantId}:dashboard:summary`); // also clear dashboard
 
     // 3. Anti-Spam Alerting (Idempotency)
     void this.checkAndTriggerAlert(tenantId, lead, updatedLead);
@@ -315,8 +315,8 @@ export class HotLeadService {
     });
 
     // Invalidate hot leads cache
-    await this.redisService.delPattern(`hot_leads:${tenantId}:*`);
-    await this.redisService.del(`dashboard:summary:${tenantId}`);
+    await this.cacheService.invalidatePattern(`hot_leads:${tenantId}:*`);
+    await this.cacheService.invalidate(`tenant:${tenantId}:dashboard:summary`);
 
     return updated;
   }

@@ -112,6 +112,36 @@ export class SubscriptionService {
       tenantId,
     });
 
+    // Referral System Logic
+    const referral = await this.prisma.referral.findFirst({
+      where: {
+        receiverId: tenantId,
+        status: { in: ['SIGNED_UP', 'TRIAL_ACTIVE'] }
+      }
+    });
+
+    if (referral) {
+      await this.prisma.referral.update({
+        where: { id: referral.id },
+        data: {
+          status: 'CONVERTED_TO_PAID',
+          rewardGivenAt: new Date()
+        }
+      });
+
+      const referrerSub = await this.prisma.subscription.findUnique({
+        where: { tenantId: referral.referrerId }
+      });
+
+      if (referrerSub && referrerSub.currentPeriodEnd) {
+        const newEndDate = new Date(referrerSub.currentPeriodEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+        await this.prisma.subscription.update({
+          where: { tenantId: referral.referrerId },
+          data: { currentPeriodEnd: newEndDate, state: 'ACTIVE' }
+        });
+      }
+    }
+
     return updated;
   }
 

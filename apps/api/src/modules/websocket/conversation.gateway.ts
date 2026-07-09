@@ -10,6 +10,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ClsService } from 'nestjs-cls';
+import { RedisService } from '../../common/redis/redis.service';
 
 @WebSocketGateway({
   cors: {
@@ -25,30 +26,32 @@ export class ConversationGateway
 
   private readonly logger = new Logger(ConversationGateway.name);
 
-  // Map to hold our timeout identifiers for debouncing
-  private debounceMap = new Map<string, NodeJS.Timeout>();
-
-  private emitDebounced(
+  private async emitDebounced(
     room: string,
     event: string,
     key: string,
     data: Record<string, unknown> | string | number | boolean,
-    delay = 500,
+    delayMs = 500,
   ) {
-    if (this.debounceMap.has(key)) {
-      clearTimeout(this.debounceMap.get(key));
-    }
-    const timeout = setTimeout(() => {
-      this.server.to(room).emit(event, data);
-      this.debounceMap.delete(key);
-    }, delay);
-    this.debounceMap.set(key, timeout);
+    const timestamp = Date.now().toString() + Math.random().toString();
+    const ttlSeconds = Math.ceil(delayMs / 1000) + 1;
+    await this.redisService.set(key, timestamp, ttlSeconds);
+
+    setTimeout(async () => {
+      const current = await this.redisService.get(key);
+      if (current === timestamp) {
+        // This instance was the last one to schedule the emit, so it executes
+        this.server.to(room).emit(event, data);
+        await this.redisService.del(key);
+      }
+    }, delayMs);
   }
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly cls: ClsService,
+    private readonly redisService: RedisService,
   ) {}
 
   afterInit() {
@@ -130,9 +133,9 @@ export class ConversationGateway
       return;
     }
 
-    // Performance Optimization: Debounce frequent conversation updates to save bandwidth
+    // Performance Optimization: Distributed Debounce for horizontal scaling
     const room = `tenant-${activeTenantId}`;
-    const key = `${room}:conv_updated:${data.conversationId}`;
+    const key = `debounce:${room}:conv_updated:${data.conversationId}`;
     this.emitDebounced(room, 'conversation:updated', key, data, 500);
   }
 

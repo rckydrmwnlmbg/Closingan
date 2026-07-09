@@ -21,7 +21,22 @@ if [ -z "$DATABASE_URL" ]; then
 fi
 
 if [ -n "$DATABASE_URL" ]; then
-    # Run pg_dump and compress the output
-    pg_dump "$DATABASE_URL" | gzip > "$BACKUP_FILE"
-    echo "Backup completed successfully: $BACKUP_FILE"
+    if [ -z "$BACKUP_PASSWORD" ]; then
+        echo "Error: BACKUP_PASSWORD environment variable is required for AES-256 encryption."
+        return 1 2>/dev/null || true
+    fi
+
+    # Run pg_dump, compress, and encrypt
+    pg_dump "$DATABASE_URL" | gzip | openssl enc -aes-256-cbc -salt -pbkdf2 -pass pass:"$BACKUP_PASSWORD" -out "${BACKUP_FILE}.enc"
+    echo "Backup completed and encrypted: ${BACKUP_FILE}.enc"
+
+    # Upload to S3 if configured
+    if [ -n "$S3_BUCKET" ]; then
+        echo "Uploading to S3..."
+        aws s3 cp "${BACKUP_FILE}.enc" "s3://${S3_BUCKET}/backups/"
+        echo "Upload completed."
+    fi
+    
+    # Cleanup old backups (keep last 30 days) locally
+    find "$BACKUP_DIR" -type f -name "*.sql.gz.enc" -mtime +30 -exec rm {} \;
 fi

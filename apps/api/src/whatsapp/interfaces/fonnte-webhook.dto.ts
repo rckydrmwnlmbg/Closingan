@@ -1,5 +1,4 @@
 import { IsString, IsOptional } from 'class-validator';
-import { FonnteWebhookPayload } from './fonnte-webhook.interface';
 
 export class FonnteWebhookPayloadDto {
   @IsString()

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ClsService } from 'nestjs-cls';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { RedisService } from '../../common/redis/redis.service';
+import { CacheService } from '../../common/cache/cache.service';
 
 @Injectable()
 export class DashboardService {
@@ -10,16 +10,16 @@ export class DashboardService {
     private readonly prisma: PrismaService,
     private readonly cls: ClsService,
     private readonly configService: ConfigService,
-    private readonly redisService: RedisService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async getSummary(tenantId: string): Promise<Record<string, unknown>> {
     // Audit rule: Cache keys must be namespaced with tenantId to prevent leakage
     const cacheKey = `tenant:${tenantId}:dashboard:summary`;
 
-    const cachedData = await this.redisService.get(cacheKey);
+    const cachedData = await this.cacheService.get<Record<string, unknown>>(cacheKey, 'dashboard_summary');
     if (cachedData) {
-      return JSON.parse(cachedData) as Record<string, unknown>;
+      return cachedData;
     }
 
     const todayStart = new Date();
@@ -175,7 +175,7 @@ export class DashboardService {
       quotaUsagePercent,
     };
 
-    await this.redisService.set(cacheKey, JSON.stringify(summaryData), 30);
+    await this.cacheService.set(cacheKey, summaryData, 30);
 
     return summaryData;
   }

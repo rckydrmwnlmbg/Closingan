@@ -8,6 +8,7 @@ import {
   Req,
   Inject,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { WebhookService } from './webhook.service';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import type { WhatsappProviderInterface } from '../whatsapp/interfaces/whatsapp-provider.interface';
@@ -24,6 +25,7 @@ export class WebhookController {
   ) {}
 
   @Post('fonnte')
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // Allow 100 requests per minute per IP for Webhook
   @HttpCode(HttpStatus.OK)
   async handleFonnteWebhook(
     @Body() payload: FonnteWebhookPayloadDto,

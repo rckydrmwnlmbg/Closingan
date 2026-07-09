@@ -10,6 +10,7 @@ import {
   Res,
   Req,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response, Request } from 'express';
 import { AppException } from '../common/exceptions/app.exception';
 import { AuthService } from './auth.service';
@@ -42,6 +43,7 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Audit(AuditAction.USER_REGISTER)
   async register(
     @Body() dto: RegisterDto,
@@ -49,11 +51,16 @@ export class AuthController {
     @Headers('x-tenant-id') tenantId?: string,
   ) {
     const fingerprintHash = this.antiAbuseService.generateFingerprint(req);
-    const result = await this.authService.register(dto, fingerprintHash, tenantId);
+    const result = await this.authService.register(
+      dto,
+      fingerprintHash,
+      tenantId,
+    );
     return ResponseBuilder.success(result);
   }
 
   @Post('verify-otp')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(200)
   async verifyOtp(@Body() dto: VerifyOtpDto) {
     const result = await this.authOtpService.verifyOtp(dto);
@@ -61,6 +68,7 @@ export class AuthController {
   }
 
   @Post('resend-otp')
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
   @HttpCode(200)
   async resendOtp(
     @Body() dto: ResendOtpDto,
@@ -71,6 +79,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(200)
   @Audit(AuditAction.USER_LOGIN)
   async login(
@@ -81,7 +90,12 @@ export class AuthController {
     @Headers('x-tenant-id') tenantId?: string,
   ) {
     const fingerprintHash = this.antiAbuseService.generateFingerprint(req);
-    const result = await this.authService.login(dto, ip, fingerprintHash, tenantId);
+    const result = await this.authService.login(
+      dto,
+      ip,
+      fingerprintHash,
+      tenantId,
+    );
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

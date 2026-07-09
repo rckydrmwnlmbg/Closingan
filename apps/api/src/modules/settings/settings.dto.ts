@@ -47,6 +47,10 @@ export class UpdateNotificationSettingsDto {
   @IsOptional()
   @IsBoolean()
   quotaWarning?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  achievementAlert?: boolean;
 }
 
 export class AddSuppressionDto {

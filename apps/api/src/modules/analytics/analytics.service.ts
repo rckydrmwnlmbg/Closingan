@@ -1,9 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { QueueName } from '@prisma/client';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(AnalyticsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(QueueName.ANALYTICS) private readonly analyticsQueue: Queue,
+  ) {}
 
   async getSummary(tenantId: string) {
     const today = new Date();
@@ -117,5 +125,29 @@ export class AnalyticsService {
       followUpStatus: followUps,
       averageResponseTimeMs,
     };
+  }
+
+  /**
+   * Tracks an event asynchronously via BullMQ to avoid adding latency to user operations.
+   */
+  async trackEvent(payload: {
+    tenantId: string;
+    userId?: string;
+    eventName: string;
+    sessionId?: string;
+    properties?: any;
+    ipAddress?: string;
+    userAgent?: string;
+  }) {
+    try {
+      await this.analyticsQueue.add('track', payload, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+        removeOnComplete: true,
+        removeOnFail: 1000,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to queue analytics event ${payload.eventName}`, error);
+    }
   }
 }

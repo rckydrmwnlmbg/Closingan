@@ -39,6 +39,10 @@ import { UsersModule } from './modules/users/users.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { StatusModule } from './status/status.module';
+import { CacheModule } from './common/cache/cache.module';
+import { StorageModule } from './common/storage/storage.module';
+import { LabelModule } from './modules/label/label.module';
+import { QuickReplyModule } from './modules/quick-reply/quick-reply.module';
 
 @Module({
   imports: [
@@ -88,6 +92,8 @@ import { StatusModule } from './status/status.module';
     }),
     PrismaModule,
     RedisModule,
+    CacheModule,
+    StorageModule,
     AuditModule,
     MailModule,
     AuthModule,
@@ -115,6 +121,8 @@ import { StatusModule } from './status/status.module';
     SettingsModule,
     AdminModule,
     StatusModule,
+    LabelModule,
+    QuickReplyModule,
   ],
   controllers: [AppController],
   providers: [

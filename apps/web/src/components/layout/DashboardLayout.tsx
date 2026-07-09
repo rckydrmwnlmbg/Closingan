@@ -22,7 +22,7 @@ import {
   Bell,
 } from "lucide-react";
 import { siteConfig } from "@/config/site";
-
+import { ExitSurveyModal } from "@/components/shared/ExitSurveyModal";
 interface SidebarItemProps {
   icon: React.ElementType;
   label: string;
@@ -79,6 +79,55 @@ const SidebarItem = ({
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
+  const [isCheckingOnboarding, setIsCheckingOnboarding] = useState(true);
+  const [churnStatus, setChurnStatus] = useState<{atRisk: boolean, signalType?: string, notes?: string} | null>(null);
+
+  const [showExitSurvey, setShowExitSurvey] = useState(false);
+
+  React.useEffect(() => {
+    async function checkOnboarding() {
+      try {
+        const { fetchApi } = await import("@/lib/api");
+        const res = await fetchApi("/v1/tenant/onboarding");
+        if (res?.data && !res.data.isOnboarded) {
+          window.location.href = "/onboarding";
+        } else {
+          setIsCheckingOnboarding(false);
+        }
+      } catch {
+        setIsCheckingOnboarding(false);
+      }
+    }
+    async function checkChurnStatus() {
+      try {
+        const { fetchApi } = await import("@/lib/api");
+        const res = await fetchApi("/v1/admin/churn-signals/status");
+        if (res?.data && res.data.atRisk) {
+          setChurnStatus(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch churn status", err);
+      }
+    }
+    async function checkExitSurvey() {
+      try {
+        const { fetchApi } = await import("@/lib/api");
+        const res = await fetchApi("/v1/tenant/exit-survey/status");
+        if (res?.data && res.data.eligible) {
+          setShowExitSurvey(true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch exit survey status", err);
+      }
+    }
+    checkOnboarding();
+    checkChurnStatus();
+    checkExitSurvey();
+  }, []);
+
+  if (isCheckingOnboarding) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">Memuat...</div>;
+  }
 
   const navItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
@@ -168,6 +217,39 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className={`flex-1 h-full flex flex-col overflow-hidden ${siteConfig.theme.bgClass}`}>
+        {/* Intervention Banner */}
+        <AnimatePresence>
+          {churnStatus && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-amber-500/20 border-b border-amber-500/30 px-8 py-3 flex items-center justify-between z-50 shrink-0"
+            >
+              <div className="flex items-center gap-3">
+                <Flame className="text-amber-500 animate-pulse" size={20} />
+                <span className="text-amber-100 text-sm">
+                  <strong>Butuh bantuan setup?</strong> Kami melihat ada penurunan aktivitas dan siap membantu Anda mendapatkan hasil maksimal.
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => window.open('https://wa.me/628123456789', '_blank')}
+                  className="px-4 py-1.5 bg-amber-500 text-slate-950 font-semibold rounded-full text-xs hover:bg-amber-400 transition-colors"
+                >
+                  Hubungi Tim Ahli →
+                </button>
+                <button 
+                  onClick={() => setChurnStatus(null)}
+                  className="text-amber-500/60 hover:text-amber-500 p-1"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Top Header */}
         <header className={`h-[72px] border-b ${siteConfig.theme.borderClass} flex items-center justify-between px-8 shrink-0 bg-slate-950/50 backdrop-blur-md`}>
           <div className="flex items-center gap-4">
@@ -204,6 +286,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+
+      {showExitSurvey && (
+        <ExitSurveyModal onClose={() => setShowExitSurvey(false)} />
+      )}
     </div>
   );
 }

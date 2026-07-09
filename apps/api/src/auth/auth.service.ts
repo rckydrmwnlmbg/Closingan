@@ -77,13 +77,55 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
 
     const user = await this.prisma.$transaction(async (prisma) => {
+      let referrerId: string | null = null;
+      if (dto.referralCode) {
+        const referrer = await prisma.tenant.findUnique({
+          where: { referralCode: dto.referralCode },
+        });
+        if (referrer) {
+          referrerId = referrer.id;
+        }
+      }
+
       const tenantName = dto.fullName.split(' ')[0] + "'s Tenant";
+
+      const trialDays = referrerId ? 14 : 7;
+      const trialEnds = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
 
       const tenant = await prisma.tenant.create({
         data: {
           name: tenantName,
+          subscription: {
+            create: {
+              state: 'TRIAL',
+              plan: 'STARTER',
+              trialEndsAt: trialEnds,
+              currentPeriodStart: new Date(),
+              currentPeriodEnd: trialEnds,
+            }
+          },
+          tokenQuota: {
+            create: {
+              totalQuota: 50, // default quota
+              graceBuffer: Math.floor(50 * 0.05),
+              periodStart: new Date(),
+              periodEnd: trialEnds,
+            }
+          }
         },
       });
+
+      if (referrerId && dto.referralCode) {
+        await prisma.referral.create({
+          data: {
+            tenantId: referrerId,
+            referrerId: referrerId,
+            receiverId: tenant.id,
+            referralCode: dto.referralCode,
+            status: 'SIGNED_UP',
+          },
+        });
+      }
 
       return prisma.user.create({
         data: {
@@ -115,7 +157,12 @@ export class AuthService {
     };
   }
 
-  async login(dto: LoginDto, ipAddress: string, fingerprintHash: string, tenantId?: string) {
+  async login(
+    dto: LoginDto,
+    ipAddress: string,
+    fingerprintHash: string,
+    tenantId?: string,
+  ) {
     const whereClause: Record<string, string> = { email: dto.email };
     if (tenantId) whereClause.tenantId = tenantId;
     const user = await this.prisma.user.findFirst({

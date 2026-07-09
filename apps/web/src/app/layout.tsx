@@ -19,6 +19,13 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 export const metadata: Metadata = {
   title: "Closingan - AI Closing Assistant",
   description: "AI Closing Assistant",
+  manifest: "/manifest.json",
+  themeColor: "#2563eb",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Closingan",
+  },
 };
 
 export default function RootLayout({
@@ -35,6 +42,19 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
         {/* eslint-disable-next-line @next/next/no-sync-scripts */}
         <script src="https://unpkg.com/@phosphor-icons/web"></script>
+        {/* Analytics Tracking Snippet MVP */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'GA_MEASUREMENT_ID', {
+                page_path: window.location.pathname,
+              });
+            `,
+          }}
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-dvh w-full overflow-x-hidden`}

@@ -1,5 +1,5 @@
 import { Socket } from "socket.io-client";
-import { ArrowLeft, Send, Sparkles, Edit, RefreshCw } from "lucide-react";
+import { ArrowLeft, Send, Sparkles, Edit, RefreshCw, Tag } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
   Sheet,
@@ -9,6 +9,8 @@ import {
   SheetDescription,
   SheetFooter
 } from "@/components/ui/sheet";
+import { useAuthStore } from "@/store/useAuthStore";
+import { API_URL } from "@/lib/api";
 
 interface MessageThreadProps {
   conversationId: string;
@@ -19,6 +21,12 @@ interface MessageThreadProps {
 export function MessageThread({ conversationId, socket, onBack }: MessageThreadProps) {
   const [aiMode, setAiMode] = useState<string>("AUTO_REPLY");
   const [reply, setReply] = useState("");
+  const token = useAuthStore((state) => state.token);
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [quickReplies, setQuickReplies] = useState([
+    { id: '1', shortcut: '/harga', content: 'Harga untuk tipe ini adalah Rp 150.000.000' },
+    { id: '2', shortcut: '/halo', content: 'Halo! Ada yang bisa kami bantu hari ini?' }
+  ]);
 
   // AI Suggestion State
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
@@ -60,7 +68,7 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
     if (!textToSend.trim()) return;
 
     // Call API POST /conversations/:id/messages
-    console.log("Sending:", textToSend);
+    // Local send logic...
 
     // Locally clear the input
     if (!text) setReply("");
@@ -75,12 +83,11 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
     setIsSheetOpen(true);
     setAiSuggestion(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-      const response = await fetch(`${apiUrl}/conversations/${conversationId}/ai-suggest`, {
+      const response = await fetch(`${API_URL}/conversations/${conversationId}/ai-suggest`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer mock_token"
+          "Authorization": `Bearer ${token}`
         }
       });
       const data = await response.json();
@@ -120,7 +127,12 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
           <h2 className="text-lg font-semibold text-gray-900">Budi Santoso</h2>
           <p className="text-sm text-gray-500">+6281234567890</p>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
+          {/* Labels Dropdown Placeholder */}
+          <button className="px-3 py-1 rounded text-sm font-medium bg-gray-100 text-gray-700 border border-gray-200 flex items-center gap-1 hover:bg-gray-200">
+            <Tag size={14} /> Labels
+          </button>
+          
           {/* AI Mode Toggle */}
           <button
             onClick={toggleAiMode}
@@ -155,17 +167,45 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-white flex items-center border-t border-gray-200">
-        <input
-          type="text"
-          value={reply}
-          onChange={(e) => setReply(e.target.value)}
-          placeholder="Ketik balasan manual..."
-          className="flex-1 bg-gray-100 border-transparent rounded-full px-4 py-2 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSend();
-          }}
-        />
+      <div className="p-4 bg-white flex flex-col border-t border-gray-200 relative">
+        {showQuickReplies && (
+          <div className="absolute bottom-full mb-2 left-4 w-64 bg-white border border-gray-200 rounded-lg shadow-lg z-10 overflow-hidden">
+            <div className="p-2 bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500">Quick Replies</div>
+            <ul className="max-h-48 overflow-y-auto">
+              {quickReplies.filter(qr => qr.shortcut.startsWith(reply)).map((qr) => (
+                <li 
+                  key={qr.id}
+                  className="px-4 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-50 last:border-0"
+                  onClick={() => {
+                    setReply(qr.content);
+                    setShowQuickReplies(false);
+                  }}
+                >
+                  <span className="font-bold text-blue-600 mr-2">{qr.shortcut}</span>
+                  <span className="text-gray-600 truncate">{qr.content}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="flex items-center">
+          <input
+            type="text"
+            value={reply}
+            onChange={(e) => {
+              setReply(e.target.value);
+              if (e.target.value.startsWith('/')) {
+                setShowQuickReplies(true);
+              } else {
+                setShowQuickReplies(false);
+              }
+            }}
+            placeholder="Ketik balasan manual... (ketik / untuk quick reply)"
+            className="flex-1 bg-gray-100 border-transparent rounded-full px-4 py-2 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-black"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSend();
+            }}
+          />
         {aiMode === "AI_ASSIST" && (
           <button
             onClick={handleMagicWandClick}
@@ -181,6 +221,7 @@ export function MessageThread({ conversationId, socket, onBack }: MessageThreadP
         >
           <Send size={20} />
         </button>
+        </div>
       </div>
 
       {/* AI Assist Sheet */}

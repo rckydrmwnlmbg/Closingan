@@ -7,7 +7,9 @@ import { TenantId } from '../../common/decorators/tenant.decorator';
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard)
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(
+    private readonly dashboardService: DashboardService,
+  ) {}
 
   @Get('summary')
   async getSummary(@TenantId() tenantId: string) {

@@ -3,24 +3,24 @@
 import { useEffect, useState } from "react";
 import { ConversationList } from "@/components/inbox/ConversationList";
 import { MessageThread } from "@/components/inbox/MessageThread";
-import { io, Socket } from "socket.io-client";
+import { useSocket } from "@/hooks/useSocket";
 
+// Global shortcut context can be handled here or in a separate hook
 export default function InboxPage() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socket = useSocket('/inbox');
 
   useEffect(() => {
-    // In a real app, token would come from auth context/session
-    const token = "mock_token";
-    const newSocket = io(process.env.NEXT_PUBLIC_WS_URL || "http://localhost:3000", {
-      auth: { token },
-    });
-
-    setSocket(newSocket);
-
-    return () => {
-      newSocket.close();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl + K for search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder="Search conversations..."]') as HTMLInputElement;
+        if (searchInput) searchInput.focus();
+      }
     };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (

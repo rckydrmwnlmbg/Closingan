@@ -15,6 +15,7 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [company, setCompany] = useState("");
+  const [referralCode, setReferralCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
       const res = await fetch("/api/v1/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, company }),
+        body: JSON.stringify({ name, email, password, company, referralCode }),
       });
 
       if (!res.ok) {
@@ -106,6 +107,18 @@ export default function RegisterForm({ onSwitch }: RegisterFormProps) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
+          />
+        </div>
+
+        <div className="space-y-1 pt-2 border-t border-white/5">
+          <label htmlFor="reg-referral" className="text-xs font-medium text-zinc-400 uppercase tracking-widest">Kode Referral (Opsional)</label>
+          <input
+            id="reg-referral"
+            type="text"
+            value={referralCode}
+            onChange={(e) => setReferralCode(e.target.value)}
+            placeholder="Ketik kode jika ada..."
+            className={`w-full bg-transparent border ${siteConfig.theme.borderClass} rounded-none px-4 py-2.5 text-white placeholder-zinc-600 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all text-sm`}
           />
         </div>
 
