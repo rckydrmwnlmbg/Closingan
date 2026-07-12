@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { WHATSAPP_PROVIDER } from '../whatsapp/interfaces/whatsapp-provider.interface';
 import { getQueueToken } from '@nestjs/bullmq';
 import { RedisService } from '../common/redis/redis.service';
+import { CacheService } from '../common/cache/cache.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MessageIngestionService } from './ingestion/message-ingestion.service';
 
@@ -75,6 +76,10 @@ describe('WebhookService - Duplicate Webhook Idempotency & Takeover Logic', () =
         {
           provide: MessageIngestionService,
           useValue: mockMessageIngestionService,
+        },
+        {
+          provide: CacheService,
+          useValue: { get: jest.fn(), set: jest.fn(), invalidate: jest.fn(), invalidatePattern: jest.fn() },
         },
       ],
     }).compile();

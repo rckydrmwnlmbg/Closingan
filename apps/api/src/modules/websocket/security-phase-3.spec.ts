@@ -4,6 +4,7 @@ import { ConversationGateway } from './conversation.gateway';
 import { ClsService } from 'nestjs-cls';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { RedisService } from '../../common/redis/redis.service';
 
 describe('Security Phase 3 Unit Tests', () => {
   let gateway: ConversationGateway;
@@ -34,6 +35,15 @@ describe('Security Phase 3 Unit Tests', () => {
         { provide: ClsService, useValue: mockClsService },
         { provide: JwtService, useValue: mockJwtService },
         { provide: ConfigService, useValue: mockConfigService },
+        { 
+          provide: RedisService, 
+          useValue: { 
+            _store: {},
+            get: jest.fn().mockImplementation(function(key) { return Promise.resolve(this._store[key]); }), 
+            set: jest.fn().mockImplementation(function(key, val) { this._store[key] = val; return Promise.resolve('OK'); }), 
+            del: jest.fn().mockImplementation(function(key) { delete this._store[key]; return Promise.resolve(1); }) 
+          } 
+        },
       ],
     }).compile();
 
@@ -74,13 +84,16 @@ describe('Security Phase 3 Unit Tests', () => {
     it('should allow broadcast if ClsService context matches target tenantId', () => {
       (mockClsService.get as jest.Mock).mockReturnValue('tenant-A');
 
+      jest.spyOn(gateway as any, 'emitDebounced').mockImplementation((room, event, key, data) => {
+        mockServer.to(room).emit(event, data);
+      });
+
       gateway.broadcastConversationUpdated('tenant-A', {
         conversationId: '123',
         unreadCount: 1,
         lastMessage: 'test',
       });
 
-      jest.runAllTimers();
       expect(mockServer.to).toHaveBeenCalledWith('tenant-tenant-A');
       expect(mockServer.emit).toHaveBeenCalledWith(
         'conversation:updated',

@@ -4,6 +4,7 @@ import { HotLeadService } from '../hot-lead.service';
 import { OpenAiService } from '../../../ai/openai.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { getQueueToken } from '@nestjs/bullmq';
+import { CacheService } from '../../../common/cache/cache.service';
 import { HeatTier } from '@prisma/client';
 import { ClsService } from 'nestjs-cls';
 
@@ -54,6 +55,15 @@ describe('HotLeadService', () => {
         { provide: getQueueToken('hot-lead'), useValue: mockQueue },
         { provide: ClsService, useValue: clsService },
         { provide: RedisService, useValue: mockRedisService },
+        {
+          provide: CacheService,
+          useValue: { 
+            get: jest.fn(), 
+            set: jest.fn(),
+            invalidate: jest.fn(),
+            invalidatePattern: jest.fn(),
+          },
+        },
       ],
     }).compile();
 

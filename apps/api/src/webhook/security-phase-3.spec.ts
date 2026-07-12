@@ -10,6 +10,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { UnauthorizedException } from '@nestjs/common';
 import { MessageIngestionService } from './ingestion/message-ingestion.service';
+import { CacheService } from '../common/cache/cache.service';
 
 describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
   let webhookService: WebhookService;
@@ -74,6 +75,10 @@ describe('Security Phase 3 Unit Tests - Webhook Routing Isolation', () => {
         {
           provide: MessageIngestionService,
           useValue: mockMessageIngestionService,
+        },
+        {
+          provide: CacheService,
+          useValue: { get: jest.fn(), set: jest.fn(), invalidate: jest.fn(), invalidatePattern: jest.fn() },
         },
       ],
     }).compile();

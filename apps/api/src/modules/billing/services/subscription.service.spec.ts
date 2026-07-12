@@ -16,6 +16,10 @@ describe('SubscriptionService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     },
+    referral: {
+      findFirst: jest.fn(),
+      update: jest.fn(),
+    },
   };
 
   const mockAuditService = {

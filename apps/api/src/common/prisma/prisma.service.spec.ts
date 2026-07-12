@@ -1,12 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PrismaService } from './prisma.service';
 
+import { ConfigService } from '@nestjs/config';
+
 describe('PrismaService Read Replica', () => {
   let service: PrismaService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [PrismaService],
+      providers: [
+        PrismaService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn().mockReturnValue('postgresql://localhost/testdb'),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<PrismaService>(PrismaService);
@@ -19,7 +29,9 @@ describe('PrismaService Read Replica', () => {
   });
 
   afterEach(async () => {
-    await service.onModuleDestroy();
+    if (service) {
+      await service.onModuleDestroy();
+    }
     jest.clearAllMocks();
   });
 

@@ -10,6 +10,8 @@ describe('Tenant Isolation Architecture Test', () => {
     'DeadLetterLog',
     'AbusiveClient',
     'User',
+    'SystemAdmin',
+    'SystemConfig',
   ];
 
   it('should enforce that all core models have a tenantId field and a relation to Tenant', () => {

@@ -5,6 +5,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuditService } from '../../../common/audit/audit.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../../../common/redis/redis.service';
+import { CacheService } from '../../../common/cache/cache.service';
 import { WHATSAPP_PROVIDER } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
 
 describe('Human Takeover Rule', () => {
@@ -68,6 +69,10 @@ describe('Human Takeover Rule', () => {
             get: jest.fn(),
             delPattern: jest.fn(),
           },
+        },
+        {
+          provide: CacheService,
+          useValue: { get: jest.fn(), set: jest.fn(), invalidate: jest.fn(), invalidatePattern: jest.fn() },
         },
       ],
     }).compile();

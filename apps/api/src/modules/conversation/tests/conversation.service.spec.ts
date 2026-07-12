@@ -5,6 +5,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { AuditService } from '../../../common/audit/audit.service';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '../../../common/redis/redis.service';
+import { CacheService } from '../../../common/cache/cache.service';
 import { WHATSAPP_PROVIDER } from '../../../whatsapp/interfaces/whatsapp-provider.interface';
 
 describe('ConversationService', () => {
@@ -49,6 +50,10 @@ describe('ConversationService', () => {
         {
           provide: RedisService,
           useValue: {},
+        },
+        {
+          provide: CacheService,
+          useValue: { get: jest.fn(), set: jest.fn() },
         },
       ],
     }).compile();

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlanEntitlementGuard } from './plan-entitlement.guard';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../cache/cache.service';
 import { ClsService } from 'nestjs-cls';
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { SubscriptionState } from '@prisma/client';
@@ -34,6 +35,13 @@ describe('PlanEntitlementGuard', () => {
           provide: ClsService,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn(),
           },
         },
       ],
