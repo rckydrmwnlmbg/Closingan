@@ -4,6 +4,7 @@ import {
   OnModuleDestroy,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
 import { AppException } from '../exceptions/app.exception';
 import { ClsServiceManager } from 'nestjs-cls';
@@ -31,12 +32,14 @@ export class PrismaService
   private currentReplicaLag: number = 0;
   private lagCheckInterval: NodeJS.Timeout | null = null;
 
-  constructor() {
+  constructor(private readonly configService: ConfigService) {
     super();
 
     // Initialize Replica Client (fallback to primary if not set)
+    const replicaUrl = this.configService.get<string>('DATABASE_URL_REPLICA')
+      || this.configService.get<string>('DATABASE_URL');
     this.replicaClient = new PrismaClient({
-      datasourceUrl: process.env.DATABASE_URL_REPLICA || process.env.DATABASE_URL,
+      datasourceUrl: replicaUrl,
     });
 
     const self = this;

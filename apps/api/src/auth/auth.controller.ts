@@ -10,6 +10,7 @@ import {
   Res,
   Req,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Response, Request } from 'express';
 import { AppException } from '../common/exceptions/app.exception';
@@ -40,6 +41,7 @@ export class AuthController {
     private readonly authOtpService: AuthOtpService,
     private readonly authPasswordService: AuthPasswordService,
     private readonly antiAbuseService: AntiAbuseService,
+    private readonly configService: ConfigService,
   ) {}
 
   @Post('register')
@@ -98,7 +100,7 @@ export class AuthController {
     );
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
@@ -127,7 +129,7 @@ export class AuthController {
     });
     res.cookie('refresh_token', result.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: this.configService.get<string>('NODE_ENV') === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });

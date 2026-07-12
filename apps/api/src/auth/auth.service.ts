@@ -106,8 +106,8 @@ export class AuthService {
           },
           tokenQuota: {
             create: {
-              totalQuota: 50, // default quota
-              graceBuffer: Math.floor(50 * 0.05),
+              totalQuota: 50000, // default trial quota (~100-250 AI interactions)
+              graceBuffer: Math.floor(50000 * 0.05),
               periodStart: new Date(),
               periodEnd: trialEnds,
             }

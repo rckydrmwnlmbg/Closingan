@@ -83,6 +83,144 @@ ${link}
     }
   }
 
+  async sendPaymentReceipt(
+    to: string,
+    data: { invoiceId: string; amount: number; planLabel: string; paidAt: Date },
+  ) {
+    try {
+      const { invoiceId, amount, planLabel, paidAt } = data;
+      const formattedAmount = `Rp ${amount.toLocaleString('id-ID')}`;
+      const formattedDate = paidAt.toLocaleDateString('id-ID', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const textContent = `
+Terima kasih atas pembayaran Anda!
+
+Detail Pembayaran:
+- Invoice ID: ${invoiceId}
+- Paket: ${planLabel}
+- Jumlah: ${formattedAmount}
+- Tanggal Bayar: ${formattedDate}
+
+Subscription Anda telah aktif. Selamat menggunakan CLOSINGAN!
+
+Salam,
+Tim CLOSINGAN
+      `.trim();
+
+      const htmlContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #1a1a2e; color: #ffffff; padding: 40px; border-radius: 12px;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #10b981; margin: 0;">✅ Pembayaran Berhasil</h1>
+            <p style="color: #9ca3af; margin-top: 8px;">Terima kasih atas kepercayaan Anda</p>
+          </div>
+          
+          <div style="background: #16213e; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 8px 0; color: #9ca3af;">Invoice ID</td>
+                <td style="padding: 8px 0; text-align: right; font-family: monospace;">${invoiceId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #9ca3af;">Paket</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold;">${planLabel}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #9ca3af;">Jumlah</td>
+                <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #10b981; font-size: 18px;">${formattedAmount}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 0; color: #9ca3af;">Tanggal Bayar</td>
+                <td style="padding: 8px 0; text-align: right;">${formattedDate}</td>
+              </tr>
+            </table>
+          </div>
+
+          <p style="color: #d1d5db; line-height: 1.6;">Subscription Anda telah aktif. Selamat menggunakan CLOSINGAN untuk meningkatkan penjualan Anda!</p>
+          
+          <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #374151;">
+            <p style="color: #6b7280; font-size: 12px;">CLOSINGAN — AI Assistant untuk Sales Mobil Indonesia</p>
+          </div>
+        </div>
+      `;
+
+      if (this.configService.get<string>('SMTP_USER')) {
+        await this.transporter.sendMail({
+          from: `"CLOSINGAN" <${this.configService.get<string>('SMTP_USER')}>`,
+          to,
+          subject: `✅ Pembayaran Berhasil — ${planLabel} (${formattedAmount})`,
+          text: textContent,
+          html: htmlContent,
+        });
+        this.logger.log(`Payment receipt email sent to ${to} for invoice ${invoiceId}`);
+      } else {
+        this.logger.log(
+          `[MOCK EMAIL] Payment receipt to ${to}:\n${textContent}`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send payment receipt email to ${to}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  async sendAbuseAlert(
+    to: string,
+    data: { tenantId: string; flagType: string; details: string; severity: string },
+  ) {
+    try {
+      const { tenantId, flagType, details, severity } = data;
+
+      const textContent = `
+⚠️ Fair Usage Alert — Anomali Terdeteksi
+
+Tenant ID: ${tenantId}
+Tipe: ${flagType}
+Severity: ${severity}
+Detail: ${details}
+
+Akun ini telah di-flag untuk review. Silakan cek admin panel.
+      `.trim();
+
+      const htmlContent = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>⚠️ Fair Usage Alert</h2>
+          <p>Anomali terdeteksi pada tenant:</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr><td style="padding: 8px; font-weight: bold;">Tenant ID</td><td style="padding: 8px;">${tenantId}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Tipe</td><td style="padding: 8px;">${flagType}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Severity</td><td style="padding: 8px; color: ${severity === 'CRITICAL' ? 'red' : severity === 'HIGH' ? 'orange' : 'inherit'};">${severity}</td></tr>
+            <tr><td style="padding: 8px; font-weight: bold;">Detail</td><td style="padding: 8px;">${details}</td></tr>
+          </table>
+          <p>Akun ini telah di-flag untuk review. <strong>Akun tetap beroperasi</strong> sampai founder melakukan review.</p>
+        </div>
+      `;
+
+      if (this.configService.get<string>('SMTP_USER')) {
+        await this.transporter.sendMail({
+          from: `"CLOSINGAN System" <${this.configService.get<string>('SMTP_USER')}>`,
+          to,
+          subject: `⚠️ Fair Usage Alert: ${flagType} — ${severity} (${tenantId.slice(0, 8)})`,
+          text: textContent,
+          html: htmlContent,
+        });
+        this.logger.log(`Abuse alert email sent to ${to} for tenant ${tenantId}`);
+      } else {
+        this.logger.log(`[MOCK EMAIL] Abuse alert to ${to}:\n${textContent}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to send abuse alert email to ${to}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
   async sendChurnSummary(to: string, signals: any[]) {
     if (signals.length === 0) return;
 

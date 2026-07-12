@@ -1,14 +1,17 @@
 import useSWR from 'swr';
+import { fetchApi, fetcher } from '@/lib/api';
 
 export interface Subscription {
   id: string;
   tenantId: string;
-  planId: string;
-  status: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CANCELLED';
-  currentPeriodStart: string;
-  currentPeriodEnd: string;
-  cancelAtPeriodEnd: boolean;
-  paymentMethodId?: string | null;
+  plan: 'STARTER' | 'PRO' | 'ELITE';
+  state: 'TRIAL' | 'ACTIVE' | 'PAST_DUE' | 'SUSPENDED' | 'CANCELLED';
+  trialEndsAt?: string | null;
+  currentPeriodStart?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelledAt?: string | null;
+  suspendedAt?: string | null;
+  pastDueAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -27,44 +30,47 @@ export interface QuotaStatus {
 export interface Invoice {
   id: string;
   tenantId: string;
-  subscriptionId?: string | null;
+  subscriptionId: string;
   amount: number;
-  status: 'PENDING' | 'PAID' | 'FAILED' | 'VOID';
-  paymentUrl?: string | null;
+  currency: string;
+  status: 'PENDING' | 'PAID' | 'FAILED' | 'EXPIRED' | 'REFUNDED';
   description: string;
+  externalId?: string | null;
+  paymentUrl?: string | null;
   paidAt?: string | null;
+  failedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
-const fetcher = async (url: string) => {
-  try {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${url}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      }
-    });
-    if (!res.ok) throw new Error('Failed to fetch API');
-    const data = await res.json();
-    return data.data || data; // handle ResponseBuilder vs bare object
-  } catch (err) {
-    throw err;
-  }
-};
-
 export function useBillingSubscription() {
-  const { data, error, isLoading, mutate } = useSWR<Subscription>('/billing/subscription', fetcher);
+  const { data, error, isLoading, mutate } = useSWR<Subscription>('/v1/billing/subscription', fetcher);
   return { subscription: data, error, isLoading, mutate };
 }
 
 export function useQuotaStatus() {
-  const { data, error, isLoading, mutate } = useSWR<QuotaStatus>('/quota/status', fetcher);
+  const { data, error, isLoading, mutate } = useSWR<QuotaStatus>('/v1/quota/status', fetcher);
   return { quota: data, error, isLoading, mutate };
 }
 
 export function useBillingInvoices() {
-  const { data, error, isLoading, mutate } = useSWR<Invoice[]>('/billing/invoices', fetcher);
+  const { data, error, isLoading, mutate } = useSWR<Invoice[]>('/v1/billing/invoices', fetcher);
   return { invoices: data, error, isLoading, mutate };
+}
+
+export async function buyAddon(): Promise<{ paymentUrl: string; invoiceId: string }> {
+  const res = await fetchApi('/v1/quota/buy-addon', { method: 'POST' });
+  return res.data;
+}
+
+export async function cancelSubscription(): Promise<void> {
+  await fetchApi('/v1/billing/cancel', { method: 'POST' });
+}
+
+export async function upgradePlan(plan: string): Promise<{ paymentUrl: string; invoiceId: string }> {
+  const res = await fetchApi('/v1/billing/upgrade', {
+    method: 'POST',
+    body: JSON.stringify({ plan }),
+  });
+  return res.data;
 }

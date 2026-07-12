@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAdminAuthStore } from '@/store/useAdminAuthStore';
-import { LayoutDashboard, Users, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, ShieldAlert, Shield } from 'lucide-react';
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -24,6 +24,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   const navItems = [
     { name: 'Overview', href: '/super-admin', icon: LayoutDashboard },
     { name: 'Tenants', href: '/super-admin/tenants', icon: Users },
+    { name: 'Fair Usage', href: '/super-admin/fair-usage', icon: Shield },
   ];
 
   return (

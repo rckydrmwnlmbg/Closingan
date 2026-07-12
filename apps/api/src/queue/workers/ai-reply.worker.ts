@@ -214,7 +214,7 @@ export class AiReplyWorker extends BaseWorker<AiReplyJobData, unknown, string> {
             try {
               // Get recent messages for context
               const recentMessages = await this.prisma.message.findMany({
-                where: { conversationId: conversation.id },
+                where: { conversationId: conversation.id, tenantId },
                 orderBy: { createdAt: 'desc' },
                 take: 10,
               });
@@ -306,7 +306,7 @@ export class AiReplyWorker extends BaseWorker<AiReplyJobData, unknown, string> {
           if (conversation.aiMode === 'SMART_HYBRID') {
             try {
               const recentMessages = await this.prisma.message.findMany({
-                where: { conversationId: conversation.id },
+                where: { conversationId: conversation.id, tenantId },
                 orderBy: { createdAt: 'desc' },
                 take: 10,
               });
@@ -417,7 +417,7 @@ export class AiReplyWorker extends BaseWorker<AiReplyJobData, unknown, string> {
           try {
             // Get recent messages for context
             const recentMessages = await this.prisma.message.findMany({
-              where: { conversationId: conversation.id },
+              where: { conversationId: conversation.id, tenantId },
               orderBy: { createdAt: 'desc' },
               take: 10,
             });

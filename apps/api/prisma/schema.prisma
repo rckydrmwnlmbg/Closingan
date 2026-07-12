@@ -187,6 +187,19 @@ enum InterventionStatus {
   FAILED
 }
 
+enum AbuseFlagType {
+  EXCESSIVE_AI_CALLS
+  REPEATED_BLAST_SAME_NUMBER
+  MULTI_IP_LOGIN
+  HIGH_API_RATE
+}
+
+enum AbuseFlagStatus {
+  PENDING
+  REVIEWED
+  DISMISSED
+}
+
 // ─── TENANT & USER ──────────────────────────────────────────
 
 model Tenant {
@@ -229,6 +242,7 @@ model Tenant {
   conversationLabelAssignments ConversationLabelAssignment[]
   referrals                    Referral[]                    @relation("ReferralTenant")
   knowledgeAssets              KnowledgeAsset[]
+  abuseFlags                   AbuseFlag[]
 }
 
 model User {
@@ -913,6 +927,28 @@ model AbusiveClient {
   @@index([fingerprintHash])
   @@index([blockedAt])
   @@index([ipAddress])
+}
+
+model AbuseFlag {
+  id         String          @id @default(cuid())
+  tenantId   String
+  flagType   AbuseFlagType
+  details    Json
+  severity   String          // CRITICAL, HIGH, MEDIUM, LOW
+  status     AbuseFlagStatus @default(PENDING)
+  reviewedAt DateTime?
+  reviewedBy String?
+  resolution String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([status])
+  @@index([flagType])
+  @@index([createdAt])
 }
 
 model BotConfig {

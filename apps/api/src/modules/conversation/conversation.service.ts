@@ -347,6 +347,7 @@ export class ConversationService {
     }
 
     await this.auditService.log({
+      tenantId,
       action: 'AI_MODE_CHANGED',
       entityType: 'CONVERSATION',
       entityId: conversationId,

@@ -6,7 +6,15 @@ import {
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { SubscriptionService } from './subscription.service';
+import { MailService } from '../../../mail/mail.service';
 import * as crypto from 'crypto';
+
+/** Pricing labels for email receipt */
+const PLAN_LABELS: Record<string, string> = {
+  STARTER: 'Starter — Rp 99.000/bulan',
+  PRO: 'Pro — Rp 249.000/bulan',
+  ELITE: 'Elite — Rp 499.000/bulan',
+};
 
 @Injectable()
 export class MidtransPaymentService implements PaymentGatewayService {
@@ -16,6 +24,7 @@ export class MidtransPaymentService implements PaymentGatewayService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly mailService: MailService,
   ) {}
 
   async createInvoice(
@@ -129,8 +138,28 @@ export class MidtransPaymentService implements PaymentGatewayService {
       invoice.id,
     );
 
-    // TODO: Send email receipt after payment confirmed (Task 8.1 requirement)
-    this.logger.log(`Email receipt triggered for invoice ${invoiceId}`);
+    // Send email receipt after payment confirmed (Task 8.1)
+    try {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { id: invoice.tenantId },
+        include: { users: { select: { email: true }, take: 1 }, subscription: true },
+      });
+
+      if (tenant?.users?.[0]?.email) {
+        const planLabel = PLAN_LABELS[tenant.subscription?.plan || 'STARTER'] || 'Subscription';
+        await this.mailService.sendPaymentReceipt(tenant.users[0].email, {
+          invoiceId: invoice.id,
+          amount: invoice.amount,
+          planLabel,
+          paidAt: new Date(),
+        });
+      }
+    } catch (receiptError) {
+      // Email receipt failure should not block payment processing
+      this.logger.error(
+        `Failed to send receipt email for invoice ${invoiceId}: ${receiptError instanceof Error ? receiptError.message : String(receiptError)}`,
+      );
+    }
   }
 
   async handleWebhook(

@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { SubscriptionCard } from '@/components/billing/SubscriptionCard';
 import { QuotaUsageCard } from '@/components/billing/QuotaUsageCard';
 import { InvoiceHistoryTable } from '@/components/billing/InvoiceHistoryTable';
+import { PricingPlans } from '@/components/billing/PricingPlans';
 
 export default function BillingPage() {
   return (
@@ -13,7 +14,7 @@ export default function BillingPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight mb-2">Billing & Subscription</h1>
           <p className="text-white/50">
-            Manage your subscription plan, monitor AI quota usage, and view billing history.
+            Kelola subscription, monitoring penggunaan AI, dan riwayat pembayaran.
           </p>
         </div>
 
@@ -21,6 +22,8 @@ export default function BillingPage() {
           <SubscriptionCard />
           <QuotaUsageCard />
         </div>
+
+        <PricingPlans />
 
         <InvoiceHistoryTable />
       </div>

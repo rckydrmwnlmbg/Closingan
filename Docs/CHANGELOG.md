@@ -16,8 +16,8 @@ Format:
 | Phase | Status | Progress |
 |---|---|---|
 | Phase 1 — MVP Core | ✅ Selesai | 28 / 28 task |
-| Phase 2 — Production Hardening | ⏳ Belum dimulai | 0 / 28 task |
-| Phase 3 — Growth & Scale | 🔄 Sedang dikerjakan | 1 / 29 task |
+| Phase 2 — Production Hardening | ✅ Selesai | 28 / 28 task |
+| Phase 3 — Growth & Scale | ✅ Selesai | 29 / 29 task |
 
 ---
 
@@ -89,10 +89,10 @@ Format:
 ## PHASE 2 — Production Hardening
 
 ### Milestone 8 — Billing & Subscription
-- [ ] ⏳ TASK 8.1 — Integrasi Payment Gateway
+- [x] ✅ TASK 8.1 — Integrasi Payment Gateway
 - [x] ✅ TASK 8.2 — Subscription State Machine
 - [x] ✅ TASK 8.3 — Plan Entitlement Guard
-- [ ] ⏳ TASK 8.4 — Billing UI
+- [x] ✅ TASK 8.4 — Billing UI
 - [x] ✅ TASK 8.5 — Midtrans Payment Gateway Integration
 
 ### Milestone 9 — Quota & Token Governance
@@ -121,7 +121,7 @@ Format:
 ### Milestone 13 — Anti-Abuse
 - [x] ✅ **TASK 13.1** — Device Fingerprinting & Auto-Ban Logic
 - [x] ✅ **TASK 13.2** — Disposable Email Blocking API
-- [ ] ⏳ **TASK 13.3** — Fair Usage Monitoring Dashboard
+- [x] ✅ **TASK 13.3** — Fair Usage Monitoring Dashboard
 
 ### Milestone 14 — Load Test & Hardening
 - [x] ✅ TASK 14.1 — Load Testing
@@ -188,6 +188,32 @@ Format:
 - [x] ✅ **TASK 20.5 — Launch Analytics Setup**
 
 ---
+
+### 2026-07-12
+- ✅ **TASK 8.1 — Integrasi Payment Gateway** selesai
+  - Mengimplementasikan endpoint `POST /billing/upgrade` dengan validasi plan dan Midtrans invoice creation.
+  - Menambahkan endpoint `GET /billing/plans` untuk menampilkan pricing table.
+  - Email receipt otomatis dikirim setelah pembayaran berhasil (`sendPaymentReceipt` di MailService).
+  - Idempotency check: invoice yang sudah PAID tidak diproses ulang.
+  - Unit test untuk MidtransPaymentService (7 test cases termasuk webhook, idempotency, email).
+- ✅ **TASK 8.4 — Billing UI** selesai
+  - Halaman Billing lengkap: SubscriptionCard, QuotaUsageCard, PricingPlans, InvoiceHistoryTable.
+  - PricingPlans menampilkan 3 paket (Starter/Pro/Elite) dengan gradient cards dan "PALING POPULER" badge.
+  - Tombol Upgrade, Cancel, Bayar Sekarang, dan Beli AI Credit Tambahan terintegrasi API.
+  - Lokalisasi penuh ke Bahasa Indonesia.
+  - Subscription cancel flow dengan konfirmasi inline.
+- ✅ **TASK 13.3 — Fair Usage Monitoring Dashboard** selesai
+  - Backend: `FairUsageService` dengan 4 deteksi anomali (AI calls, blast spam, multi-IP, API rate).
+  - Cron scan setiap jam untuk semua tenant aktif.
+  - Admin panel: `FairUsageDashboard` dengan filter status, resolve/dismiss actions, scan manual.
+  - Alert email ke founder saat anomali ditemukan.
+  - Prisma schema: model `AbuseFlag` dengan enum `AbuseFlagType` dan `AbuseFlagStatus`.
+- ✅ **Bug Fixes & Improvements**
+  - Fixed tenant isolation di AI reply worker (menambah `tenantId` filter pada query messages).
+  - Migrasi `process.env` → `ConfigService` di AuthController dan PrismaService.
+  - Fix audit log missing `tenantId` di ConversationService.
+  - Fix trial quota dari 50 → 50.000 token (realistis untuk ~100-250 interaksi AI).
+  - Tuning Sentry sample rate untuk production (traces: 20%, profiles: 10%).
 
 ### 2026-07-10
 - ✅ **TASK 17.2 — Smart Notification System** selesai
